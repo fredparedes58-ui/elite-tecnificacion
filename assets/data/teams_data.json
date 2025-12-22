@@ -1,0 +1,699 @@
+
+{
+  "teams": [
+    {
+      "name": "C.F. Fundació VCF 'A'",
+      "coach": "Drago Melendez, Alejandro",
+      "assistantCoach": "Quilis Martinez, Liam",
+      "players": [
+        {
+          "name": "Molina Ponce, Jeyco Andre",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png",
+          "stats": {
+            "goals": 0,
+            "assists": 0,
+            "matchesPlayed": 15,
+            "skills": {
+              "Reflejos": 85,
+              "Paradas": 88,
+              "Agilidad": 82,
+              "Juego Aéreo": 75,
+              "Saque": 70
+            }
+          }
+        },
+        {
+          "name": "Pau Collado Redondo",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Garces Martinez, Marc",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Marc Torres Olveira",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Sánchez Cariñena, Dídac",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Leo Campillos Rumbau",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Terzano, Marco",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Sergio Sanmartin Nadal",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Nicolae Alejandro Ciobanu",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Miguel Angel Molina Giraldo",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Ndivo Ngomo, Juan",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "Picassent C.F. 'A'",
+      "coach": "Barea Moreno, Rafael",
+      "players": [
+        {
+          "name": "Rodriguez Campos, Mateo",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Sanchez Cijes, Dario",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png",
+          "stats": {
+            "goals": 5,
+            "assists": 10,
+            "matchesPlayed": 20,
+            "skills": {
+              "Velocidad": 90,
+              "Regate": 85,
+              "Tiro": 78,
+              "Pase": 88,
+              "Defensa": 60
+            }
+          }
+        },
+        {
+          "name": "Armero Serrano, Abel",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Oliver Tarazona Retamal",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Ousdaf El Hassani, Islam",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Perez Corrales, Lucas",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Martinez Llacer, David",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Deivid Navarro Belenguer",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Carretero Duart, Yeray",
+          "role": "Ps",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Victor",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Madrigal Ramos, Luca",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Gomez Martinez, Diego Antonio",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Caceres Albert, Andreu",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "F.B.U.E. Atlètic Amistat 'A'",
+      "coach": "Navas Moro, Roberto",
+      "players": [
+        {"name": "Abad Gurrea, Marc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Alcala Ferrer, Marc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Castro Molina, Victor", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "De Sojo Cervera, Marc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Estors Andreo, Bosco", "isStarter": true, "image": 'assets/players/default.png'},
+        {"name": "Lastra Marcos, Beltran", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Martínez López, Roberto", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Moreno Caja, Cristian", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Nacho Pla, Romero", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Noguera López-Roca, Fran", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Perez Cuesta", "isStarter": true, "image": "assets/players/default.png"}
+      ]
+    },
+    {
+      "name": "Torrent C.F. 'C'",
+      "coach": "Fenoll Jareño, Hector",
+      "players": [
+        {"name": "Beso Berbel, Francesc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Garcia Vidal, Asier", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Gimenez Laso, Marc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Laguillon Domingo, Alberto", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Menchero Montesinos, Guillermo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Merino Mora, Pablo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Navarro Pastor, Joel", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Palop Guerrero, Martin", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Poveda Garcia, Oliver", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Rubio Sorla, Gabriel", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Verdoy Escribano, Leo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Yannopoulos, Mark Mario", "isStarter": true, "image": "assets/players/default.png"}
+      ]
+    },
+    {
+      "name": "C.D. Monte-Sión 'A'",
+      "coach": "Cuervas Forment, Adrian",
+      "players": [
+        {"name": "Akwasie Osei-Owusu, Meshach Asante", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Bueno Belenguer, Mateo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Company Casado, David", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Cuervas Villalba, Aridai", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Giménez González, Gabriel", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Iranzo Garcia, Francisco", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Martinez Gimenez, Marc", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Martínez Hidalgo, Alejandro", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Montesinos Garcia, Hugo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Muñoz Garcia, Borja", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Pascual Sanchez, Hugo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Pop, Efrem", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Quintana Redon, Hugo", "isStarter": true, "image": "assets/players/default.png"}
+      ]
+    },
+    {
+      "name": "Unió Benetússer-Favara C.F. 'A'",
+      "coach": "Muñoz Baixauli, Álvaro",
+      "players": [
+        {"name": "Albert Soria, Rodrigo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Alcantarilla Bonilla, José", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Arnal Anton, Aitor", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Bermejo Amo, Alvaro", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Casal Marco, Oscar", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Claudio Villar, Arnau", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Cortes Giner, Alan", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Cortes Giner, Angel", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Pérez Rodríguez, Lucas", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Porro Gallardo, Leo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Serrano Giménez, Pau", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Velarde Soria, Leo", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Vidal Romeu, Fernando", "isStarter": true, "image": "assets/players/default.png"},
+        {"name": "Zamora Gargallo, Sergio", "isStarter": true, "image": "assets/players/default.png"}
+      ]
+    },
+    {
+      "name": "U.D. Alzira 'A'",
+      "coach": "Almiñana Chinchilla, Fernando",
+      "players": [
+        {
+          "name": "Jesus",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/jesus.png"
+        },
+        {
+          "name": "Mauro",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/mauro.png"
+        },
+        {
+          "name": "Sanjaime",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Marc",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Cristian",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Neizan",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Aimar",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Daniel",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Román",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Redondo",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "Col. Salgui E.D.E. 'A'",
+      "coach": "Hofmann Muñoz, Lucas",
+      "players": [
+        {
+          "name": "Mirapeix Sandells, Cristian",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Mellado Dutra, Alejandro",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Perez Mora, Enrique",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Molina Rodriguez, Carles",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Parra Planells, Mateo",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Leal Torrecillas, Mario",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Bartolome Baixauli, Adrian",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Rodriguez Cortes, Oliver",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Ruiperez Moncholi, Arnau",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Huerta Vaillo, Martin",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Moya Merida, Ignacio",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "C.D. San Marcelino 'A'",
+      "coach": "Dajani Puche, Ibai",
+      "players": [
+        {
+          "name": "Alcibar Gomez, Jaider Andres",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Parraga Moreno, Julen",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Arcoba Biot, Jorge",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Rincon Sanchez, Emmanuel",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Lillo Avila, Unai",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Paredes Castro, Samuel Alejandro",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Ramos Gonzalez, Dylan Steven",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Cabeza Cañas, Martin",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Dolz Sanchez, Iker",
+          "role": "Ps",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Ballesteros Huerta, Alejandro",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Rodriguez Gimenez, Marcos",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Martínez Riaza, Hugo",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "C.F.B. Ciutat de València 'A'",
+      "coach": "Salvador Fortea, Moises",
+      "players": [
+        {
+          "name": "Infante Lizcano, Angel Thomas",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Mor Vidal, Axel",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Soriano Asensio, Hugo",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Casanova Ortí, Pablo",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Morales Manco, Mathias Sandro",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Vicente Perez, Pedro",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Tsekhanovskii, Denis",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Kaes Garcia, Marco",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Lecha Valcarcel, Noah",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Bonmatí Montesinos, Juan",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Hernandez Fortea, Alex",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "C.F. Sporting Xirivella 'C'",
+      "coach": "Roberto Masip, Alejandro",
+      "players": [
+        {
+          "name": "Brodin Lerma, Marc",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Alascio Llacer, Jesus",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Zaragoza Talavera, Aritz",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Martinez Medina, Lucas Paul",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Piatnitckit, Vadim",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Valverde Serrano, Erick",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Rodriguez Gomez, Thiago",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Stroev, Danila",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Martin, Matias",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Shefer, Rodion",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Vega, Lorenzo",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Arjona Laencina, Marc",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    },
+    {
+      "name": "F.B.C.D. Catarroja 'B'",
+      "coach": "Soria Martins, Andoni",
+      "assistantCoach": "Peris Talaverano, Vicente Ramon",
+      "players": [
+        {
+          "name": "Jimenez Espinosa, Mario",
+          "role": "Pt",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Grau Pastor, Marc",
+          "role": "C",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Arribas Gallego, Alberto",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Morales Sobrino, Oliver",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Lucas Mellado Perez",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Duran Garcia, Martin",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Curbelo Guerra, Ricardo David",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Martinez Olivares, Unai",
+          "role": "",
+          "isStarter": true,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Duran Garcia, Pablo",
+          "role": "Ps",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Esteve Peñas, Julen",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        },
+        {
+          "name": "Carbonell Garnica, Mateo",
+          "role": "",
+          "isStarter": false,
+          "image": "assets/players/default.png"
+        }
+      ]
+    }
+  ]
+}

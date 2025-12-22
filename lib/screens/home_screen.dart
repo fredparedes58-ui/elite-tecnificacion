@@ -1,184 +1,80 @@
+
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/widgets/live_standings_card.dart';
+import 'package:myapp/widgets/squad_status_card.dart';
+import 'package:myapp/widgets/upcoming_match_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Panel de Control",
-            style: Theme.of(context).textTheme.titleLarge,
+    final textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'COMMAND CENTER',
+          style: GoogleFonts.oswald(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _kpi(
-                  context,
-                  "PUNTOS",
-                  "42",
-                  Icons.star,
-                  Theme.of(context).colorScheme.primary,
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: Text(
+                'Bienvenido de nuevo, Entrenador.',
+                style: GoogleFonts.roboto(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w300, // Un peso más ligero para un look moderno
+                  color: textTheme.bodyLarge?.color?.withAlpha((255 * 0.8).round()),
                 ),
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: _kpi(
-                  context,
-                  "GOLES",
-                  "58",
-                  Icons.sports_soccer,
-                  Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: _kpi(
-                  context,
-                  "POSICIÓN",
-                  "3º",
-                  Icons.emoji_events,
-                  Colors.orange,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 30),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "CLASIFICACIÓN LIGA",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    Icon(
-                      Icons.table_chart,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-                const Divider(height: 20),
-                FutureBuilder(
-                  future: Supabase.instance.client
-                      .from('teams')
-                      .select()
-                      .order('league_position', ascending: true),
-                  builder: (c, s) {
-                    if (!s.hasData) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      );
-                    }
-                    final t = s.data as List<dynamic>;
-                    return Column(
-                      children: t.map((team) {
-                        bool isMe = team['name'].toString().contains(
-                          'San Marcelino',
-                        );
-                        return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withAlpha(26)
-                                : null,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 40,
-                                child: Text(
-                                  "${team['league_position']}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  team['name'],
-                                  style: TextStyle(
-                                    fontWeight: isMe
-                                        ? FontWeight.w900
-                                        : FontWeight.normal,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                "${team['points']} pts",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
+
+            // --- Sección 1: Próximo Partido ---
+            _buildSectionTitle(context, 'Próximo Partido'),
+            const UpcomingMatchCard(),
+            const SizedBox(height: 32),
+
+            // --- Sección 2: Estado del Equipo ---
+            _buildSectionTitle(context, 'Estado del Equipo'),
+            const SquadStatusCard(),
+            const SizedBox(height: 32),
+
+            // --- Sección 3: Clasificación ---
+            _buildSectionTitle(context, 'Clasificación'),
+            const LiveStandingsCard(),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _kpi(BuildContext context, String l, String v, IconData i, Color c) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
+  // Widget helper para los títulos de sección, manteniendo la consistencia
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.robotoCondensed(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+          color: Theme.of(context).colorScheme.onSurface.withAlpha((255 * 0.7).round()),
         ),
-        child: Column(
-          children: [
-            Icon(i, color: c, size: 30),
-            const SizedBox(height: 10),
-            Text(
-              v,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            Text(
-              l,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
+      ),
+    );
+  }
 }

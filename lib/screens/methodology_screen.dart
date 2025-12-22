@@ -1,5 +1,6 @@
+
 import 'package:flutter/material.dart';
-import 'package:myapp/data/drill_data.dart';
+import 'package:myapp/data/drill_data.dart'; // Usamos la lista unificada
 import 'package:myapp/models/drill_model.dart';
 import 'package:myapp/widgets/drill_card.dart';
 
@@ -8,6 +9,10 @@ class MethodologyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Filtramos la lista principal para obtener los ejercicios de cada categoría.
+    final defensive = allDrills.where((d) => d.category == 'Defensa').toList();
+    final offensive = allDrills.where((d) => d.category == 'Ataque').toList();
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -28,8 +33,9 @@ class MethodologyScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _buildDrillList(defensiveDrills),
-            _buildDrillList(offensiveDrills),
+            // Pasamos las listas filtradas a los widgets que las muestran.
+            _buildDrillList(defensive),
+            _buildDrillList(offensive),
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -40,6 +46,7 @@ class MethodologyScreen extends StatelessWidget {
     );
   }
 
+  // Este widget ahora simplemente muestra la lista de ejercicios que recibe.
   Widget _buildDrillList(List<Drill> drills) {
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
@@ -47,7 +54,8 @@ class MethodologyScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
-          child: DrillCard(drill: drills[index], isFeatured: index == 0),
+          // Eliminamos el parámetro 'isFeatured' que ya no existe.
+          child: DrillCard(drill: drills[index]),
         );
       },
     );

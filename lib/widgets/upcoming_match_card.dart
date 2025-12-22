@@ -1,61 +1,113 @@
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class UpcomingMatchCard extends StatelessWidget {
   const UpcomingMatchCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      elevation: 4,
-      color: const Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 8,
+      shadowColor: Colors.black.withAlpha(128),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
+        padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode
+                ? [colorScheme.primary.withAlpha(26), Colors.black.withAlpha(102)]
+                : [colorScheme.primary.withAlpha(204), colorScheme.primary],
+          ),
           image: const DecorationImage(
-            image: NetworkImage('https://img.freepik.com/free-photo/soccer-field-painted-white-lines-green-grass-stadium_124507-15631.jpg'),
+            image: AssetImage('assets/images/noise_texture.png'), // Textura de ruido
             fit: BoxFit.cover,
-            opacity: 0.1,
+            opacity: 0.05,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('UPCOMING MATCH', style: textTheme.labelMedium?.copyWith(color: Colors.yellow)),
-                  IconButton(icon: const Icon(Icons.favorite_border, color: Colors.white), onPressed: () {}),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text('VS. ROBO-UNITED', style: textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-              Text('Stadium 2030 | vs El Fariolen', style: textTheme.bodySmall?.copyWith(color: Colors.white70)),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatColumn('84', 'WINS', Colors.green, context),
-                  _buildStatColumn('23', 'TIED', Colors.yellow, context),
-                  _buildStatColumn('10', 'LOST', Colors.red, context),
-                ],
-              ),
-            ],
-          ),
+        child: Column(
+          children: [
+            // Nombres de los equipos y logos
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTeamDisplay('assets/images/real_madrid_logo.png', 'Real Madrid'),
+                Text(
+                  'VS',
+                  style: GoogleFonts.oswald(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                _buildTeamDisplay('assets/images/barcelona_logo.png', 'Barcelona'),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Divisor estilizado
+            Divider(
+              color: Colors.white.withAlpha(51),
+              thickness: 1,
+              indent: 20,
+              endIndent: 20,
+            ),
+            const SizedBox(height: 16),
+
+            // Información del partido (Fecha y Hora)
+            _buildMatchInfo('SÁBADO, 26 DE OCTUBRE', '16:00 - Santiago Bernabéu', context),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatColumn(String value, String label, Color color, BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+  // Widget para mostrar el logo y nombre de un equipo
+  Widget _buildTeamDisplay(String logoPath, String teamName) {
     return Column(
       children: [
-        Text(value, style: textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold)),
-        Text(label, style: textTheme.labelSmall?.copyWith(color: Colors.white70)),
+        Image.asset(logoPath, height: 80, width: 80),
+        const SizedBox(height: 12),
+        Text(
+          teamName.toUpperCase(),
+          style: GoogleFonts.robotoCondensed(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget para mostrar la información del partido
+  Widget _buildMatchInfo(String date, String timeAndLocation, BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          date,
+          style: GoogleFonts.robotoCondensed(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white.withAlpha(204),
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          timeAndLocation,
+          style: GoogleFonts.roboto(
+            fontSize: 14,
+            color: Colors.white.withAlpha(179),
+          ),
+        ),
       ],
     );
   }

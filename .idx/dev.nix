@@ -2,15 +2,18 @@
 # see: https://firebase.google.com/docs/studio/customize-workspace
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
-  channel = "stable-24.05"; # or "unstable"
+  channel = "unstable"; # or "stable-24.05"
   # Use https://search.nixos.org/packages to find packages
   packages = [
+    pkgs.flutter
     pkgs.jdk21
     pkgs.unzip
     pkgs.google-chrome
   ];
   # Sets environment variables in the workspace
-  env = {};
+  env = {
+    CHROME_EXECUTABLE = "/nix/store/vqhs79yfvjqxl8178mhvyz2cqjrqk217-google-chrome-131.0.6778.139/share/google/chrome/google-chrome";
+  };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
