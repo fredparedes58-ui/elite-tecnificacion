@@ -1,0 +1,35 @@
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+ios/
+linux/
+macos/
+windows/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
