@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:myapp/data/drill_data.dart'; // Usamos la lista unificada
 import 'package:myapp/models/drill_model.dart';
+import 'package:myapp/screens/drill_details_screen.dart';
 import 'package:myapp/widgets/drill_card.dart';
 
 class MethodologyScreen extends StatelessWidget {
@@ -52,12 +52,36 @@ class MethodologyScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       itemCount: drills.length,
       itemBuilder: (context, index) {
+        final drill = drills[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           // Eliminamos el parámetro 'isFeatured' que ya no existe.
-          child: DrillCard(drill: drills[index]),
+          child: DrillCard(
+            drill: drill.toJson(),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DrillDetailsScreen(drill: drill),
+                ),
+              );
+            },
+          ),
         );
       },
     );
+  }
+}
+
+extension on Drill {
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'category': category,
+      'duration': duration,
+      'description': description,
+      'image': image,
+      'equipment': equipment,
+    };
   }
 }

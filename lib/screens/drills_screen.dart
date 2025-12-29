@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
-import 'package:myapp/data/drill_data.dart';
-import 'package:myapp/models/drill_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/widgets/drill_card.dart';
+import 'package:myapp/screens/drill_details_screen.dart';
 
 class DrillsScreen extends StatefulWidget {
   const DrillsScreen({super.key});
@@ -12,150 +11,90 @@ class DrillsScreen extends StatefulWidget {
 }
 
 class _DrillsScreenState extends State<DrillsScreen> {
-  final List<Drill> _drills = allDrills;
-  late List<Drill> _filteredDrills;
-  String _selectedCategory = 'All';
-  String _selectedDifficulty = 'All';
+  late final Future<List<Map<String, dynamic>>> _drillsFuture;
 
   @override
   void initState() {
     super.initState();
-    _applyFilters();
+    _drillsFuture = _fetchDrills();
   }
 
-  List<String> get _categories => ['All', ..._drills.map((d) => d.category).toSet()];
-  List<String> get _difficulties => ['All', 'Baja', 'Media', 'Alta'];
-
-  void _applyFilters() {
-    setState(() {
-      Iterable<Drill> tempDrills = _drills;
-
-      if (_selectedCategory != 'All') {
-        tempDrills = tempDrills.where((d) => d.category == _selectedCategory);
-      }
-
-      if (_selectedDifficulty != 'All') {
-        tempDrills = tempDrills.where((d) => d.difficulty == _selectedDifficulty);
-      }
-
-      _filteredDrills = tempDrills.toList();
-    });
+  Future<List<Map<String, dynamic>>> _fetchDrills() async {
+    try {
+      // Obtenemos los datos desde la tabla 'drills' de Supabase
+      final response = await Supabase.instance.client.from('drills').select();
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      // Si hay un error, lo lanzamos para que el FutureBuilder lo capture
+      throw Exception('Error al cargar los ejercicios: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Biblioteca de Ejercicios'),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
-      body: Column(
-        children: [
-          _buildFilterSection(
-            label: "Categoría",
-            items: _categories,
-            selectedItem: _selectedCategory,
-            onSelected: (category) {
-              _selectedCategory = category;
-              _applyFilters();
-            },
-            textTheme: textTheme,
-            colorScheme: colorScheme,
-          ),
-          const SizedBox(height: 8),
-          _buildFilterSection(
-            label: "Dificultad",
-            items: _difficulties,
-            selectedItem: _selectedDifficulty,
-            onSelected: (difficulty) {
-              _selectedDifficulty = difficulty;
-              _applyFilters();
-            },
-            textTheme: textTheme,
-            colorScheme: colorScheme,
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: _filteredDrills.length,
-              itemBuilder: (context, index) {
-                return DrillCard(drill: _filteredDrills[index]);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _drillsFuture,
+        builder: (context, snapshot) {
+          // 1. Mientras se cargan los datos, muestra un spinner
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-  Widget _buildFilterSection({
-    required String label,
-    required List<String> items,
-    required String selectedItem,
-    required ValueChanged<String> onSelected,
-    required TextTheme textTheme,
-    required ColorScheme colorScheme,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
-          child: Text(
-            label,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 40,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            itemCount: items.length,
+          // 2. Si ocurre un error en la conexión o la tabla no existe
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error: No se pudieron cargar los ejercicios.\n\nAsegúrate de que la tabla "drills" existe en tu base de datos de Supabase y que la app tiene los permisos correctos.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            );
+          }
+
+          // 3. Si la tabla está vacía
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text(
+                'No se encontraron ejercicios.\n\nAsegúrate de haber añadido datos a la tabla "drills" en Supabase.',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
+          // 4. Si todo fue exitoso, muestra la lista
+          final drills = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: drills.length,
             itemBuilder: (context, index) {
-              final item = items[index];
-              final isSelected = item == selectedItem;
-
+              final drill = drills[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: ChoiceChip(
-                  label: Text(item),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      onSelected(item);
-                    }
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: DrillCard(
+                  drill: drill,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DrillDetailsScreen(drill: drill),
+                      ),
+                    );
                   },
-                  labelStyle: textTheme.labelLarge?.copyWith(
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  selectedColor: colorScheme.primary,
-                  backgroundColor: colorScheme.surfaceContainerHighest.withAlpha(128),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0),
-                    side: BorderSide(
-                      color: isSelected ? colorScheme.primary : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  elevation: isSelected ? 4 : 0,
-                  pressElevation: 8,
                 ),
               );
             },
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }

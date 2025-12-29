@@ -122,7 +122,7 @@ class _PlayerCardScreenState extends State<PlayerCardScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 20),
-                                  PlayerRadarChart(stats: _player!.stats.skills),
+                                  PlayerRadarChart(skills: _player!.stats.skills),
                                 ],
                               ),
                             ),

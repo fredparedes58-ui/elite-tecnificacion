@@ -1,88 +1,67 @@
-
 import 'package:flutter/material.dart';
-import 'package:myapp/models/drill_model.dart';
 
 class DrillDetailsScreen extends StatelessWidget {
-  final Drill drill;
+  final Map<String, dynamic> drill;
 
   const DrillDetailsScreen({super.key, required this.drill});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(drill.title),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: Text(drill['name'] ?? 'Detalles del Ejercicio'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero(
-            //   tag: 'drill-image-${drill.id}',
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(15.0),
-            //     // child: Image.network(
-            //     //   drill.image,
-            //     //   fit: BoxFit.cover,
-            //     //   width: double.infinity,
-            //     //   height: 250,
-            //     // ),
-            //   ),
-            // ),
-            const SizedBox(height: 24),
             Text(
-              'Detalles del Ejercicio',
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
-              ),
+              drill['name'] ?? 'Ejercicio sin nombre',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildDetailRow(context, Icons.category, 'Categoría', drill.category),
-            const SizedBox(height: 12),
-            _buildDetailRow(context, Icons.star, 'Dificultad', drill.difficulty),
+            _buildInfoRow(context, Icons.category_outlined, 'Categoría', drill['category'] ?? 'General'),
+            const SizedBox(height: 8),
+            _buildInfoRow(context, Icons.timer_outlined, 'Duración', "${drill['duration_minutes']} minutos"),
             const SizedBox(height: 24),
+
             Text(
-              'Objetivos',
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              'Descripción',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              drill.description, 
-              style: textTheme.bodyLarge,
+              drill['description'] ?? 'No hay descripción disponible.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
+            const SizedBox(height: 24),
+
+            Text(
+              'Instrucciones',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              drill['instructions'] ?? 'No hay instrucciones disponibles.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+
+            // Aquí podrías añadir más detalles, como un vídeo o una imagen del ejercicio.
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, color: colorScheme.secondary, size: 20),
-        const SizedBox(width: 12),
-        Text(
-          '$label:',
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Icon(icon, color: Theme.of(context).colorScheme.secondary, size: 20),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: textTheme.titleMedium,
-            textAlign: TextAlign.end,
-          ),
-        ),
+        Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(width: 8),
+        Text(value),
       ],
     );
   }

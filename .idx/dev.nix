@@ -13,6 +13,7 @@
   # Sets environment variables in the workspace
   env = {
     CHROME_EXECUTABLE = "/nix/store/vqhs79yfvjqxl8178mhvyz2cqjrqk217-google-chrome-131.0.6778.139/share/google/chrome/google-chrome";
+    FLUTTER_SDK = "/nix/store/vjwj46wpaxfqq6gwmnynl4hl6fmzqjsa-flutter-wrapped-3.38.3-sdk-links";
   };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
@@ -41,3 +42,4 @@
     };
   };
 }
+# Refresh environment

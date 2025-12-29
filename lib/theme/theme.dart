@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // Definición de la paleta de colores futurista
 class AppColors {
@@ -21,18 +19,10 @@ class AppColors {
   static const Color lightAccent = Color(0xFF0052D4);
 }
 
-class AppTheme with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.dark;
-  ThemeMode get themeMode => _themeMode;
-
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
-
-  // Método para obtener el tema oscuro
+class AppTheme {
   static ThemeData get darkTheme {
-    final textTheme = GoogleFonts.poppinsTextTheme().apply(
+    final textTheme = ThemeData.dark().textTheme.apply(
+      fontFamily: 'sans-serif', 
       bodyColor: AppColors.primaryText,
       displayColor: AppColors.primaryText,
     );
@@ -51,9 +41,11 @@ class AppTheme with ChangeNotifier {
         primary: AppColors.accent,
         secondary: AppColors.accentGreen,
         surface: AppColors.surface,
+        error: Colors.redAccent,
         onPrimary: AppColors.background,
         onSecondary: AppColors.background,
         onSurface: AppColors.primaryText,
+        onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surface,
@@ -78,7 +70,7 @@ class AppTheme with ChangeNotifier {
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.accent.withAlpha(128)), // Usamos withAlpha para la opacidad
+          side: BorderSide(color: AppColors.accent.withAlpha(204)),
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -89,12 +81,17 @@ class AppTheme with ChangeNotifier {
         showUnselectedLabels: false,
         type: BottomNavigationBarType.fixed,
       ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: AppColors.surface,
+      ),
     );
   }
 
-  // Método para obtener el tema claro
   static ThemeData get lightTheme {
-    final textTheme = GoogleFonts.poppinsTextTheme().apply(
+    final textTheme = ThemeData.light().textTheme.apply(
+      fontFamily: 'sans-serif', 
       bodyColor: AppColors.lightPrimaryText,
       displayColor: AppColors.lightPrimaryText,
     );
@@ -113,9 +110,11 @@ class AppTheme with ChangeNotifier {
         primary: AppColors.lightAccent,
         secondary: AppColors.lightAccent,
         surface: AppColors.lightSurface,
+        error: Colors.red,
         onPrimary: AppColors.lightSurface,
         onSecondary: AppColors.lightSurface,
         onSurface: AppColors.lightPrimaryText,
+        onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.lightSurface,
@@ -150,6 +149,11 @@ class AppTheme with ChangeNotifier {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         type: BottomNavigationBarType.fixed,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
       ),
     );
   }
