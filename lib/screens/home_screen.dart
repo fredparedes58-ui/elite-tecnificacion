@@ -13,6 +13,7 @@ import 'package:myapp/screens/gallery_screen.dart';
 import 'package:myapp/screens/settings_screen.dart';
 import 'package:myapp/screens/methodology_screen.dart';
 import 'package:myapp/screens/field_schedule_screen.dart';
+import 'package:myapp/screens/top_scorers_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -279,6 +280,19 @@ class HomeScreen extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const FieldScheduleScreen()),
+        ),
+      ),
+      _QuickAccessItem(
+        title: 'Goleadores',
+        icon: Icons.emoji_events,
+        color: Colors.amber,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TopScorersScreen(
+            teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
+            category: 'Alevín', // TODO: Obtener del contexto/provider
+            clubId: 'demo-club-id', // TODO: Obtener del contexto/provider
+          )),
         ),
       ),
     ];

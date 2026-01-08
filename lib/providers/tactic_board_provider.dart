@@ -179,17 +179,38 @@ class TacticBoardProvider with ChangeNotifier {
 
   /// Carga formación por defecto sin jugadores específicos
   void _loadDefaultFormation(String formation) {
-    _substitutes = List.from(_allPlayers);
-
-    final starterPlayers = _allPlayers.where((p) => p.matchStatus == MatchStatus.starter).take(11).toList();
-    
+    // Obtener posiciones según la formación
     final positions = _getPositionsForFormation(formation);
     
-    for (int i = 0; i < starterPlayers.length && i < positions.length; i++) {
-      final player = starterPlayers[i];
+    // Priorizar jugadores con estado "starter", pero si no hay suficientes, usar otros
+    final starterPlayers = _allPlayers.where((p) => 
+      p.matchStatus == MatchStatus.starter
+    ).toList();
+    
+    final otherPlayers = _allPlayers.where((p) => 
+      p.matchStatus != MatchStatus.starter && p.matchStatus != MatchStatus.unselected
+    ).toList();
+    
+    // Combinar: primero titulares, luego otros si faltan
+    final playersToPlace = [...starterPlayers, ...otherPlayers].take(11).toList();
+    
+    // Colocar jugadores en las posiciones de la formación
+    for (int i = 0; i < playersToPlace.length && i < positions.length; i++) {
+      final player = playersToPlace[i];
       _starters.add(player);
       _starterPositions[player.name] = positions[i];
     }
+    
+    // Suplentes = todos los jugadores EXCEPTO los que ya están en el campo
+    _substitutes = _allPlayers.where((p) => 
+      !_starters.any((s) => s.id == p.id || s.name == p.name) && 
+      p.matchStatus != MatchStatus.unselected
+    ).toList();
+    
+    developer.log(
+      'Formación $formation cargada: ${_starters.length} titulares, ${_substitutes.length} suplentes',
+      name: 'TacticBoardProvider'
+    );
   }
 
   /// Obtiene las posiciones según la formación
