@@ -1,13 +1,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/models/player_model.dart';
+import 'package:myapp/models/alignment_model.dart' as alignment_model;
 import 'package:myapp/providers/tactic_board_provider.dart';
 import 'package:myapp/widgets/drawing_painter.dart';
 import 'package:myapp/widgets/pitch_view.dart';
 import 'package:myapp/widgets/player_piece.dart';
 import 'package:myapp/widgets/ball_piece.dart';
 import 'package:myapp/widgets/snap_grid_painter.dart';
+import 'package:myapp/screens/alignment_editor_screen.dart';
 import 'package:provider/provider.dart';
 
 class TacticalBoardScreen extends StatelessWidget {
@@ -36,6 +39,13 @@ class TacticalBoardScreen extends StatelessWidget {
 
   List<Widget> _buildAppBarActions(BuildContext context, TacticBoardProvider provider) {
     return [
+      // Botón para crear nueva alineación
+      IconButton(
+        icon: const Icon(Icons.add_box_outlined),
+        onPressed: () => _showCreateAlignmentDialog(context, provider),
+        tooltip: 'Nueva Alineación',
+      ),
+      // Dropdown de alineaciones con botón de editar
       if (provider.alignments.isNotEmpty) _buildAlignmentsDropdown(context, provider),
       if (provider.sessions.isNotEmpty) _buildSessionsDropdown(context, provider),
       IconButton(
@@ -249,15 +259,37 @@ class TacticalBoardScreen extends StatelessWidget {
   }
 
   Widget _buildAlignmentsDropdown(BuildContext context, TacticBoardProvider provider) {
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: provider.selectedAlignment?.id,
-        items: provider.alignments.map((a) => DropdownMenuItem<String>(value: a.id, child: Text(a.name, style: const TextStyle(color: Colors.white)))).toList(),
-        onChanged: (id) => id != null ? provider.selectAlignment(id) : null,
-        hint: const Text('Alineación', style: TextStyle(color: Colors.white70)),
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-        dropdownColor: Colors.grey[800],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: provider.selectedAlignment?.id,
+            items: provider.alignments.map((a) => DropdownMenuItem<String>(
+              value: a.id, 
+              child: Row(
+                children: [
+                  Text(a.name, style: const TextStyle(color: Colors.white)),
+                  const SizedBox(width: 8),
+                  if (a.isCustom)
+                    Icon(Icons.edit, size: 14, color: Colors.amber.withOpacity(0.7)),
+                ],
+              ),
+            )).toList(),
+            onChanged: (id) => id != null ? provider.selectAlignment(id) : null,
+            hint: const Text('Alineación', style: TextStyle(color: Colors.white70)),
+            icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+            dropdownColor: Colors.grey[800],
+          ),
+        ),
+        // Botón de editar si la alineación seleccionada es personalizada
+        if (provider.selectedAlignment != null && provider.selectedAlignment!.isCustom)
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.amber),
+            onPressed: () => _navigateToAlignmentEditor(context, provider, provider.selectedAlignment),
+            tooltip: 'Editar Alineación',
+          ),
+      ],
     );
   }
 
@@ -347,6 +379,156 @@ class TacticalBoardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // ============================================================
+  // MÉTODOS PARA ALINEACIONES PERSONALIZADAS
+  // ============================================================
+
+  /// Mostrar diálogo para crear nueva alineación
+  void _showCreateAlignmentDialog(BuildContext context, TacticBoardProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Nueva Alineación',
+          style: GoogleFonts.oswald(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('¿Qué deseas hacer?'),
+            const SizedBox(height: 16),
+            
+            // Opción 1: Crear desde configuración actual
+            ListTile(
+              leading: const Icon(Icons.save, color: Colors.green),
+              title: const Text('Guardar configuración actual'),
+              subtitle: const Text('Guardar jugadores tal como están en el campo'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSaveCurrentSetupDialog(context, provider);
+              },
+            ),
+            
+            const Divider(),
+            
+            // Opción 2: Crear nueva desde cero
+            ListTile(
+              leading: const Icon(Icons.add_circle, color: Colors.blue),
+              title: const Text('Crear desde cero'),
+              subtitle: const Text('Asignar jugadores a posiciones manualmente'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToAlignmentEditor(context, provider, null);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Diálogo para guardar la configuración actual como alineación
+  void _showSaveCurrentSetupDialog(BuildContext context, TacticBoardProvider provider) {
+    final nameController = TextEditingController();
+    final formationController = TextEditingController(text: '4-4-2');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Guardar Alineación Actual',
+          style: GoogleFonts.oswald(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Nombre de la alineación',
+                hintText: 'Ej: Alineación vs Madrid',
+                prefixIcon: Icon(Icons.label),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: formationController,
+              decoration: const InputDecoration(
+                labelText: 'Formación',
+                hintText: '4-4-2, 4-3-3, 3-5-2, etc.',
+                prefixIcon: Icon(Icons.grid_4x4),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                final alignment = provider.createAlignmentFromCurrentSetup(
+                  nameController.text,
+                  formationController.text.isNotEmpty ? formationController.text : '4-4-2',
+                );
+                
+                final success = await provider.saveAlignment(alignment);
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ Alineación guardada correctamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.pop(context);
+                }
+              }
+            },
+            child: const Text('GUARDAR'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Navegar a la pantalla de edición de alineación
+  Future<void> _navigateToAlignmentEditor(
+    BuildContext context,
+    TacticBoardProvider provider,
+    dynamic alignment,
+  ) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AlignmentEditorScreen(
+          alignment: alignment,
+          availablePlayers: provider.allPlayers.where((p) => p.id != null).toList(),
+        ),
+      ),
+    );
+
+    if (result != null && result is alignment_model.Alignment) {
+      final success = await provider.saveAlignment(result);
+      if (success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Alineación guardada correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 }
 

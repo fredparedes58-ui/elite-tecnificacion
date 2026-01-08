@@ -143,7 +143,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
             child: Column(
               children: [
                 Text(
-                  DateFormat('EEEE', 'es_ES').format(_selectedDate).toUpperCase(),
+                  DateFormat('EEEE').format(_selectedDate).toUpperCase(),
                   style: GoogleFonts.oswald(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -153,7 +153,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('d MMMM yyyy', 'es_ES').format(_selectedDate),
+                  DateFormat('d MMMM yyyy').format(_selectedDate),
                   style: GoogleFonts.roboto(
                     fontSize: 14,
                     color: colorScheme.onSurface.withOpacity(0.7),

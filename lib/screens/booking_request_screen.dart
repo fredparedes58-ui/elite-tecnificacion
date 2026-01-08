@@ -331,7 +331,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
                     ),
                   ),
                   Text(
-                    DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(_selectedDate),
+                    DateFormat('EEEE, d MMMM yyyy').format(_selectedDate),
                     style: GoogleFonts.oswald(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

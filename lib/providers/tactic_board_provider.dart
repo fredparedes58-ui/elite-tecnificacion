@@ -67,6 +67,7 @@ class TacticBoardProvider with ChangeNotifier {
     notifyListeners();
     try {
       await _loadPlayersFromSupabase();
+      await _loadAlignmentsFromSupabase(); // Cargar alineaciones
       _loadSampleData();
       _autoLoadStartersAndSubs();
     } catch (e, s) {
@@ -74,6 +75,23 @@ class TacticBoardProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Carga alineaciones desde Supabase
+  Future<void> _loadAlignmentsFromSupabase() async {
+    try {
+      final alignments = await _supabaseService.getAlignments();
+      _alignments = alignments;
+      developer.log('Alineaciones cargadas desde Supabase: ${alignments.length}', name: 'TacticBoardProvider');
+    } catch (e, s) {
+      developer.log('Error cargando alineaciones', error: e, stackTrace: s, name: 'TacticBoardProvider');
+      // Si falla, crear alineaciones por defecto
+      _alignments = [
+        alignment_model.Alignment(id: '1', name: 'Formación 4-4-2', formation: '4-4-2'),
+        alignment_model.Alignment(id: '2', name: 'Formación 4-3-3', formation: '4-3-3'),
+        alignment_model.Alignment(id: '3', name: 'Formación 3-5-2', formation: '3-5-2'),
+      ];
     }
   }
 
@@ -122,13 +140,104 @@ class TacticBoardProvider with ChangeNotifier {
 
     _starters.clear();
     _starterPositions.clear();
+
+    // Si la alineación tiene jugadores asignados a posiciones específicas
+    if (selected.playerPositions.isNotEmpty) {
+      developer.log('Cargando alineación con ${selected.playerPositions.length} jugadores asignados', 
+          name: 'TacticBoardProvider');
+      
+      for (var entry in selected.playerPositions.entries) {
+        final playerId = entry.key;
+        final position = entry.value;
+        
+        // Buscar jugador por ID
+        final player = _allPlayers.firstWhere(
+          (p) => p.id == playerId,
+          orElse: () => Player(name: '', isStarter: false, image: ''),
+        );
+        
+        if (player.name.isNotEmpty) {
+          _starters.add(player);
+          _starterPositions[player.name] = position.offset;
+        }
+      }
+      
+      // Actualizar suplentes (jugadores no asignados)
+      _substitutes = _allPlayers.where((p) => 
+        !_starters.any((s) => s.id == p.id) && p.matchStatus != MatchStatus.unselected
+      ).toList();
+      
+    } else {
+      // Alineación sin jugadores asignados: usar formación por defecto
+      developer.log('Cargando alineación con formación por defecto: ${selected.formation}', 
+          name: 'TacticBoardProvider');
+      _loadDefaultFormation(selected.formation);
+    }
+    
+    notifyListeners();
+  }
+
+  /// Carga formación por defecto sin jugadores específicos
+  void _loadDefaultFormation(String formation) {
     _substitutes = List.from(_allPlayers);
 
-    final initialStarters = _allPlayers.where((p) => p.isStarter).take(11).toList();
-    for (var player in initialStarters) {
-      addStarter(player, Offset(100.0 + (initialStarters.indexOf(player) * 30.0), 150.0 + (initialStarters.indexOf(player) * 20.0)));
+    final starterPlayers = _allPlayers.where((p) => p.matchStatus == MatchStatus.starter).take(11).toList();
+    
+    final positions = _getPositionsForFormation(formation);
+    
+    for (int i = 0; i < starterPlayers.length && i < positions.length; i++) {
+      final player = starterPlayers[i];
+      _starters.add(player);
+      _starterPositions[player.name] = positions[i];
     }
-    notifyListeners();
+  }
+
+  /// Obtiene las posiciones según la formación
+  List<Offset> _getPositionsForFormation(String formation) {
+    switch (formation) {
+      case '4-3-3':
+        return [
+          const Offset(180, 600),  // Portero
+          const Offset(80, 480),   // Defensa 1
+          const Offset(140, 500),  // Defensa 2
+          const Offset(220, 500),  // Defensa 3
+          const Offset(280, 480),  // Defensa 4
+          const Offset(100, 340),  // Medio 1
+          const Offset(180, 360),  // Medio 2
+          const Offset(260, 340),  // Medio 3
+          const Offset(80, 180),   // Delantero 1
+          const Offset(180, 160),  // Delantero 2
+          const Offset(280, 180),  // Delantero 3
+        ];
+      case '3-5-2':
+        return [
+          const Offset(180, 600),  // Portero
+          const Offset(100, 500),  // Defensa 1
+          const Offset(180, 520),  // Defensa 2
+          const Offset(260, 500),  // Defensa 3
+          const Offset(80, 340),   // Medio 1
+          const Offset(120, 360),  // Medio 2
+          const Offset(180, 360),  // Medio 3
+          const Offset(240, 360),  // Medio 4
+          const Offset(280, 340),  // Medio 5
+          const Offset(140, 180),  // Delantero 1
+          const Offset(220, 180),  // Delantero 2
+        ];
+      default: // 4-4-2
+        return [
+          const Offset(180, 600),  // Portero
+          const Offset(80, 480),   // Defensa 1
+          const Offset(140, 500),  // Defensa 2
+          const Offset(220, 500),  // Defensa 3
+          const Offset(280, 480),  // Defensa 4
+          const Offset(80, 340),   // Medio 1
+          const Offset(140, 360),  // Medio 2
+          const Offset(220, 360),  // Medio 3
+          const Offset(280, 340),  // Medio 4
+          const Offset(140, 200),  // Delantero 1
+          const Offset(220, 200),  // Delantero 2
+        ];
+    }
   }
 
   void loadTacticalSession(String sessionId) {
@@ -176,6 +285,70 @@ class TacticBoardProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // --- GESTIÓN DE ALINEACIONES PERSONALIZADAS ---
+  
+  /// Guarda una alineación personalizada
+  Future<bool> saveAlignment(alignment_model.Alignment alignment) async {
+    try {
+      final success = await _supabaseService.saveAlignment(alignment);
+      if (success) {
+        // Actualizar lista de alineaciones
+        final index = _alignments.indexWhere((a) => a.id == alignment.id);
+        if (index >= 0) {
+          _alignments[index] = alignment;
+        } else {
+          _alignments.add(alignment);
+        }
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      developer.log('Error guardando alineación', error: e, name: 'TacticBoardProvider');
+      return false;
+    }
+  }
+
+  /// Elimina una alineación personalizada
+  Future<bool> deleteAlignment(String alignmentId) async {
+    try {
+      final success = await _supabaseService.deleteAlignment(alignmentId);
+      if (success) {
+        _alignments.removeWhere((a) => a.id == alignmentId);
+        if (_selectedAlignment?.id == alignmentId) {
+          _selectedAlignment = null;
+        }
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      developer.log('Error eliminando alineación', error: e, name: 'TacticBoardProvider');
+      return false;
+    }
+  }
+
+  /// Crea una nueva alineación desde la configuración actual del campo
+  alignment_model.Alignment createAlignmentFromCurrentSetup(String name, String formation) {
+    final playerPositions = <String, alignment_model.PlayerPosition>{};
+    
+    for (var player in _starters) {
+      if (player.id != null && _starterPositions.containsKey(player.name)) {
+        playerPositions[player.id!] = alignment_model.PlayerPosition(
+          offset: _starterPositions[player.name]!,
+          role: player.role,
+        );
+      }
+    }
+
+    return alignment_model.Alignment(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: name,
+      formation: formation,
+      playerPositions: playerPositions,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      isCustom: true,
+    );
+  }
 
   // --- GESTIÓN DE JUGADORES ---
   void addStarter(Player player, Offset position) {
@@ -281,12 +454,15 @@ class TacticBoardProvider with ChangeNotifier {
   }
 
   void _loadSampleData() {
-    _alignments = [
-      alignment_model.Alignment(id: _uuid.v4(), name: '4-3-3 Ofensivo'),
-      alignment_model.Alignment(id: _uuid.v4(), name: '4-4-2 Clásico'),
-      alignment_model.Alignment(id: _uuid.v4(), name: '5-4-1 Defensivo'),
-      alignment_model.Alignment(id: _uuid.v4(), name: '3-5-2 Moderno'),
-    ];
+    // Solo cargar alineaciones de ejemplo si no hay ninguna cargada desde Supabase
+    if (_alignments.isEmpty) {
+      _alignments = [
+        alignment_model.Alignment(id: _uuid.v4(), name: '4-3-3 Ofensivo', formation: '4-3-3'),
+        alignment_model.Alignment(id: _uuid.v4(), name: '4-4-2 Clásico', formation: '4-4-2'),
+        alignment_model.Alignment(id: _uuid.v4(), name: '5-4-1 Defensivo', formation: '5-4-1'),
+        alignment_model.Alignment(id: _uuid.v4(), name: '3-5-2 Moderno', formation: '3-5-2'),
+      ];
+    }
 
     if (_allPlayers.length >= 2) {
       final sampleStarters = _allPlayers.take(2).toList();
