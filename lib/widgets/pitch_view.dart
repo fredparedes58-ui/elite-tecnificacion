@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 
-// El widget principal que contiene el campo de juego.
+// El widget principal que contiene el campo de juego con imagen real
 class PitchView extends StatelessWidget {
   const PitchView({super.key});
 
@@ -10,83 +10,79 @@ class PitchView extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        // Usamos un gradiente para darle un aspecto más moderno al césped.
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.green[700]!, // Un verde ligeramente más claro en la parte superior
-            Colors.green[800]!, // Un verde más oscuro en la parte inferior
-          ],
-        ),
         boxShadow: [
-          // Sombra interior para dar profundidad
           BoxShadow(
-            color: Colors.black.withAlpha(77), // Corrección: withOpacity -> withAlpha
+            color: Colors.black.withAlpha(77),
             blurRadius: 10,
             spreadRadius: -5,
           ),
         ],
       ),
-      // El CustomPaint se encarga de dibujar las líneas del campo.
-      child: CustomPaint(
-        painter: PitchPainter(),
-        child: Container(), // El hijo es necesario para que el painter se dibuje
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Imagen de fondo del campo de fútbol real
+            Image.network(
+              'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1200&q=80',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback a imagen alternativa si falla la primera
+                return Image.network(
+                  'https://images.pexels.com/photos/399187/pexels-photo-399187.jpeg?auto=compress&cs=tinysrgb&w=1200',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error2, stackTrace2) {
+                    // Último fallback: degradado verde oscuro
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF1B5E20),
+                            const Color(0xFF0D3D15),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  color: const Color(0xFF1B5E20),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.white54,
+                    ),
+                  ),
+                );
+              },
+            ),
+            // Overlay oscuro sutil para mejorar contraste con jugadores
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withAlpha(25),
+                    Colors.black.withAlpha(51),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// El CustomPainter que dibuja las líneas del campo de fútbol.
-class PitchPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withAlpha(153) // Corrección: withOpacity -> withAlpha
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0; // Grosor de las líneas
-
-    final width = size.width;
-    final height = size.height;
-
-    // 1. Línea de medio campo
-    canvas.drawLine(Offset(width / 2, 0), Offset(width / 2, height), paint);
-
-    // 2. Círculo central
-    canvas.drawCircle(Offset(width / 2, height / 2), width / 8, paint);
-    // Punto central
-    canvas.drawCircle(
-        Offset(width / 2, height / 2),
-        3,
-        paint..style = PaintingStyle.fill // Rellenamos el punto central
-        );
-    paint.style = PaintingStyle.stroke; // Restauramos el estilo
-
-    // 3. Bordes del campo
-    canvas.drawRect(Rect.fromLTWH(0, 0, width, height), paint);
-
-    // 4. Área de penalti izquierda
-    final penaltyAreaWidth = width * 0.2; // Ancho del área
-    final penaltyAreaHeight = height * 0.6; // Alto del área
-    final penaltyAreaTop = (height - penaltyAreaHeight) / 2;
-    final penaltyAreaRectLeft = Rect.fromLTWH(0, penaltyAreaTop, penaltyAreaWidth, penaltyAreaHeight);
-    canvas.drawRect(penaltyAreaRectLeft, paint);
-
-    // 5. Área de penalti derecha
-    final penaltyAreaRectRight = Rect.fromLTWH(width - penaltyAreaWidth, penaltyAreaTop, penaltyAreaWidth, penaltyAreaHeight);
-    canvas.drawRect(penaltyAreaRectRight, paint);
-
-    // 6. Arco del área de penalti izquierda (Media luna)
-    final arcRectLeft = Rect.fromCircle(center: Offset(penaltyAreaWidth, height / 2), radius: height * 0.15);
-    canvas.drawArc(arcRectLeft, -1.1, 2.2, false, paint); // Usamos ángulos en radianes
-
-    // 7. Arco del área de penalti derecha (Media luna)
-    final arcRectRight = Rect.fromCircle(center: Offset(width - penaltyAreaWidth, height / 2), radius: height * 0.15);
-    canvas.drawArc(arcRectRight, 2.04, 2.2, false, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false; // No necesitamos repintar a menos que cambien las dimensiones
-  }
-}
+// CustomPainter eliminado - Ahora se usa imagen real de campo de fútbol

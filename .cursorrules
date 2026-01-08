@@ -201,3 +201,21 @@ MODO REDISEÑO: [instrucción específica]
 **ÚLTIMA VERIFICACIÓN:** 2026-01-08  
 **DISEÑADOR RESPONSABLE:** Celiannycastro  
 **FRAMEWORK:** Flutter 3.9+
+
+---
+
+## 📖 DOCUMENTACIÓN MAESTRA COMPLETA
+
+Para especificaciones detalladas de TODOS los elementos visuales, consulta:
+**`DESIGN_BLUEPRINT_MASTER.md`** (949 líneas)
+
+Este archivo contiene:
+- ✅ Paleta de colores completa (hex codes)
+- ✅ Todas las dimensiones y espaciados
+- ✅ Estructura completa de widgets
+- ✅ Sistema de navegación y privilegios
+- ✅ Configuración de Supabase
+- ✅ Especificaciones de todos los componentes
+- ✅ Changelog y versiones
+
+**ANTES DE MODIFICAR CUALQUIER ASPECTO VISUAL, CONSULTA ESE ARCHIVO.**
