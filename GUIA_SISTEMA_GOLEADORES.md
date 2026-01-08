@@ -28,7 +28,8 @@ Sistema completo que permite a los entrenadores registrar las estadísticas de g
 
 #### Actualización en Tabla Teams
 ```sql
-- category (VARCHAR(50)) - Ejemplos: "Prebenjamín", "Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil", "Senior"
+- category (VARCHAR(50)) - Categorías oficiales: "Prebenjamín", "Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil"
+  (desde Sub-7 hasta Sub-18)
 ```
 
 #### Vistas y Funciones Creadas

@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -37,7 +37,10 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications_outlined, color: colorScheme.primary),
+            icon: Icon(
+              Icons.notifications_outlined,
+              color: colorScheme.primary,
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Notificaciones próximamente')),
@@ -77,7 +80,11 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // SECCIÓN 3: CLASIFICACIÓN
-            _buildSectionTitle(context, 'Clasificación en Vivo', Icons.leaderboard),
+            _buildSectionTitle(
+              context,
+              'Clasificación en Vivo',
+              Icons.leaderboard,
+            ),
             const SizedBox(height: 16),
             const LiveStandingsCard(),
             const SizedBox(height: 32),
@@ -163,11 +170,7 @@ class HomeScreen extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
         Text(
           title.toUpperCase(),
@@ -204,7 +207,9 @@ class HomeScreen extends StatelessWidget {
         color: Colors.blue,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SquadManagementScreen()),
+          MaterialPageRoute(
+            builder: (context) => const SquadManagementScreen(),
+          ),
         ),
       ),
       _QuickAccessItem(
@@ -249,10 +254,10 @@ class HomeScreen extends StatelessWidget {
         color: Colors.teal,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const TeamChatScreen(
-            userRole: 'coach',
-            userName: 'Entrenador',
-          )),
+          MaterialPageRoute(
+            builder: (context) =>
+                const TeamChatScreen(userRole: 'coach', userName: 'Entrenador'),
+          ),
         ),
       ),
       _QuickAccessItem(
@@ -288,11 +293,13 @@ class HomeScreen extends StatelessWidget {
         color: Colors.amber,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const TopScorersScreen(
-            teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
-            category: 'Alevín', // TODO: Obtener del contexto/provider
-            clubId: 'demo-club-id', // TODO: Obtener del contexto/provider
-          )),
+          MaterialPageRoute(
+            builder: (context) => const TopScorersScreen(
+              teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
+              category: 'Alevín', // TODO: Obtener del contexto/provider
+              clubId: 'demo-club-id', // TODO: Obtener del contexto/provider
+            ),
+          ),
         ),
       ),
     ];
@@ -321,27 +328,17 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              item.color.withOpacity(0.2),
-              item.color.withOpacity(0.05),
-            ],
+            colors: [item.color.withOpacity(0.2), item.color.withOpacity(0.05)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: item.color.withOpacity(0.3),
-            width: 1,
-          ),
+          border: Border.all(color: item.color.withOpacity(0.3), width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              item.icon,
-              size: 32,
-              color: item.color,
-            ),
+            Icon(item.icon, size: 32, color: item.color),
             const SizedBox(height: 8),
             Text(
               item.title,
@@ -397,7 +394,9 @@ class HomeScreen extends StatelessWidget {
           color: Colors.orange,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const SessionPlannerScreen()),
+            MaterialPageRoute(
+              builder: (context) => const SessionPlannerScreen(),
+            ),
           ),
         ),
       ],
@@ -420,10 +419,7 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 1,
-          ),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
         ),
         child: Row(
           children: [
@@ -458,11 +454,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: color,
-            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: color),
           ],
         ),
       ),
@@ -523,7 +515,9 @@ class HomeScreen extends StatelessWidget {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SessionPlannerScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SessionPlannerScreen(),
+                    ),
                   );
                 },
               ),
@@ -542,9 +536,9 @@ class HomeScreen extends StatelessWidget {
                 title: Text('Editar Elemento', style: GoogleFonts.roboto()),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Modo edición')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Modo edición')));
                 },
               ),
               ListTile(

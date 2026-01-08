@@ -15,8 +15,8 @@ BEGIN
     ) THEN
         ALTER TABLE teams ADD COLUMN category VARCHAR(50);
         
-        -- Valores por defecto para categorías comunes
-        COMMENT ON COLUMN teams.category IS 'Categoría del equipo: Prebenjamín, Benjamín, Alevín, Infantil, Cadete, Juvenil, Senior';
+        -- Categorías oficiales del club (desde Prebenjamín hasta Juvenil)
+        COMMENT ON COLUMN teams.category IS 'Categoría del equipo: Prebenjamín (Sub-7), Benjamín (Sub-9), Alevín (Sub-11), Infantil (Sub-13), Cadete (Sub-15), Juvenil (Sub-18)';
     END IF;
 END $$;
 
@@ -265,7 +265,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- PASO 10: Datos de ejemplo para testing (OPCIONAL - Comentado)
+-- PASO 10: Asignar Categorías a tus Equipos
+-- ============================================================
+-- Descomenta y ejecuta para asignar categorías (reemplaza con tus IDs reales)
+/*
+-- CATEGORÍAS OFICIALES: Prebenjamín hasta Juvenil
+UPDATE teams SET category = 'Prebenjamín' WHERE name = 'Tu Equipo Sub-7';   -- 6-7 años
+UPDATE teams SET category = 'Benjamín' WHERE name = 'Tu Equipo Sub-9';      -- 8-9 años
+UPDATE teams SET category = 'Alevín' WHERE name = 'Tu Equipo Sub-11';       -- 10-11 años
+UPDATE teams SET category = 'Infantil' WHERE name = 'Tu Equipo Sub-13';     -- 12-13 años
+UPDATE teams SET category = 'Cadete' WHERE name = 'Tu Equipo Sub-15';       -- 14-15 años
+UPDATE teams SET category = 'Juvenil' WHERE name = 'Tu Equipo Sub-18';      -- 16-17 años
+
+-- Verifica que se guardaron correctamente
+SELECT id, name, category FROM teams ORDER BY 
+    CASE category
+        WHEN 'Prebenjamín' THEN 1
+        WHEN 'Benjamín' THEN 2
+        WHEN 'Alevín' THEN 3
+        WHEN 'Infantil' THEN 4
+        WHEN 'Cadete' THEN 5
+        WHEN 'Juvenil' THEN 6
+        ELSE 7
+    END;
+*/
+
+-- PASO 11: Datos de ejemplo para testing (OPCIONAL - Comentado)
 -- ============================================================
 /*
 -- Ejemplo: Insertar estadísticas de prueba

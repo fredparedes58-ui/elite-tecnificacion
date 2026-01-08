@@ -213,50 +213,72 @@ class TacticBoardProvider with ChangeNotifier {
     );
   }
 
-  /// Obtiene las posiciones según la formación
+  /// Obtiene las posiciones según la formación (ajustadas para campo grande ~1300x700px)
   List<Offset> _getPositionsForFormation(String formation) {
+    // Dimensiones aproximadas del campo visual (ajustables)
+    const fieldWidth = 1300.0;
+    const fieldHeight = 700.0;
+    
+    // Márgenes desde los bordes
+    const marginSide = 100.0;
+    const marginTop = 80.0;
+    const marginBottom = 80.0;
+    
+    // Ancho útil para distribuir jugadores
+    const usableWidth = fieldWidth - (2 * marginSide);
+    const usableHeight = fieldHeight - marginTop - marginBottom;
+    
+    // Centro horizontal
+    const centerX = fieldWidth / 2;
+    
+    // Posiciones verticales (de arriba hacia abajo: atacantes, medios, defensas, portero)
+    const attackY = marginTop + usableHeight * 0.15;      // 15% desde arriba
+    const midY = marginTop + usableHeight * 0.45;         // 45% desde arriba
+    const defenseY = marginTop + usableHeight * 0.75;     // 75% desde arriba
+    const goalkeeperY = fieldHeight - marginBottom - 30;  // Cerca del borde inferior
+    
     switch (formation) {
       case '4-3-3':
         return [
-          const Offset(180, 600),  // Portero
-          const Offset(80, 480),   // Defensa 1
-          const Offset(140, 500),  // Defensa 2
-          const Offset(220, 500),  // Defensa 3
-          const Offset(280, 480),  // Defensa 4
-          const Offset(100, 340),  // Medio 1
-          const Offset(180, 360),  // Medio 2
-          const Offset(260, 340),  // Medio 3
-          const Offset(80, 180),   // Delantero 1
-          const Offset(180, 160),  // Delantero 2
-          const Offset(280, 180),  // Delantero 3
+          Offset(centerX, goalkeeperY),                    // Portero (centro)
+          Offset(marginSide + 80, defenseY),               // Defensa 1 (izq)
+          Offset(centerX - 100, defenseY + 20),            // Defensa 2 (centro-izq)
+          Offset(centerX + 100, defenseY + 20),            // Defensa 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, defenseY),  // Defensa 4 (der)
+          Offset(marginSide + 120, midY),                  // Medio 1 (izq)
+          Offset(centerX, midY + 20),                      // Medio 2 (centro)
+          Offset(fieldWidth - marginSide - 120, midY),     // Medio 3 (der)
+          Offset(marginSide + 80, attackY),                // Delantero 1 (izq)
+          Offset(centerX, attackY - 20),                   // Delantero 2 (centro)
+          Offset(fieldWidth - marginSide - 80, attackY),   // Delantero 3 (der)
         ];
       case '3-5-2':
         return [
-          const Offset(180, 600),  // Portero
-          const Offset(100, 500),  // Defensa 1
-          const Offset(180, 520),  // Defensa 2
-          const Offset(260, 500),  // Defensa 3
-          const Offset(80, 340),   // Medio 1
-          const Offset(120, 360),  // Medio 2
-          const Offset(180, 360),  // Medio 3
-          const Offset(240, 360),  // Medio 4
-          const Offset(280, 340),  // Medio 5
-          const Offset(140, 180),  // Delantero 1
-          const Offset(220, 180),  // Delantero 2
+          Offset(centerX, goalkeeperY),                       // Portero (centro)
+          Offset(marginSide + 150, defenseY + 20),            // Defensa 1 (izq)
+          Offset(centerX, defenseY + 40),                     // Defensa 2 (centro)
+          Offset(fieldWidth - marginSide - 150, defenseY + 20), // Defensa 3 (der)
+          Offset(marginSide + 80, midY),                      // Medio 1 (extremo izq)
+          Offset(marginSide + 220, midY + 20),                // Medio 2 (izq)
+          Offset(centerX, midY + 20),                         // Medio 3 (centro)
+          Offset(fieldWidth - marginSide - 220, midY + 20),   // Medio 4 (der)
+          Offset(fieldWidth - marginSide - 80, midY),         // Medio 5 (extremo der)
+          Offset(centerX - 150, attackY),                     // Delantero 1 (izq)
+          Offset(centerX + 150, attackY),                     // Delantero 2 (der)
         ];
       default: // 4-4-2
         return [
-          const Offset(180, 600),  // Portero
-          const Offset(80, 480),   // Defensa 1
-          const Offset(140, 500),  // Defensa 2
-          const Offset(220, 500),  // Defensa 3
-          const Offset(280, 480),  // Defensa 4
-          const Offset(80, 340),   // Medio 1
-          const Offset(140, 360),  // Medio 2
-          const Offset(220, 360),  // Medio 3
-          const Offset(280, 340),  // Medio 4
-          const Offset(140, 200),  // Delantero 1
-          const Offset(220, 200),  // Delantero 2
+          Offset(centerX, goalkeeperY),                    // Portero (centro)
+          Offset(marginSide + 80, defenseY),               // Defensa 1 (izq)
+          Offset(centerX - 100, defenseY + 20),            // Defensa 2 (centro-izq)
+          Offset(centerX + 100, defenseY + 20),            // Defensa 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, defenseY),  // Defensa 4 (der)
+          Offset(marginSide + 80, midY),                   // Medio 1 (izq)
+          Offset(centerX - 100, midY + 20),                // Medio 2 (centro-izq)
+          Offset(centerX + 100, midY + 20),                // Medio 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, midY),      // Medio 4 (der)
+          Offset(centerX - 150, attackY + 20),             // Delantero 1 (izq)
+          Offset(centerX + 150, attackY + 20),             // Delantero 2 (der)
         ];
     }
   }
