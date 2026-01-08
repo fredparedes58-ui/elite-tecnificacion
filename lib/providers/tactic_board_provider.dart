@@ -38,6 +38,10 @@ class TacticBoardProvider with ChangeNotifier {
   // Estado para sustituciones
   Player? _selectedPlayerForSubstitution;
   bool _isSubstitutionMode = false;
+  
+  // Configuración de movilidad mejorada
+  bool _enableSnapping = true;
+  final double _snapDistance = 20.0; // Distancia para activar el snap magnético
 
   // Getters
   bool get isLoading => _isLoading;
@@ -196,10 +200,59 @@ class TacticBoardProvider with ChangeNotifier {
 
   void updateStarterPosition(Player player, Offset newPosition) {
     if (_starterPositions.containsKey(player.name)) {
-      _starterPositions[player.name] = newPosition;
+      // Aplicar snapping magnético si está habilitado
+      final finalPosition = _enableSnapping ? _applySnapping(newPosition) : newPosition;
+      _starterPositions[player.name] = finalPosition;
       notifyListeners();
     }
   }
+
+  /// Sistema de Snapping Magnético (Ayuda de Alineación)
+  Offset _applySnapping(Offset position) {
+    // Posiciones clave en una formación típica (snap points)
+    final snapPoints = [
+      // DEFENSA
+      const Offset(80, 480), const Offset(140, 500),
+      const Offset(220, 500), const Offset(280, 480),
+      const Offset(180, 520), // Defensa central
+      
+      // MEDIO CAMPO
+      const Offset(80, 340), const Offset(140, 360),
+      const Offset(180, 360), const Offset(220, 360),
+      const Offset(280, 340),
+      
+      // ATAQUE
+      const Offset(80, 180), const Offset(140, 200),
+      const Offset(180, 180), const Offset(220, 200),
+      const Offset(280, 180),
+      
+      // PORTERO
+      const Offset(180, 600),
+    ];
+
+    // Buscar el snap point más cercano
+    Offset? closestSnapPoint;
+    double minDistance = double.infinity;
+
+    for (final snapPoint in snapPoints) {
+      final distance = (position - snapPoint).distance;
+      if (distance < minDistance && distance < _snapDistance) {
+        minDistance = distance;
+        closestSnapPoint = snapPoint;
+      }
+    }
+
+    // Si hay un snap point cercano, usarlo. Si no, usar la posición original
+    return closestSnapPoint ?? position;
+  }
+
+  /// Activar/Desactivar snapping magnético
+  void toggleSnapping() {
+    _enableSnapping = !_enableSnapping;
+    notifyListeners();
+  }
+
+  bool get enableSnapping => _enableSnapping;
 
   // --- MÉTODOS DE DIBUJO ---
   void toggleDrawingMode() { _isDrawingMode = !_isDrawingMode; notifyListeners(); }

@@ -1,11 +1,13 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:myapp/models/player_model.dart';
 import 'package:myapp/providers/tactic_board_provider.dart';
 import 'package:myapp/widgets/drawing_painter.dart';
 import 'package:myapp/widgets/pitch_view.dart';
 import 'package:myapp/widgets/player_piece.dart';
 import 'package:myapp/widgets/ball_piece.dart';
+import 'package:myapp/widgets/snap_grid_painter.dart';
 import 'package:provider/provider.dart';
 
 class TacticalBoardScreen extends StatelessWidget {
@@ -36,6 +38,14 @@ class TacticalBoardScreen extends StatelessWidget {
     return [
       if (provider.alignments.isNotEmpty) _buildAlignmentsDropdown(context, provider),
       if (provider.sessions.isNotEmpty) _buildSessionsDropdown(context, provider),
+      IconButton(
+        icon: Icon(
+          provider.enableSnapping ? Icons.grid_on : Icons.grid_off,
+          color: provider.enableSnapping ? Colors.greenAccent : Colors.white54,
+        ),
+        onPressed: provider.toggleSnapping,
+        tooltip: provider.enableSnapping ? 'Snap Activado' : 'Snap Desactivado',
+      ),
       IconButton(
         icon: const Icon(Icons.refresh),
         onPressed: provider.refreshPlayers,
@@ -79,8 +89,13 @@ class TacticalBoardScreen extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final pitchWidth = constraints.maxWidth - 32; // Restar padding
+              final pitchHeight = constraints.maxHeight;
+              
               return DragTarget<Object>(
                 builder: (context, candidateData, rejectedData) {
+                  final isDraggingPlayer = candidateData.isNotEmpty && candidateData.first is Player;
+                  
                   return GestureDetector(
                      onPanStart: (details) {
                         if (provider.isDrawingMode) {
@@ -102,20 +117,50 @@ class TacticalBoardScreen extends StatelessWidget {
                       child: Stack(
                         children: [
                           const PitchView(),
+                          
+                          // Grid de snapping (puntos magnéticos) cuando está habilitado
+                          if (provider.enableSnapping)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: SnapGridPainter(showGrid: true),
+                              ),
+                            ),
+                          
+                          // Indicadores de zona cuando se arrastra un jugador
+                          if (isDraggingPlayer)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: ZoneIndicatorPainter(),
+                              ),
+                            ),
+                          
                           CustomPaint(
                             painter: DrawingPainter(lines: provider.lines, currentLine: provider.currentLine),
                             size: Size.infinite,
                           ),
+                          
+                          // Balón
                           Positioned(
                             left: provider.ballPosition.dx,
                             top: provider.ballPosition.dy,
                             child: Draggable(
                               data: 'ball',
-                              feedback: const BallPiece(),
-                              childWhenDragging: Container(),
+                              feedback: Material(
+                                color: Colors.transparent,
+                                child: Transform.scale(
+                                  scale: 1.2,
+                                  child: const BallPiece(),
+                                ),
+                              ),
+                              childWhenDragging: Opacity(
+                                opacity: 0.3,
+                                child: const BallPiece(),
+                              ),
                               child: const BallPiece(),
                             ),
                           ),
+                          
+                          // Jugadores titulares
                           ...provider.starters.map((player) {
                             final position = provider.starterPositions[player.name] ?? const Offset(100, 100);
                             final isSelected = provider.selectedPlayerForSubstitution?.name == player.name;
@@ -125,16 +170,48 @@ class TacticalBoardScreen extends StatelessWidget {
                               child: GestureDetector(
                                 onTap: () {
                                   if (provider.isSubstitutionMode && provider.selectedPlayerForSubstitution != null) {
-                                    // Si ya hay un jugador seleccionado, hacer el cambio
                                     provider.substitutePlayer(player);
                                   } else {
-                                    // Seleccionar este jugador para sustitución
                                     provider.selectPlayerForSubstitution(player);
                                   }
                                 },
-                                child: PlayerPiece(
-                                  player: player,
-                                  isSelected: isSelected,
+                                child: Draggable<Player>(
+                                  data: player,
+                                  feedback: Material(
+                                    color: Colors.transparent,
+                                    child: Transform.scale(
+                                      scale: 1.3,
+                                      child: PlayerPiece(
+                                        player: player,
+                                        isGhost: true,
+                                        isSelected: isSelected,
+                                      ),
+                                    ),
+                                  ),
+                                  childWhenDragging: Opacity(
+                                    opacity: 0.3,
+                                    child: PlayerPiece(
+                                      player: player,
+                                      isSelected: isSelected,
+                                    ),
+                                  ),
+                                  onDragStarted: () {
+                                    // Feedback háptico (vibración) al empezar a arrastrar
+                                    HapticFeedback.mediumImpact();
+                                  },
+                                  onDragEnd: (details) {
+                                    if (!details.wasAccepted) {
+                                      // Si se suelta fuera del campo, vibración de error
+                                      HapticFeedback.heavyImpact();
+                                    } else {
+                                      // Vibración suave al soltar correctamente
+                                      HapticFeedback.lightImpact();
+                                    }
+                                  },
+                                  child: PlayerPiece(
+                                    player: player,
+                                    isSelected: isSelected,
+                                  ),
                                 ),
                               ),
                             );
@@ -147,7 +224,33 @@ class TacticalBoardScreen extends StatelessWidget {
                 onAcceptWithDetails: (details) {
                   final RenderBox renderBox = context.findRenderObject() as RenderBox;
                   final localPosition = renderBox.globalToLocal(details.offset);
-                  final adjustedPosition = Offset(localPosition.dx - 45, localPosition.dy - 100);
+                  
+                  // Ajustar posición con mejor offset
+                  var adjustedPosition = Offset(
+                    localPosition.dx - 46, // Centrado horizontal del jugador
+                    localPosition.dy - 86, // Centrado vertical del jugador
+                  );
+
+                  // LÍMITES: Evitar que los jugadores salgan del campo
+                  final padding = 16.0;
+                  final playerSize = 60.0;
+                  
+                  // Límite izquierdo
+                  if (adjustedPosition.dx < padding) {
+                    adjustedPosition = Offset(padding, adjustedPosition.dy);
+                  }
+                  // Límite derecho
+                  if (adjustedPosition.dx > pitchWidth - playerSize - padding) {
+                    adjustedPosition = Offset(pitchWidth - playerSize - padding, adjustedPosition.dy);
+                  }
+                  // Límite superior
+                  if (adjustedPosition.dy < padding) {
+                    adjustedPosition = Offset(adjustedPosition.dx, padding);
+                  }
+                  // Límite inferior
+                  if (adjustedPosition.dy > pitchHeight - playerSize - padding - 40) {
+                    adjustedPosition = Offset(adjustedPosition.dx, pitchHeight - playerSize - padding - 40);
+                  }
 
                   if (details.data is Player) {
                     final player = details.data as Player;
@@ -156,9 +259,14 @@ class TacticalBoardScreen extends StatelessWidget {
                     } else {
                       provider.addStarter(player, adjustedPosition);
                     }
+                    HapticFeedback.lightImpact(); // Feedback al soltar
                   } else if (details.data == 'ball') {
                     provider.updateBallPosition(Offset(localPosition.dx - 14, localPosition.dy -14));
                   }
+                },
+                onWillAcceptWithDetails: (details) {
+                  // Retornar true para indicar que el área acepta el drop
+                  return true;
                 },
               );
             },
@@ -269,6 +377,114 @@ class TacticalBoardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+// ============================================================
+// PAINTER: Indicadores de Zona durante Arrastre
+// ============================================================
+class ZoneIndicatorPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill;
+
+    final height = size.height;
+    final zoneHeight = height / 3;
+
+    // Zona de ATAQUE (superior) - Rojo suave
+    paint.color = Colors.red.withOpacity(0.1);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, zoneHeight),
+      paint,
+    );
+
+    // Línea divisoria
+    paint
+      ..color = Colors.red.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(0, zoneHeight),
+      Offset(size.width, zoneHeight),
+      paint,
+    );
+
+    // Zona de MEDIO CAMPO - Amarillo suave
+    paint
+      ..color = Colors.amber.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromLTWH(0, zoneHeight, size.width, zoneHeight),
+      paint,
+    );
+
+    // Línea divisoria
+    paint
+      ..color = Colors.amber.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(0, zoneHeight * 2),
+      Offset(size.width, zoneHeight * 2),
+      paint,
+    );
+
+    // Zona de DEFENSA (inferior) - Azul suave
+    paint
+      ..color = Colors.blue.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromLTWH(0, zoneHeight * 2, size.width, zoneHeight),
+      paint,
+    );
+
+    // Etiquetas de zona
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
+
+    // Label ATAQUE
+    textPainter.text = TextSpan(
+      text: 'ATAQUE',
+      style: TextStyle(
+        color: Colors.red.withOpacity(0.5),
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 2,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, 20));
+
+    // Label MEDIO CAMPO
+    textPainter.text = TextSpan(
+      text: 'MEDIO CAMPO',
+      style: TextStyle(
+        color: Colors.amber.withOpacity(0.5),
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 2,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, zoneHeight + 20));
+
+    // Label DEFENSA
+    textPainter.text = TextSpan(
+      text: 'DEFENSA',
+      style: TextStyle(
+        color: Colors.blue.withOpacity(0.5),
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 2,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, zoneHeight * 2 + 20));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class SubstitutesBench extends StatelessWidget {

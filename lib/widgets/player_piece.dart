@@ -112,17 +112,14 @@ class PlayerPiece extends StatelessWidget {
       ],
     );
 
-    // Devolvemos el avatar envuelto en un Draggable. 
-    // No tiene lógica de posición, solo proporciona el "Player" como dato.
-    return Draggable<Player>(
-      data: player,
-      // El feedback es la apariencia de la pieza mientras se arrastra
-      feedback: PlayerPiece(player: player, size: size + 10, isGhost: true, isSelected: isSelected),
-      // Cuando se empieza a arrastrar, el widget original se reemplaza por un SizedBox
-      childWhenDragging: SizedBox(width: size, height: size + 20), // Placeholder para mantener el layout
-      child: AnimatedScale(
-        scale: isSelected ? 1.1 : 1.0,
-        duration: const Duration(milliseconds: 200),
+    // Widget final con animaciones suaves
+    return AnimatedScale(
+      scale: isSelected ? 1.1 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
         child: playerAvatar,
       ),
     );
