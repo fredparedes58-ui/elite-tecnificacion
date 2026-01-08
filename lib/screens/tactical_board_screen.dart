@@ -37,6 +37,11 @@ class TacticalBoardScreen extends StatelessWidget {
       if (provider.alignments.isNotEmpty) _buildAlignmentsDropdown(context, provider),
       if (provider.sessions.isNotEmpty) _buildSessionsDropdown(context, provider),
       IconButton(
+        icon: const Icon(Icons.refresh),
+        onPressed: provider.refreshPlayers,
+        tooltip: 'Recargar Jugadores',
+      ),
+      IconButton(
         icon: const Icon(Icons.save),
         onPressed: () => _showSaveFormationDialog(context, provider),
         tooltip: 'Guardar Formación',
@@ -113,10 +118,25 @@ class TacticalBoardScreen extends StatelessWidget {
                           ),
                           ...provider.starters.map((player) {
                             final position = provider.starterPositions[player.name] ?? const Offset(100, 100);
+                            final isSelected = provider.selectedPlayerForSubstitution?.name == player.name;
                             return Positioned(
                               left: position.dx,
                               top: position.dy,
-                              child: PlayerPiece(player: player),
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (provider.isSubstitutionMode && provider.selectedPlayerForSubstitution != null) {
+                                    // Si ya hay un jugador seleccionado, hacer el cambio
+                                    provider.substitutePlayer(player);
+                                  } else {
+                                    // Seleccionar este jugador para sustitución
+                                    provider.selectPlayerForSubstitution(player);
+                                  }
+                                },
+                                child: PlayerPiece(
+                                  player: player,
+                                  isSelected: isSelected,
+                                ),
+                              ),
                             );
                           }),
                         ],
@@ -257,35 +277,118 @@ class SubstitutesBench extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 140,
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      decoration: BoxDecoration(color: Colors.black.withAlpha(77)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text('Banquillo', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+    return Consumer<TacticBoardProvider>(
+      builder: (context, provider, child) {
+        return Container(
+          height: 160,
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          decoration: BoxDecoration(
+            color: Colors.black.withAlpha(77),
+            border: Border(
+              top: BorderSide(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: substitutes.isEmpty
-                ? const Center(child: Text('No hay suplentes', style: TextStyle(color: Colors.white70)))
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    itemCount: substitutes.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: PlayerPiece(player: substitutes[index]),
-                      );
-                    },
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.airline_seat_recline_normal,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Banquillo',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (provider.isSubstitutionMode)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.swap_horiz, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'MODO SUSTITUCIÓN',
+                              style: TextStyle(
+                                color: Colors.amber,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: provider.cancelSubstitution,
+                              child: const Icon(Icons.close, color: Colors.amber, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: substitutes.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No hay suplentes',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        itemCount: substitutes.length,
+                        itemBuilder: (context, index) {
+                          final player = substitutes[index];
+                          final isSelected = provider.selectedPlayerForSubstitution?.name == player.name;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                if (provider.isSubstitutionMode && provider.selectedPlayerForSubstitution != null) {
+                                  // Si ya hay un jugador seleccionado, hacer el cambio
+                                  provider.substitutePlayer(player);
+                                } else {
+                                  // Seleccionar este jugador para sustitución
+                                  provider.selectPlayerForSubstitution(player);
+                                }
+                              },
+                              child: PlayerPiece(
+                                player: player,
+                                isSelected: isSelected,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

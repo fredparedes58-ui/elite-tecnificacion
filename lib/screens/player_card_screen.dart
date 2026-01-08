@@ -99,7 +99,14 @@ class _PlayerCardScreenState extends State<PlayerCardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 80),
-                        PlayerInfoCard(player: _player!),
+                        PlayerInfoCard(
+                          player: _player!,
+                          playerId: widget.playerId,
+                          onPhotoUpdated: () {
+                            // Recargar datos del jugador después de actualizar foto
+                            _fetchPlayerData();
+                          },
+                        ),
                         const SizedBox(height: 20),
                         PlayerStatsCard(stats: _player!.stats),
                         const SizedBox(height: 20),

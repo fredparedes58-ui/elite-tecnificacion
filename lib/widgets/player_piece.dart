@@ -8,28 +8,89 @@ class PlayerPiece extends StatelessWidget {
   final Player player;
   final double size;
   final bool isGhost;
+  final bool isSelected;
 
-  const PlayerPiece({super.key, required this.player, this.size = 60.0, this.isGhost = false});
+  const PlayerPiece({
+    super.key,
+    required this.player,
+    this.size = 60.0,
+    this.isGhost = false,
+    this.isSelected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Determinar el color del borde basado en el estado
+    Color borderColor = Colors.white;
+    double borderWidth = 2;
+    List<BoxShadow> shadows = isGhost
+        ? []
+        : [const BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))];
+
+    if (isSelected) {
+      borderColor = Colors.amber;
+      borderWidth = 4;
+      shadows = [
+        BoxShadow(
+          color: Colors.amber.withOpacity(0.6),
+          blurRadius: 15,
+          spreadRadius: 3,
+        ),
+        const BoxShadow(
+          color: Colors.black54,
+          blurRadius: 4,
+          offset: Offset(0, 2),
+        ),
+      ];
+    }
+
     final playerAvatar = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            image: DecorationImage(
-              image: AssetImage(player.image),
-              fit: BoxFit.cover,
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: player.image.startsWith('http')
+                      ? NetworkImage(player.image)
+                      : AssetImage(player.image) as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+                border: Border.all(color: borderColor, width: borderWidth),
+                boxShadow: shadows,
+              ),
             ),
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: isGhost
-                ? []
-                : [const BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))],
-          ),
+            // Indicador de selección
+            if (isSelected)
+              Positioned(
+                top: -5,
+                right: -5,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.5),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.black,
+                    size: 16,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         // El "fantasma" (la pieza que se arrastra) no necesita nombre
@@ -56,10 +117,14 @@ class PlayerPiece extends StatelessWidget {
     return Draggable<Player>(
       data: player,
       // El feedback es la apariencia de la pieza mientras se arrastra
-      feedback: PlayerPiece(player: player, size: size + 10, isGhost: true),
+      feedback: PlayerPiece(player: player, size: size + 10, isGhost: true, isSelected: isSelected),
       // Cuando se empieza a arrastrar, el widget original se reemplaza por un SizedBox
       childWhenDragging: SizedBox(width: size, height: size + 20), // Placeholder para mantener el layout
-      child: playerAvatar,
+      child: AnimatedScale(
+        scale: isSelected ? 1.1 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: playerAvatar,
+      ),
     );
   }
 }

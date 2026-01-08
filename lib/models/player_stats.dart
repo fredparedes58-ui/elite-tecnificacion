@@ -20,4 +20,13 @@ class PlayerStats {
       skills: Map<String, double>.from(map['skills'] ?? {}),
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'goals': goals,
+      'assists': assists,
+      'matchesPlayed': matchesPlayed,
+      'skills': skills,
+    };
+  }
 }
