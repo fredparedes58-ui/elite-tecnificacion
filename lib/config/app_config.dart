@@ -1,14 +1,28 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// Configuración centralizada de la aplicación
+/// Lee credenciales desde variables de entorno (.env)
 class AppConfig {
   // Supabase Configuration
-  static const String supabaseUrl = 'https://bqqjqasqmuyjnvmiuqvl.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcWpxYXNxbXV5am52bWl1cXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1NzE5MzEsImV4cCI6MjA4MDE0NzkzMX0.pTl7TKI81QXLCY8j0bi2oO9LTbh88VhJXFa5BFG1GTg';
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? _throwMissingEnvError('SUPABASE_URL');
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? _throwMissingEnvError('SUPABASE_ANON_KEY');
 
   // N8N Webhook Configuration
-  static const String n8nWebhookUrl =
-      'https://pedro08.app.n8n.cloud/webhook/cronica';
+  static String get n8nWebhookUrl => dotenv.env['N8N_WEBHOOK_URL'] ?? '';
 
   // Constructor privado para evitar instanciación
   AppConfig._();
+
+  /// Lanza error si falta una variable de entorno crítica
+  static String _throwMissingEnvError(String key) {
+    throw Exception(
+      '❌ ERROR DE CONFIGURACIÓN:\n'
+      'Variable de entorno "$key" no encontrada.\n\n'
+      'Solución:\n'
+      '1. Copia .env.example a .env\n'
+      '2. Rellena las credenciales reales\n'
+      '3. Reinicia la app\n\n'
+      'Ver: SECURITY_SETUP.md'
+    );
+  }
 }

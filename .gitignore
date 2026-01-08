@@ -10,6 +10,11 @@
 .history
 .svn/
 
+# Environment variables (SECURITY: Never commit credentials)
+.env
+.env.local
+.env.*.local
+
 # IntelliJ
 .idea/
 *.iml

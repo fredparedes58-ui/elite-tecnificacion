@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:myapp/auth/auth_gate.dart';
 import 'package:myapp/config/app_config.dart';
@@ -7,10 +8,16 @@ import 'package:myapp/theme/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Cargar variables de entorno desde .env
+  await dotenv.load(fileName: ".env");
+  
+  // Inicializar Supabase con credenciales seguras
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
+  
   runApp(const MyApp());
 }
 
