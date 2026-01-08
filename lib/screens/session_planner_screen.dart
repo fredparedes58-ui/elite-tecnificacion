@@ -4,6 +4,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:myapp/models/training_session.dart';
 import 'package:myapp/screens/session_details_screen.dart';
 import 'package:myapp/services/session_service.dart';
+import 'package:myapp/services/field_service.dart';
+import 'package:myapp/models/field_model.dart';
 import 'package:uuid/uuid.dart';
 
 class SessionPlannerScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class SessionPlannerScreen extends StatefulWidget {
 
 class _SessionPlannerScreenState extends State<SessionPlannerScreen> {
   final SessionService _sessionService = SessionService();
+  final FieldService _fieldService = FieldService();
   Map<DateTime, List<TrainingSession>> _sessions = {};
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
@@ -62,33 +65,307 @@ class _SessionPlannerScreenState extends State<SessionPlannerScreen> {
   void _addSession(DateTime date) {
     final titleController = TextEditingController();
     final objectiveController = TextEditingController();
+    TimeOfDay startTime = const TimeOfDay(hour: 16, minute: 0);
+    TimeOfDay endTime = const TimeOfDay(hour: 18, minute: 0);
+    List<Field> availableFields = [];
+    Field? selectedField;
+    bool isCheckingFields = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nueva Sesión'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Título')),
-            TextField(controller: objectiveController, decoration: const InputDecoration(labelText: 'Objetivo')),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nueva Sesión de Entrenamiento'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    icon: Icon(Icons.title),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: objectiveController,
+                  decoration: const InputDecoration(
+                    labelText: 'Objetivo',
+                    icon: Icon(Icons.flag),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Horario y Campo',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.access_time),
+                        title: const Text('Inicio', style: TextStyle(fontSize: 12)),
+                        subtitle: Text(startTime.format(context)),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: startTime,
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              startTime = picked;
+                              availableFields = [];
+                              selectedField = null;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.access_time),
+                        title: const Text('Fin', style: TextStyle(fontSize: 12)),
+                        subtitle: Text(endTime.format(context)),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: endTime,
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              endTime = picked;
+                              availableFields = [];
+                              selectedField = null;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: isCheckingFields
+                      ? null
+                      : () async {
+                          setDialogState(() => isCheckingFields = true);
+
+                          final startDateTime = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            startTime.hour,
+                            startTime.minute,
+                          );
+
+                          final endDateTime = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            endTime.hour,
+                            endTime.minute,
+                          );
+
+                          if (endDateTime.isBefore(startDateTime) ||
+                              endDateTime.isAtSameMomentAs(startDateTime)) {
+                            setDialogState(() => isCheckingFields = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('⚠️ La hora de fin debe ser posterior a la de inicio'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final fields = await _fieldService.getAvailableFields(
+                            startTime: startDateTime,
+                            endTime: endDateTime,
+                          );
+
+                          setDialogState(() {
+                            availableFields = fields;
+                            isCheckingFields = false;
+                          });
+                        },
+                  icon: isCheckingFields
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.search),
+                  label: Text(isCheckingFields
+                      ? 'Verificando...'
+                      : 'Verificar Disponibilidad'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 36),
+                  ),
+                ),
+                if (availableFields.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Campos Disponibles:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  ...availableFields.map((field) => RadioListTile<Field>(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(field.name, style: const TextStyle(fontSize: 13)),
+                        subtitle: Text('${field.type} • ${field.location ?? ""}',
+                            style: const TextStyle(fontSize: 11)),
+                        value: field,
+                        groupValue: selectedField,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedField = value;
+                          });
+                        },
+                      )),
+                ] else if (availableFields.isEmpty && !isCheckingFields) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange, width: 1),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No hay campos disponibles en este horario',
+                            style: TextStyle(fontSize: 11, color: Colors.orange),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (titleController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('⚠️ Ingresa un título')),
+                  );
+                  return;
+                }
+
+                if (availableFields.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ Verifica la disponibilidad de campos primero'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                if (selectedField == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ Selecciona un campo disponible'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                // Validación final de conflictos antes de guardar
+                final startDateTime = DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  startTime.hour,
+                  startTime.minute,
+                );
+
+                final endDateTime = DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  endTime.hour,
+                  endTime.minute,
+                );
+
+                final conflictCheck = await _fieldService.checkBookingConflict(
+                  fieldId: selectedField!.id,
+                  startTime: startDateTime,
+                  endTime: endDateTime,
+                );
+
+                if (conflictCheck['hasConflict'] == true) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '❌ CONFLICTO: Ya existe "${conflictCheck['conflictingTitle']}" en ese horario',
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                // Crear la reserva del campo
+                final bookingResult = await _fieldService.createBooking(
+                  fieldId: selectedField!.id,
+                  teamId: 'TEAM_ID_TEMPORAL', // Aquí deberías usar el ID real del equipo
+                  startTime: startDateTime,
+                  endTime: endDateTime,
+                  purpose: 'training',
+                  title: titleController.text,
+                  description: objectiveController.text,
+                );
+
+                if (context.mounted) {
+                  if (bookingResult['success']) {
+                    final navigator = Navigator.of(context);
+                    await _handleAddNewSession(
+                      titleController.text,
+                      objectiveController.text,
+                      date,
+                    );
+                    navigator.pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Sesión creada y campo reservado'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(bookingResult['message'] ?? 'Error al reservar campo'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty) {
-                // First, capture the navigator.
-                final navigator = Navigator.of(context);
-                await _handleAddNewSession(titleController.text, objectiveController.text, date);
-                // Then, use it after the await.
-                navigator.pop();
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
       ),
     );
   }

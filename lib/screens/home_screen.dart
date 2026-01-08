@@ -12,6 +12,7 @@ import 'package:myapp/screens/team_chat_screen.dart';
 import 'package:myapp/screens/gallery_screen.dart';
 import 'package:myapp/screens/settings_screen.dart';
 import 'package:myapp/screens/methodology_screen.dart';
+import 'package:myapp/screens/field_schedule_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -269,6 +270,15 @@ class HomeScreen extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const MethodologyScreen()),
+        ),
+      ),
+      _QuickAccessItem(
+        title: 'Campos',
+        icon: Icons.stadium,
+        color: Colors.cyan,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FieldScheduleScreen()),
         ),
       ),
     ];

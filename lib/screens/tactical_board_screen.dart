@@ -175,43 +175,9 @@ class TacticalBoardScreen extends StatelessWidget {
                                     provider.selectPlayerForSubstitution(player);
                                   }
                                 },
-                                child: Draggable<Player>(
-                                  data: player,
-                                  feedback: Material(
-                                    color: Colors.transparent,
-                                    child: Transform.scale(
-                                      scale: 1.3,
-                                      child: PlayerPiece(
-                                        player: player,
-                                        isGhost: true,
-                                        isSelected: isSelected,
-                                      ),
-                                    ),
-                                  ),
-                                  childWhenDragging: Opacity(
-                                    opacity: 0.3,
-                                    child: PlayerPiece(
-                                      player: player,
-                                      isSelected: isSelected,
-                                    ),
-                                  ),
-                                  onDragStarted: () {
-                                    // Feedback háptico (vibración) al empezar a arrastrar
-                                    HapticFeedback.mediumImpact();
-                                  },
-                                  onDragEnd: (details) {
-                                    if (!details.wasAccepted) {
-                                      // Si se suelta fuera del campo, vibración de error
-                                      HapticFeedback.heavyImpact();
-                                    } else {
-                                      // Vibración suave al soltar correctamente
-                                      HapticFeedback.lightImpact();
-                                    }
-                                  },
-                                  child: PlayerPiece(
-                                    player: player,
-                                    isSelected: isSelected,
-                                  ),
+                                child: PlayerPiece(
+                                  player: player,
+                                  isSelected: isSelected,
                                 ),
                               ),
                             );

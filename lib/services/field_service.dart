@@ -84,20 +84,20 @@ class FieldService {
     DateTime? endDate,
   }) async {
     try {
-      var query = _client
+      // Construir query con filtros opcionales
+      dynamic query = _client
           .from('bookings')
-          .select('*, fields(name), teams(name)')
-          .order('start_time');
+          .select('*, fields(name), teams(name)');
 
       if (startDate != null) {
-        query = query.gte('start_time', startDate.toIso8601String());
+        query = query.filter('start_time', 'gte', startDate.toIso8601String());
       }
 
       if (endDate != null) {
-        query = query.lte('start_time', endDate.toIso8601String());
+        query = query.filter('start_time', 'lte', endDate.toIso8601String());
       }
 
-      final response = await query;
+      final response = await query.order('start_time');
 
       return (response as List)
           .map((json) => Booking.fromJson(json))

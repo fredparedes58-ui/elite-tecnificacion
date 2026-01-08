@@ -112,14 +112,27 @@ class PlayerPiece extends StatelessWidget {
       ],
     );
 
-    // Widget final con animaciones suaves
-    return AnimatedScale(
-      scale: isSelected ? 1.1 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+    // Devolvemos el avatar envuelto en un Draggable
+    return Draggable<Player>(
+      data: player,
+      // Feedback mientras se arrastra (lo que ves moviendo)
+      feedback: Material(
+        color: Colors.transparent,
+        child: Transform.scale(
+          scale: 1.2,
+          child: PlayerPiece(player: player, size: size, isGhost: true, isSelected: isSelected),
+        ),
+      ),
+      // Lo que queda en el lugar original mientras arrastras
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: playerAvatar,
+      ),
+      // Widget normal
+      child: AnimatedScale(
+        scale: isSelected ? 1.1 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
         child: playerAvatar,
       ),
     );
