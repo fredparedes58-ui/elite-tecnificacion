@@ -1,0 +1,113 @@
+═══════════════════════════════════════════════════════════
+🏆 SISTEMA DE GOLEADORES - INSTALACIÓN EN 5 MINUTOS 🏆
+═══════════════════════════════════════════════════════════
+
+📋 SOLO 3 PASOS:
+
+1️⃣  ABRE: COMO_EJECUTAR.md
+   └─ Lee las instrucciones visuales paso a paso
+
+2️⃣  EJECUTA: EJECUTAR_TODO.sql
+   └─ Copia todo el archivo
+   └─ Pégalo en Supabase SQL Editor
+   └─ Click "RUN"
+   └─ Espera 5 segundos
+
+3️⃣  VERIFICA: Deberías ver
+   └─ "✅ INSTALACIÓN COMPLETADA EXITOSAMENTE"
+   └─ Lista de categorías asignadas
+   └─ Resumen de equipos
+
+═══════════════════════════════════════════════════════════
+
+⚡ ACCESO RÁPIDO A ARCHIVOS:
+
+PARA INSTALAR:
+  • COMO_EJECUTAR.md ........... Guía paso a paso (LEE PRIMERO)
+  • EJECUTAR_TODO.sql .......... Script consolidado (EJECUTAR)
+  • INICIO_RAPIDO_GOLEADORES.md  Resumen de todos los archivos
+
+PARA APRENDER:
+  • README_CATEGORIAS.md ....... Guía visual de categorías
+  • CATEGORIAS_REFERENCIA.md ... Detalles técnicos
+  • GUIA_SISTEMA_GOLEADORES.md . Manual completo del sistema
+
+═══════════════════════════════════════════════════════════
+
+🎯 CATEGORÍAS DEL SISTEMA:
+
+  🏆 Prebenjamín (Sub-7)  ......... 6-7 años
+  🏆 Benjamín    (Sub-9)  ......... 8-9 años
+  🏆 Alevín      (Sub-11) ......... 10-11 años
+  🏆 Infantil    (Sub-13) ......... 12-13 años
+  🏆 Cadete      (Sub-15) ......... 14-15 años
+  🏆 Juvenil     (Sub-18) ......... 16-17 años
+
+═══════════════════════════════════════════════════════════
+
+✅ DESPUÉS DE INSTALAR:
+
+1. Ejecuta tu app:
+   $ flutter run
+
+2. Ve a "Command Center" → Botón "Goleadores" (dorado)
+
+3. Registra tu primer partido:
+   → "Partidos" → Partido finalizado
+   → "REGISTRAR ESTADÍSTICAS"
+   → Cuenta goles con botones +/−
+   → Guardar
+
+4. Ve los rankings en 3 niveles:
+   → MI EQUIPO: Solo tu equipo
+   → CATEGORÍA: Todos los equipos de tu edad
+   → CLUB GLOBAL: Todos los equipos del club
+
+═══════════════════════════════════════════════════════════
+
+🐛 SI HAY PROBLEMAS:
+
+  • Revisa la consola de Supabase después de ejecutar
+  • Lee la sección "SI HAY ERRORES" en COMO_EJECUTAR.md
+  • Verifica que ejecutaste TODO el script completo
+
+═══════════════════════════════════════════════════════════
+
+📚 ESTRUCTURA DEL SISTEMA:
+
+  Base de Datos (Supabase)
+    ├─ Tabla: match_stats
+    ├─ Vista: top_scorers
+    └─ Funciones RPC (3):
+         ├─ get_team_top_scorers()
+         ├─ get_category_top_scorers()
+         └─ get_club_top_scorers()
+
+  App (Flutter)
+    ├─ MatchReportScreen (Entrada de datos)
+    └─ TopScorersScreen (Rankings con 3 pestañas)
+
+═══════════════════════════════════════════════════════════
+
+💡 TIPS:
+
+  • Las categorías son case-sensitive: "Alevín" (con tilde)
+  • El script asigna categorías automáticamente por nombre
+  • Si falta alguna, asígnala manualmente después
+  • Los goleadores solo aparecen después de registrar stats
+
+═══════════════════════════════════════════════════════════
+
+🎉 ¡LISTO!
+
+Una vez ejecutado el script, tu sistema de goleadores estará
+100% operativo. Cada categoría tendrá su propio ranking y
+podrás motivar a tus jugadores con estadísticas reales.
+
+¡Que comience la competencia por ser el Pichichi! ⚽🏆
+
+═══════════════════════════════════════════════════════════
+
+👉 EMPIEZA AQUÍ: Abre COMO_EJECUTAR.md
+
+═══════════════════════════════════════════════════════════
