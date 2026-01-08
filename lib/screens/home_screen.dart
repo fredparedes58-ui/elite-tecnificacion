@@ -14,6 +14,10 @@ import 'package:myapp/screens/settings_screen.dart';
 import 'package:myapp/screens/methodology_screen.dart';
 import 'package:myapp/screens/field_schedule_screen.dart';
 import 'package:myapp/screens/top_scorers_screen.dart';
+import 'package:myapp/screens/test_upload_screen.dart';
+import 'package:myapp/screens/social_feed_screen.dart';
+import 'package:myapp/screens/attendance_screen.dart';
+import 'package:myapp/screens/notice_board_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -261,6 +265,19 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       _QuickAccessItem(
+        title: 'Fútbol Social',
+        icon: Icons.photo_camera,
+        color: Colors.deepOrange,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const SocialFeedScreen(
+              teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
+            ),
+          ),
+        ),
+      ),
+      _QuickAccessItem(
         title: 'Galería',
         icon: Icons.photo_library,
         color: Colors.pink,
@@ -300,6 +317,24 @@ class HomeScreen extends StatelessWidget {
               clubId: 'demo-club-id', // TODO: Obtener del contexto/provider
             ),
           ),
+        ),
+      ),
+      _QuickAccessItem(
+        title: 'Asistencia',
+        icon: Icons.check_circle_outline,
+        color: Colors.lime,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+        ),
+      ),
+      _QuickAccessItem(
+        title: 'Tablón',
+        icon: Icons.announcement,
+        color: Colors.deepPurple,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NoticeBoardScreen()),
         ),
       ),
     ];
@@ -379,11 +414,10 @@ class HomeScreen extends StatelessWidget {
           title: 'Subir Archivos',
           subtitle: 'Imágenes, PDFs, documentos',
           color: Colors.green,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Función: Subir archivos')),
-            );
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TestUploadScreen()),
+          ),
         ),
         const SizedBox(height: 12),
         _buildActionButton(
@@ -528,6 +562,22 @@ class HomeScreen extends StatelessWidget {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Subir archivo')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_camera, color: Colors.deepOrange),
+                title: Text('Compartir Momento', style: GoogleFonts.roboto()),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SocialFeedScreen(
+                        teamId:
+                            'demo-team-id', // TODO: Obtener del contexto/provider
+                      ),
+                    ),
                   );
                 },
               ),

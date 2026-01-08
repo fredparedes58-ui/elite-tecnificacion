@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
@@ -6,6 +5,7 @@ import 'package:myapp/models/alignment_model.dart' as alignment_model;
 import 'package:myapp/models/player_model.dart';
 import 'package:myapp/models/tactical_session_model.dart';
 import 'package:myapp/models/formation_model.dart';
+import 'package:myapp/models/player_analysis_video_model.dart';
 import 'package:myapp/services/data_service.dart';
 import 'package:myapp/services/supabase_service.dart';
 import 'package:uuid/uuid.dart';
@@ -34,11 +34,11 @@ class TacticBoardProvider with ChangeNotifier {
   TacticalSession? _selectedSession;
   final List<Formation> _formations = [];
   bool _isLoading = true;
-  
+
   // Estado para sustituciones
   Player? _selectedPlayerForSubstitution;
   bool _isSubstitutionMode = false;
-  
+
   // Configuración de movilidad mejorada
   bool _enableSnapping = true;
   final double _snapDistance = 20.0; // Distancia para activar el snap magnético
@@ -71,7 +71,12 @@ class TacticBoardProvider with ChangeNotifier {
       _loadSampleData();
       _autoLoadStartersAndSubs();
     } catch (e, s) {
-      developer.log('Error fatal durante la inicialización', error: e, stackTrace: s, name: 'TacticBoardProvider');
+      developer.log(
+        'Error fatal durante la inicialización',
+        error: e,
+        stackTrace: s,
+        name: 'TacticBoardProvider',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -83,14 +88,34 @@ class TacticBoardProvider with ChangeNotifier {
     try {
       final alignments = await _supabaseService.getAlignments();
       _alignments = alignments;
-      developer.log('Alineaciones cargadas desde Supabase: ${alignments.length}', name: 'TacticBoardProvider');
+      developer.log(
+        'Alineaciones cargadas desde Supabase: ${alignments.length}',
+        name: 'TacticBoardProvider',
+      );
     } catch (e, s) {
-      developer.log('Error cargando alineaciones', error: e, stackTrace: s, name: 'TacticBoardProvider');
+      developer.log(
+        'Error cargando alineaciones',
+        error: e,
+        stackTrace: s,
+        name: 'TacticBoardProvider',
+      );
       // Si falla, crear alineaciones por defecto
       _alignments = [
-        alignment_model.Alignment(id: '1', name: 'Formación 4-4-2', formation: '4-4-2'),
-        alignment_model.Alignment(id: '2', name: 'Formación 4-3-3', formation: '4-3-3'),
-        alignment_model.Alignment(id: '3', name: 'Formación 3-5-2', formation: '3-5-2'),
+        alignment_model.Alignment(
+          id: '1',
+          name: 'Formación 4-4-2',
+          formation: '4-4-2',
+        ),
+        alignment_model.Alignment(
+          id: '2',
+          name: 'Formación 4-3-3',
+          formation: '4-3-3',
+        ),
+        alignment_model.Alignment(
+          id: '3',
+          name: 'Formación 3-5-2',
+          formation: '3-5-2',
+        ),
       ];
     }
   }
@@ -102,22 +127,26 @@ class TacticBoardProvider with ChangeNotifier {
     _starterPositions.clear();
 
     // Separar jugadores por estado
-    final starterPlayers = _allPlayers.where((p) => p.matchStatus == MatchStatus.starter).toList();
-    final subPlayers = _allPlayers.where((p) => p.matchStatus == MatchStatus.sub).toList();
+    final starterPlayers = _allPlayers
+        .where((p) => p.matchStatus == MatchStatus.starter)
+        .toList();
+    final subPlayers = _allPlayers
+        .where((p) => p.matchStatus == MatchStatus.sub)
+        .toList();
 
     // Posiciones predeterminadas en formación 4-4-2
     final defaultPositions = [
-      const Offset(180, 600),  // Portero
-      const Offset(80, 480),   // Defensa 1
-      const Offset(140, 500),  // Defensa 2
-      const Offset(220, 500),  // Defensa 3
-      const Offset(280, 480),  // Defensa 4
-      const Offset(80, 340),   // Medio 1
-      const Offset(140, 360),  // Medio 2
-      const Offset(220, 360),  // Medio 3
-      const Offset(280, 340),  // Medio 4
-      const Offset(140, 200),  // Delantero 1
-      const Offset(220, 200),  // Delantero 2
+      const Offset(180, 600), // Portero
+      const Offset(80, 480), // Defensa 1
+      const Offset(140, 500), // Defensa 2
+      const Offset(220, 500), // Defensa 3
+      const Offset(280, 480), // Defensa 4
+      const Offset(80, 340), // Medio 1
+      const Offset(140, 360), // Medio 2
+      const Offset(220, 360), // Medio 3
+      const Offset(280, 340), // Medio 4
+      const Offset(140, 200), // Delantero 1
+      const Offset(220, 200), // Delantero 2
     ];
 
     // Colocar titulares en el campo
@@ -143,37 +172,44 @@ class TacticBoardProvider with ChangeNotifier {
 
     // Si la alineación tiene jugadores asignados a posiciones específicas
     if (selected.playerPositions.isNotEmpty) {
-      developer.log('Cargando alineación con ${selected.playerPositions.length} jugadores asignados', 
-          name: 'TacticBoardProvider');
-      
+      developer.log(
+        'Cargando alineación con ${selected.playerPositions.length} jugadores asignados',
+        name: 'TacticBoardProvider',
+      );
+
       for (var entry in selected.playerPositions.entries) {
         final playerId = entry.key;
         final position = entry.value;
-        
+
         // Buscar jugador por ID
         final player = _allPlayers.firstWhere(
           (p) => p.id == playerId,
           orElse: () => Player(name: '', isStarter: false, image: ''),
         );
-        
+
         if (player.name.isNotEmpty) {
           _starters.add(player);
           _starterPositions[player.name] = position.offset;
         }
       }
-      
+
       // Actualizar suplentes (jugadores no asignados)
-      _substitutes = _allPlayers.where((p) => 
-        !_starters.any((s) => s.id == p.id) && p.matchStatus != MatchStatus.unselected
-      ).toList();
-      
+      _substitutes = _allPlayers
+          .where(
+            (p) =>
+                !_starters.any((s) => s.id == p.id) &&
+                p.matchStatus != MatchStatus.unselected,
+          )
+          .toList();
     } else {
       // Alineación sin jugadores asignados: usar formación por defecto
-      developer.log('Cargando alineación con formación por defecto: ${selected.formation}', 
-          name: 'TacticBoardProvider');
+      developer.log(
+        'Cargando alineación con formación por defecto: ${selected.formation}',
+        name: 'TacticBoardProvider',
+      );
       _loadDefaultFormation(selected.formation);
     }
-    
+
     notifyListeners();
   }
 
@@ -181,35 +217,45 @@ class TacticBoardProvider with ChangeNotifier {
   void _loadDefaultFormation(String formation) {
     // Obtener posiciones según la formación
     final positions = _getPositionsForFormation(formation);
-    
+
     // Priorizar jugadores con estado "starter", pero si no hay suficientes, usar otros
-    final starterPlayers = _allPlayers.where((p) => 
-      p.matchStatus == MatchStatus.starter
-    ).toList();
-    
-    final otherPlayers = _allPlayers.where((p) => 
-      p.matchStatus != MatchStatus.starter && p.matchStatus != MatchStatus.unselected
-    ).toList();
-    
+    final starterPlayers = _allPlayers
+        .where((p) => p.matchStatus == MatchStatus.starter)
+        .toList();
+
+    final otherPlayers = _allPlayers
+        .where(
+          (p) =>
+              p.matchStatus != MatchStatus.starter &&
+              p.matchStatus != MatchStatus.unselected,
+        )
+        .toList();
+
     // Combinar: primero titulares, luego otros si faltan
-    final playersToPlace = [...starterPlayers, ...otherPlayers].take(11).toList();
-    
+    final playersToPlace = [
+      ...starterPlayers,
+      ...otherPlayers,
+    ].take(11).toList();
+
     // Colocar jugadores en las posiciones de la formación
     for (int i = 0; i < playersToPlace.length && i < positions.length; i++) {
       final player = playersToPlace[i];
       _starters.add(player);
       _starterPositions[player.name] = positions[i];
     }
-    
+
     // Suplentes = todos los jugadores EXCEPTO los que ya están en el campo
-    _substitutes = _allPlayers.where((p) => 
-      !_starters.any((s) => s.id == p.id || s.name == p.name) && 
-      p.matchStatus != MatchStatus.unselected
-    ).toList();
-    
+    _substitutes = _allPlayers
+        .where(
+          (p) =>
+              !_starters.any((s) => s.id == p.id || s.name == p.name) &&
+              p.matchStatus != MatchStatus.unselected,
+        )
+        .toList();
+
     developer.log(
       'Formación $formation cargada: ${_starters.length} titulares, ${_substitutes.length} suplentes',
-      name: 'TacticBoardProvider'
+      name: 'TacticBoardProvider',
     );
   }
 
@@ -218,67 +264,70 @@ class TacticBoardProvider with ChangeNotifier {
     // Dimensiones aproximadas del campo visual (ajustables)
     const fieldWidth = 1300.0;
     const fieldHeight = 700.0;
-    
+
     // Márgenes desde los bordes
     const marginSide = 100.0;
     const marginTop = 80.0;
     const marginBottom = 80.0;
-    
-    // Ancho útil para distribuir jugadores
-    const usableWidth = fieldWidth - (2 * marginSide);
+
+    // Alto útil para distribuir jugadores
     const usableHeight = fieldHeight - marginTop - marginBottom;
-    
+
     // Centro horizontal
     const centerX = fieldWidth / 2;
-    
+
     // Posiciones verticales (de arriba hacia abajo: atacantes, medios, defensas, portero)
-    const attackY = marginTop + usableHeight * 0.15;      // 15% desde arriba
-    const midY = marginTop + usableHeight * 0.45;         // 45% desde arriba
-    const defenseY = marginTop + usableHeight * 0.75;     // 75% desde arriba
-    const goalkeeperY = fieldHeight - marginBottom - 30;  // Cerca del borde inferior
-    
+    const attackY = marginTop + usableHeight * 0.15; // 15% desde arriba
+    const midY = marginTop + usableHeight * 0.45; // 45% desde arriba
+    const defenseY = marginTop + usableHeight * 0.75; // 75% desde arriba
+    const goalkeeperY =
+        fieldHeight - marginBottom - 30; // Cerca del borde inferior
+
     switch (formation) {
       case '4-3-3':
         return [
-          Offset(centerX, goalkeeperY),                    // Portero (centro)
-          Offset(marginSide + 80, defenseY),               // Defensa 1 (izq)
-          Offset(centerX - 100, defenseY + 20),            // Defensa 2 (centro-izq)
-          Offset(centerX + 100, defenseY + 20),            // Defensa 3 (centro-der)
-          Offset(fieldWidth - marginSide - 80, defenseY),  // Defensa 4 (der)
-          Offset(marginSide + 120, midY),                  // Medio 1 (izq)
-          Offset(centerX, midY + 20),                      // Medio 2 (centro)
-          Offset(fieldWidth - marginSide - 120, midY),     // Medio 3 (der)
-          Offset(marginSide + 80, attackY),                // Delantero 1 (izq)
-          Offset(centerX, attackY - 20),                   // Delantero 2 (centro)
-          Offset(fieldWidth - marginSide - 80, attackY),   // Delantero 3 (der)
+          Offset(centerX, goalkeeperY), // Portero (centro)
+          Offset(marginSide + 80, defenseY), // Defensa 1 (izq)
+          Offset(centerX - 100, defenseY + 20), // Defensa 2 (centro-izq)
+          Offset(centerX + 100, defenseY + 20), // Defensa 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, defenseY), // Defensa 4 (der)
+          Offset(marginSide + 120, midY), // Medio 1 (izq)
+          Offset(centerX, midY + 20), // Medio 2 (centro)
+          Offset(fieldWidth - marginSide - 120, midY), // Medio 3 (der)
+          Offset(marginSide + 80, attackY), // Delantero 1 (izq)
+          Offset(centerX, attackY - 20), // Delantero 2 (centro)
+          Offset(fieldWidth - marginSide - 80, attackY), // Delantero 3 (der)
         ];
       case '3-5-2':
         return [
-          Offset(centerX, goalkeeperY),                       // Portero (centro)
-          Offset(marginSide + 150, defenseY + 20),            // Defensa 1 (izq)
-          Offset(centerX, defenseY + 40),                     // Defensa 2 (centro)
-          Offset(fieldWidth - marginSide - 150, defenseY + 20), // Defensa 3 (der)
-          Offset(marginSide + 80, midY),                      // Medio 1 (extremo izq)
-          Offset(marginSide + 220, midY + 20),                // Medio 2 (izq)
-          Offset(centerX, midY + 20),                         // Medio 3 (centro)
-          Offset(fieldWidth - marginSide - 220, midY + 20),   // Medio 4 (der)
-          Offset(fieldWidth - marginSide - 80, midY),         // Medio 5 (extremo der)
-          Offset(centerX - 150, attackY),                     // Delantero 1 (izq)
-          Offset(centerX + 150, attackY),                     // Delantero 2 (der)
+          Offset(centerX, goalkeeperY), // Portero (centro)
+          Offset(marginSide + 150, defenseY + 20), // Defensa 1 (izq)
+          Offset(centerX, defenseY + 40), // Defensa 2 (centro)
+          Offset(
+            fieldWidth - marginSide - 150,
+            defenseY + 20,
+          ), // Defensa 3 (der)
+          Offset(marginSide + 80, midY), // Medio 1 (extremo izq)
+          Offset(marginSide + 220, midY + 20), // Medio 2 (izq)
+          Offset(centerX, midY + 20), // Medio 3 (centro)
+          Offset(fieldWidth - marginSide - 220, midY + 20), // Medio 4 (der)
+          Offset(fieldWidth - marginSide - 80, midY), // Medio 5 (extremo der)
+          Offset(centerX - 150, attackY), // Delantero 1 (izq)
+          Offset(centerX + 150, attackY), // Delantero 2 (der)
         ];
       default: // 4-4-2
         return [
-          Offset(centerX, goalkeeperY),                    // Portero (centro)
-          Offset(marginSide + 80, defenseY),               // Defensa 1 (izq)
-          Offset(centerX - 100, defenseY + 20),            // Defensa 2 (centro-izq)
-          Offset(centerX + 100, defenseY + 20),            // Defensa 3 (centro-der)
-          Offset(fieldWidth - marginSide - 80, defenseY),  // Defensa 4 (der)
-          Offset(marginSide + 80, midY),                   // Medio 1 (izq)
-          Offset(centerX - 100, midY + 20),                // Medio 2 (centro-izq)
-          Offset(centerX + 100, midY + 20),                // Medio 3 (centro-der)
-          Offset(fieldWidth - marginSide - 80, midY),      // Medio 4 (der)
-          Offset(centerX - 150, attackY + 20),             // Delantero 1 (izq)
-          Offset(centerX + 150, attackY + 20),             // Delantero 2 (der)
+          Offset(centerX, goalkeeperY), // Portero (centro)
+          Offset(marginSide + 80, defenseY), // Defensa 1 (izq)
+          Offset(centerX - 100, defenseY + 20), // Defensa 2 (centro-izq)
+          Offset(centerX + 100, defenseY + 20), // Defensa 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, defenseY), // Defensa 4 (der)
+          Offset(marginSide + 80, midY), // Medio 1 (izq)
+          Offset(centerX - 100, midY + 20), // Medio 2 (centro-izq)
+          Offset(centerX + 100, midY + 20), // Medio 3 (centro-der)
+          Offset(fieldWidth - marginSide - 80, midY), // Medio 4 (der)
+          Offset(centerX - 150, attackY + 20), // Delantero 1 (izq)
+          Offset(centerX + 150, attackY + 20), // Delantero 2 (der)
         ];
     }
   }
@@ -329,7 +378,7 @@ class TacticBoardProvider with ChangeNotifier {
   }
 
   // --- GESTIÓN DE ALINEACIONES PERSONALIZADAS ---
-  
+
   /// Guarda una alineación personalizada
   Future<bool> saveAlignment(alignment_model.Alignment alignment) async {
     try {
@@ -346,7 +395,11 @@ class TacticBoardProvider with ChangeNotifier {
       }
       return success;
     } catch (e) {
-      developer.log('Error guardando alineación', error: e, name: 'TacticBoardProvider');
+      developer.log(
+        'Error guardando alineación',
+        error: e,
+        name: 'TacticBoardProvider',
+      );
       return false;
     }
   }
@@ -364,15 +417,22 @@ class TacticBoardProvider with ChangeNotifier {
       }
       return success;
     } catch (e) {
-      developer.log('Error eliminando alineación', error: e, name: 'TacticBoardProvider');
+      developer.log(
+        'Error eliminando alineación',
+        error: e,
+        name: 'TacticBoardProvider',
+      );
       return false;
     }
   }
 
   /// Crea una nueva alineación desde la configuración actual del campo
-  alignment_model.Alignment createAlignmentFromCurrentSetup(String name, String formation) {
+  alignment_model.Alignment createAlignmentFromCurrentSetup(
+    String name,
+    String formation,
+  ) {
     final playerPositions = <String, alignment_model.PlayerPosition>{};
-    
+
     for (var player in _starters) {
       if (player.id != null && _starterPositions.containsKey(player.name)) {
         playerPositions[player.id!] = alignment_model.PlayerPosition(
@@ -406,7 +466,7 @@ class TacticBoardProvider with ChangeNotifier {
   void removeStarter(Player player) {
     if (_starters.any((p) => p.name == player.name)) {
       _starters.remove(player);
-      if (!_substitutes.any((sub) => sub.name == player.name)){
+      if (!_substitutes.any((sub) => sub.name == player.name)) {
         _substitutes.add(player);
       }
       _starterPositions.remove(player.name);
@@ -417,7 +477,9 @@ class TacticBoardProvider with ChangeNotifier {
   void updateStarterPosition(Player player, Offset newPosition) {
     if (_starterPositions.containsKey(player.name)) {
       // Aplicar snapping magnético si está habilitado
-      final finalPosition = _enableSnapping ? _applySnapping(newPosition) : newPosition;
+      final finalPosition = _enableSnapping
+          ? _applySnapping(newPosition)
+          : newPosition;
       _starterPositions[player.name] = finalPosition;
       notifyListeners();
     }
@@ -431,17 +493,16 @@ class TacticBoardProvider with ChangeNotifier {
       const Offset(80, 480), const Offset(140, 500),
       const Offset(220, 500), const Offset(280, 480),
       const Offset(180, 520), // Defensa central
-      
       // MEDIO CAMPO
       const Offset(80, 340), const Offset(140, 360),
       const Offset(180, 360), const Offset(220, 360),
       const Offset(280, 340),
-      
+
       // ATAQUE
       const Offset(80, 180), const Offset(140, 200),
       const Offset(180, 180), const Offset(220, 200),
       const Offset(280, 180),
-      
+
       // PORTERO
       const Offset(180, 600),
     ];
@@ -471,12 +532,40 @@ class TacticBoardProvider with ChangeNotifier {
   bool get enableSnapping => _enableSnapping;
 
   // --- MÉTODOS DE DIBUJO ---
-  void toggleDrawingMode() { _isDrawingMode = !_isDrawingMode; notifyListeners(); }
-  void clearDrawing() { _lines.clear(); _currentLine.clear(); notifyListeners(); }
-  void onPanStart(Offset position) { if (!_isDrawingMode) return; _currentLine = [position]; notifyListeners(); }
-  void onPanUpdate(Offset position) { if (!_isDrawingMode) return; _currentLine.add(position); notifyListeners(); }
-  void onPanEnd() { if (!_isDrawingMode) return; _lines.add(List.from(_currentLine)); _currentLine = []; notifyListeners(); }
-  void updateBallPosition(Offset newPosition) { _ballPosition = newPosition; notifyListeners(); }
+  void toggleDrawingMode() {
+    _isDrawingMode = !_isDrawingMode;
+    notifyListeners();
+  }
+
+  void clearDrawing() {
+    _lines.clear();
+    _currentLine.clear();
+    notifyListeners();
+  }
+
+  void onPanStart(Offset position) {
+    if (!_isDrawingMode) return;
+    _currentLine = [position];
+    notifyListeners();
+  }
+
+  void onPanUpdate(Offset position) {
+    if (!_isDrawingMode) return;
+    _currentLine.add(position);
+    notifyListeners();
+  }
+
+  void onPanEnd() {
+    if (!_isDrawingMode) return;
+    _lines.add(List.from(_currentLine));
+    _currentLine = [];
+    notifyListeners();
+  }
+
+  void updateBallPosition(Offset newPosition) {
+    _ballPosition = newPosition;
+    notifyListeners();
+  }
 
   // --- CARGA DE DATOS ---
   Future<void> _loadPlayers() async {
@@ -488,9 +577,17 @@ class TacticBoardProvider with ChangeNotifier {
   Future<void> _loadPlayersFromSupabase() async {
     try {
       _allPlayers = await _supabaseService.getTeamPlayers();
-      developer.log('Jugadores cargados desde Supabase: ${_allPlayers.length}', name: 'TacticBoardProvider');
+      developer.log(
+        'Jugadores cargados desde Supabase: ${_allPlayers.length}',
+        name: 'TacticBoardProvider',
+      );
     } catch (e, s) {
-      developer.log('Error cargando jugadores desde Supabase, usando datos locales', error: e, stackTrace: s, name: 'TacticBoardProvider');
+      developer.log(
+        'Error cargando jugadores desde Supabase, usando datos locales',
+        error: e,
+        stackTrace: s,
+        name: 'TacticBoardProvider',
+      );
       // Fallback a datos locales si falla Supabase
       await _loadPlayers();
     }
@@ -500,31 +597,53 @@ class TacticBoardProvider with ChangeNotifier {
     // Solo cargar alineaciones de ejemplo si no hay ninguna cargada desde Supabase
     if (_alignments.isEmpty) {
       _alignments = [
-        alignment_model.Alignment(id: _uuid.v4(), name: '4-3-3 Ofensivo', formation: '4-3-3'),
-        alignment_model.Alignment(id: _uuid.v4(), name: '4-4-2 Clásico', formation: '4-4-2'),
-        alignment_model.Alignment(id: _uuid.v4(), name: '5-4-1 Defensivo', formation: '5-4-1'),
-        alignment_model.Alignment(id: _uuid.v4(), name: '3-5-2 Moderno', formation: '3-5-2'),
+        alignment_model.Alignment(
+          id: _uuid.v4(),
+          name: '4-3-3 Ofensivo',
+          formation: '4-3-3',
+        ),
+        alignment_model.Alignment(
+          id: _uuid.v4(),
+          name: '4-4-2 Clásico',
+          formation: '4-4-2',
+        ),
+        alignment_model.Alignment(
+          id: _uuid.v4(),
+          name: '5-4-1 Defensivo',
+          formation: '5-4-1',
+        ),
+        alignment_model.Alignment(
+          id: _uuid.v4(),
+          name: '3-5-2 Moderno',
+          formation: '3-5-2',
+        ),
       ];
     }
 
     if (_allPlayers.length >= 2) {
       final sampleStarters = _allPlayers.take(2).toList();
-      final sampleSubstitutes = _allPlayers.where((p) => !sampleStarters.contains(p)).toList();
+      final sampleSubstitutes = _allPlayers
+          .where((p) => !sampleStarters.contains(p))
+          .toList();
 
       _sessions = [
         TacticalSession(
-          id: _uuid.v4(), 
-          name: 'Jugada de Córner', 
+          id: _uuid.v4(),
+          name: 'Jugada de Córner',
           starters: sampleStarters,
           substitutes: sampleSubstitutes,
           starterPositions: {
             sampleStarters[0].name: const Offset(50, 100),
             sampleStarters[1].name: const Offset(150, 200),
           },
-          ballPosition: const Offset(50, 50), 
+          ballPosition: const Offset(50, 50),
           lines: [
-            [const Offset(55, 55), const Offset(100, 120), const Offset(155, 205)]
-          ]
+            [
+              const Offset(55, 55),
+              const Offset(100, 120),
+              const Offset(155, 205),
+            ],
+          ],
         ),
       ];
     }
@@ -561,7 +680,10 @@ class TacticBoardProvider with ChangeNotifier {
 
     if (isPlayer1Starter == isPlayer2Starter) {
       // Ambos son titulares o ambos son suplentes, no se puede hacer el cambio
-      developer.log('No se puede sustituir: ambos jugadores tienen el mismo estado', name: 'TacticBoardProvider');
+      developer.log(
+        'No se puede sustituir: ambos jugadores tienen el mismo estado',
+        name: 'TacticBoardProvider',
+      );
       _selectedPlayerForSubstitution = null;
       _isSubstitutionMode = false;
       notifyListeners();
@@ -573,7 +695,8 @@ class TacticBoardProvider with ChangeNotifier {
     final playerIn = isPlayer1Starter ? player2 : player1;
 
     // Guardar la posición del jugador que sale
-    final savedPosition = _starterPositions[playerOut.name] ?? const Offset(180, 350);
+    final savedPosition =
+        _starterPositions[playerOut.name] ?? const Offset(180, 350);
 
     // Realizar el cambio localmente
     _starters.removeWhere((p) => p.name == playerOut.name);
@@ -596,9 +719,16 @@ class TacticBoardProvider with ChangeNotifier {
           userId: playerOut.id!,
           matchStatus: 'sub',
         );
-        developer.log('Sustitución actualizada en Supabase: ${playerIn.name} entra por ${playerOut.name}', name: 'TacticBoardProvider');
+        developer.log(
+          'Sustitución actualizada en Supabase: ${playerIn.name} entra por ${playerOut.name}',
+          name: 'TacticBoardProvider',
+        );
       } catch (e) {
-        developer.log('Error actualizando sustitución en Supabase', error: e, name: 'TacticBoardProvider');
+        developer.log(
+          'Error actualizando sustitución en Supabase',
+          error: e,
+          name: 'TacticBoardProvider',
+        );
       }
     }
 
@@ -619,11 +749,49 @@ class TacticBoardProvider with ChangeNotifier {
   Future<void> refreshPlayers() async {
     _isLoading = true;
     notifyListeners();
-    
+
     await _loadPlayersFromSupabase();
     _autoLoadStartersAndSubs();
-    
+
     _isLoading = false;
     notifyListeners();
+  }
+
+  // ==========================================
+  // GESTIÓN DE VIDEOS TÁCTICOS
+  // ==========================================
+
+  /// Obtiene los videos adjuntos a la sesión táctica actual
+  Future<List<TacticalVideo>> getCurrentSessionVideos() async {
+    if (_selectedSession == null) return [];
+    try {
+      return await _supabaseService.getTacticalSessionVideos(
+        tacticalSessionId: _selectedSession!.id,
+      );
+    } catch (e) {
+      developer.log(
+        'Error obteniendo videos de la sesión',
+        error: e,
+        name: 'TacticBoardProvider',
+      );
+      return [];
+    }
+  }
+
+  /// Obtiene los videos adjuntos a la alineación actual
+  Future<List<TacticalVideo>> getCurrentAlignmentVideos() async {
+    if (_selectedAlignment == null) return [];
+    try {
+      return await _supabaseService.getAlignmentVideos(
+        alignmentId: _selectedAlignment!.id,
+      );
+    } catch (e) {
+      developer.log(
+        'Error obteniendo videos de la alineación',
+        error: e,
+        name: 'TacticBoardProvider',
+      );
+      return [];
+    }
   }
 }

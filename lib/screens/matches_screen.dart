@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'match_report_screen.dart';
+import 'live_match_screen.dart';
 import '../models/player_model.dart';
 
 class MatchesScreen extends StatelessWidget {
@@ -283,38 +284,89 @@ class MatchesScreen extends StatelessWidget {
             ),
           ),
 
-          // Botón de acción (solo para partidos finalizados)
-          if (status == 'FINISHED')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await _openMatchReport(context, match);
-                  },
-                  icon: const Icon(Icons.edit_note, size: 20),
-                  label: Text(
-                    'REGISTRAR ESTADÍSTICAS',
-                    style: GoogleFonts.oswald(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          // Botones de acción según el estado
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _buildActionButtons(context, match, status),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildActionButtons(
+    BuildContext context,
+    Map<String, dynamic> match,
+    String status,
+  ) {
+    if (status == 'FINISHED') {
+      // Partido finalizado: registrar estadísticas
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            await _openMatchReport(context, match);
+          },
+          icon: const Icon(Icons.edit_note, size: 20),
+          label: Text(
+            'REGISTRAR ESTADÍSTICAS',
+            style: GoogleFonts.oswald(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    } else if (status == 'LIVE' || status == 'PENDING') {
+      // Partido próximo o en vivo: iniciar modo Live
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            final matchId = match['id'] as String;
+            final teamId = match['team_id'] as String? ?? 'demo-team-id';
+            final awayTeam = match['team_away'] as String?;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LiveMatchScreen(
+                  matchId: matchId,
+                  teamId: teamId,
+                  opponentName: awayTeam,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.play_circle_filled, size: 24),
+          label: Text(
+            'MODO LIVE',
+            style: GoogleFonts.oswald(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return const SizedBox.shrink();
   }
 
   String _formatDate(String dateStr) {
@@ -391,8 +443,8 @@ class MatchesScreen extends StatelessWidget {
             style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.green,
-        ),
-      );
-    }
+      ),
+    );
   }
+}
 }

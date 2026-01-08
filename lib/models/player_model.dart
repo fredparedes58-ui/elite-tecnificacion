@@ -1,10 +1,9 @@
-
 import 'package:myapp/models/player_stats.dart';
 
 enum MatchStatus {
   starter, // Titular
   sub, // Suplente
-  unselected // Desconvocado
+  unselected, // Desconvocado
 }
 
 class Player {
@@ -16,6 +15,8 @@ class Player {
   final PlayerStats stats;
   final MatchStatus matchStatus;
   final String? statusNote;
+  final String? nickname; // Apodo del jugador
+  final int? number; // Número de camiseta
 
   Player({
     this.id,
@@ -26,6 +27,8 @@ class Player {
     PlayerStats? stats,
     this.matchStatus = MatchStatus.sub,
     this.statusNote,
+    this.nickname,
+    this.number,
   }) : stats = stats ?? PlayerStats();
 
   factory Player.fromJson(Map<String, dynamic> json) {
@@ -35,9 +38,13 @@ class Player {
       role: json['role'] as String?,
       isStarter: json['isStarter'] as bool,
       image: json['image'] as String,
-      stats: json['stats'] != null ? PlayerStats.fromMap(json['stats']) : PlayerStats(),
+      stats: json['stats'] != null
+          ? PlayerStats.fromMap(json['stats'])
+          : PlayerStats(),
       matchStatus: _parseMatchStatus(json['match_status']),
       statusNote: json['status_note'] as String?,
+      nickname: json['nickname'] as String?,
+      number: json['number'] as int?,
     );
   }
 
@@ -72,7 +79,11 @@ class Player {
   }
 
   // Factory desde Supabase profile
-  factory Player.fromSupabaseProfile(Map<String, dynamic> profile, {String? matchStatus, String? statusNote}) {
+  factory Player.fromSupabaseProfile(
+    Map<String, dynamic> profile, {
+    String? matchStatus,
+    String? statusNote,
+  }) {
     return Player(
       id: profile['id'] as String?,
       name: profile['full_name'] ?? 'Jugador',
@@ -81,6 +92,8 @@ class Player {
       image: profile['avatar_url'] ?? 'assets/images/default_avatar.png',
       matchStatus: _parseMatchStatus(matchStatus),
       statusNote: statusNote,
+      nickname: profile['nickname'] as String?,
+      number: profile['jersey_number'] as int?,
     );
   }
 
@@ -94,6 +107,8 @@ class Player {
       'stats': stats.toMap(),
       'match_status': matchStatusString,
       'status_note': statusNote,
+      'nickname': nickname,
+      'number': number,
     };
   }
 
@@ -106,6 +121,8 @@ class Player {
     PlayerStats? stats,
     MatchStatus? matchStatus,
     String? statusNote,
+    String? nickname,
+    int? number,
   }) {
     return Player(
       id: id ?? this.id,
@@ -116,6 +133,8 @@ class Player {
       stats: stats ?? this.stats,
       matchStatus: matchStatus ?? this.matchStatus,
       statusNote: statusNote ?? this.statusNote,
+      nickname: nickname ?? this.nickname,
+      number: number ?? this.number,
     );
   }
 }

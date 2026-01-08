@@ -1,15 +1,20 @@
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:myapp/models/player_model.dart';
 import 'package:myapp/models/alignment_model.dart' as alignment_model;
+import 'package:myapp/models/player_analysis_video_model.dart';
 import 'package:myapp/providers/tactic_board_provider.dart';
+import 'package:myapp/services/media_upload_service.dart';
+import 'package:myapp/services/supabase_service.dart';
 import 'package:myapp/widgets/drawing_painter.dart';
 import 'package:myapp/widgets/pitch_view.dart';
 import 'package:myapp/widgets/player_piece.dart';
 import 'package:myapp/widgets/ball_piece.dart';
 import 'package:myapp/widgets/snap_grid_painter.dart';
+import 'package:myapp/widgets/video_player_modal.dart';
 import 'package:myapp/screens/alignment_editor_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -29,7 +34,9 @@ class TacticalBoardScreen extends StatelessWidget {
               actions: _buildAppBarActions(context, provider),
             ),
             body: provider.isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
                 : _buildBody(context, provider),
           );
         },
@@ -37,7 +44,10 @@ class TacticalBoardScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildAppBarActions(BuildContext context, TacticBoardProvider provider) {
+  List<Widget> _buildAppBarActions(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     return [
       // Botón para crear nueva alineación
       IconButton(
@@ -46,8 +56,18 @@ class TacticalBoardScreen extends StatelessWidget {
         tooltip: 'Nueva Alineación',
       ),
       // Dropdown de alineaciones con botón de editar
-      if (provider.alignments.isNotEmpty) _buildAlignmentsDropdown(context, provider),
-      if (provider.sessions.isNotEmpty) _buildSessionsDropdown(context, provider),
+      if (provider.alignments.isNotEmpty)
+        _buildAlignmentsDropdown(context, provider),
+      if (provider.sessions.isNotEmpty)
+        _buildSessionsDropdown(context, provider),
+
+      // NUEVO: Botón de adjuntar video de referencia
+      IconButton(
+        icon: const Icon(Icons.video_library, color: Colors.purple),
+        onPressed: () => _showTacticalVideosDialog(context, provider),
+        tooltip: 'Videos de Referencia',
+      ),
+
       IconButton(
         icon: Icon(
           provider.enableSnapping ? Icons.grid_on : Icons.grid_off,
@@ -78,7 +98,9 @@ class TacticalBoardScreen extends StatelessWidget {
       ),
       IconButton(
         icon: Icon(
-          provider.isDrawingMode ? Icons.edit_off_outlined : Icons.edit_outlined,
+          provider.isDrawingMode
+              ? Icons.edit_off_outlined
+              : Icons.edit_outlined,
           color: provider.isDrawingMode ? Colors.amber : Colors.white,
         ),
         onPressed: provider.toggleDrawingMode,
@@ -99,35 +121,39 @@ class TacticalBoardScreen extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final pitchWidth = constraints.maxWidth - 32; // Restar padding
-              final pitchHeight = constraints.maxHeight;
-              
               return DragTarget<Object>(
                 builder: (context, candidateData, rejectedData) {
-                  final isDraggingPlayer = candidateData.isNotEmpty && candidateData.first is Player;
-                  
+                  final isDraggingPlayer =
+                      candidateData.isNotEmpty && candidateData.first is Player;
+
                   return GestureDetector(
-                     onPanStart: (details) {
-                        if (provider.isDrawingMode) {
-                          final RenderBox box = context.findRenderObject() as RenderBox;
-                          provider.onPanStart(box.globalToLocal(details.globalPosition));
-                        }
-                      },
-                      onPanUpdate: (details) {
-                        if (provider.isDrawingMode) {
-                          final RenderBox box = context.findRenderObject() as RenderBox;
-                          provider.onPanUpdate(box.globalToLocal(details.globalPosition));
-                        }
-                      },
-                      onPanEnd: (details) {
-                        if (provider.isDrawingMode) provider.onPanEnd();
-                      },
+                    onPanStart: (details) {
+                      if (provider.isDrawingMode) {
+                        final RenderBox box =
+                            context.findRenderObject() as RenderBox;
+                        provider.onPanStart(
+                          box.globalToLocal(details.globalPosition),
+                        );
+                      }
+                    },
+                    onPanUpdate: (details) {
+                      if (provider.isDrawingMode) {
+                        final RenderBox box =
+                            context.findRenderObject() as RenderBox;
+                        provider.onPanUpdate(
+                          box.globalToLocal(details.globalPosition),
+                        );
+                      }
+                    },
+                    onPanEnd: (details) {
+                      if (provider.isDrawingMode) provider.onPanEnd();
+                    },
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Stack(
                         children: [
                           const PitchView(),
-                          
+
                           // Grid de snapping (puntos magnéticos) cuando está habilitado
                           if (provider.enableSnapping)
                             Positioned.fill(
@@ -135,7 +161,7 @@ class TacticalBoardScreen extends StatelessWidget {
                                 painter: SnapGridPainter(showGrid: true),
                               ),
                             ),
-                          
+
                           // Indicadores de zona cuando se arrastra un jugador
                           if (isDraggingPlayer)
                             Positioned.fill(
@@ -143,12 +169,15 @@ class TacticalBoardScreen extends StatelessWidget {
                                 painter: ZoneIndicatorPainter(),
                               ),
                             ),
-                          
+
                           CustomPaint(
-                            painter: DrawingPainter(lines: provider.lines, currentLine: provider.currentLine),
+                            painter: DrawingPainter(
+                              lines: provider.lines,
+                              currentLine: provider.currentLine,
+                            ),
                             size: Size.infinite,
                           ),
-                          
+
                           // Balón
                           Positioned(
                             left: provider.ballPosition.dx,
@@ -169,20 +198,28 @@ class TacticalBoardScreen extends StatelessWidget {
                               child: const BallPiece(),
                             ),
                           ),
-                          
+
                           // Jugadores titulares
                           ...provider.starters.map((player) {
-                            final position = provider.starterPositions[player.name] ?? const Offset(100, 100);
-                            final isSelected = provider.selectedPlayerForSubstitution?.name == player.name;
+                            final position =
+                                provider.starterPositions[player.name] ??
+                                const Offset(100, 100);
+                            final isSelected =
+                                provider.selectedPlayerForSubstitution?.name ==
+                                player.name;
                             return Positioned(
                               left: position.dx,
                               top: position.dy,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (provider.isSubstitutionMode && provider.selectedPlayerForSubstitution != null) {
+                                  if (provider.isSubstitutionMode &&
+                                      provider.selectedPlayerForSubstitution !=
+                                          null) {
                                     provider.substitutePlayer(player);
                                   } else {
-                                    provider.selectPlayerForSubstitution(player);
+                                    provider.selectPlayerForSubstitution(
+                                      player,
+                                    );
                                   }
                                 },
                                 child: PlayerPiece(
@@ -198,19 +235,21 @@ class TacticalBoardScreen extends StatelessWidget {
                   );
                 },
                 onAcceptWithDetails: (details) {
-                  final RenderBox renderBox = context.findRenderObject() as RenderBox;
+                  final RenderBox renderBox =
+                      context.findRenderObject() as RenderBox;
                   final localPosition = renderBox.globalToLocal(details.offset);
-                  
+
                   if (details.data is Player) {
                     final player = details.data as Player;
-                    
+
                     // IGUAL QUE LA BOLA: Centrar usando la mitad del tamaño del avatar
                     const playerSize = 60.0;
                     const halfSize = playerSize / 2; // 30px
-                    
+
                     // SIN LÍMITES - Posicionar exactamente donde se suelta (igual que la bola)
                     final adjustedPosition = Offset(
-                      localPosition.dx - halfSize, // Centro horizontal del avatar
+                      localPosition.dx -
+                          halfSize, // Centro horizontal del avatar
                       localPosition.dy - halfSize, // Centro vertical del avatar
                     );
 
@@ -220,10 +259,11 @@ class TacticalBoardScreen extends StatelessWidget {
                       provider.addStarter(player, adjustedPosition);
                     }
                     HapticFeedback.lightImpact(); // Feedback al soltar
-                    
                   } else if (details.data == 'ball') {
                     // BOLA: Usar la mitad del tamaño (28px / 2 = 14px)
-                    provider.updateBallPosition(Offset(localPosition.dx - 14, localPosition.dy - 14));
+                    provider.updateBallPosition(
+                      Offset(localPosition.dx - 14, localPosition.dy - 14),
+                    );
                   }
                 },
                 onWillAcceptWithDetails: (details) {
@@ -239,46 +279,85 @@ class TacticalBoardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAlignmentsDropdown(BuildContext context, TacticBoardProvider provider) {
+  Widget _buildAlignmentsDropdown(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: provider.selectedAlignment?.id,
-            items: provider.alignments.map((a) => DropdownMenuItem<String>(
-              value: a.id, 
-              child: Row(
-                children: [
-                  Text(a.name, style: const TextStyle(color: Colors.white)),
-                  const SizedBox(width: 8),
-                  if (a.isCustom)
-                    Icon(Icons.edit, size: 14, color: Colors.amber.withOpacity(0.7)),
-                ],
-              ),
-            )).toList(),
+            items: provider.alignments
+                .map(
+                  (a) => DropdownMenuItem<String>(
+                    value: a.id,
+                    child: Row(
+                      children: [
+                        Text(
+                          a.name,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(width: 8),
+                        if (a.isCustom)
+                          Icon(
+                            Icons.edit,
+                            size: 14,
+                            color: Colors.amber.withOpacity(0.7),
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
             onChanged: (id) => id != null ? provider.selectAlignment(id) : null,
-            hint: const Text('Alineación', style: TextStyle(color: Colors.white70)),
+            hint: const Text(
+              'Alineación',
+              style: TextStyle(color: Colors.white70),
+            ),
             icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
             dropdownColor: Colors.grey[800],
           ),
         ),
         // Botón de editar si la alineación seleccionada es personalizada
-        if (provider.selectedAlignment != null && provider.selectedAlignment!.isCustom)
+        if (provider.selectedAlignment != null &&
+            provider.selectedAlignment!.isCustom)
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.amber),
-            onPressed: () => _navigateToAlignmentEditor(context, provider, provider.selectedAlignment),
+            icon: const Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: Colors.amber,
+            ),
+            onPressed: () => _navigateToAlignmentEditor(
+              context,
+              provider,
+              provider.selectedAlignment,
+            ),
             tooltip: 'Editar Alineación',
           ),
       ],
     );
   }
 
-  Widget _buildSessionsDropdown(BuildContext context, TacticBoardProvider provider) {
+  Widget _buildSessionsDropdown(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: provider.selectedSession?.id,
-        items: provider.sessions.map((s) => DropdownMenuItem<String>(value: s.id, child: Text(s.name, style: const TextStyle(color: Colors.white)))).toList(),
+        items: provider.sessions
+            .map(
+              (s) => DropdownMenuItem<String>(
+                value: s.id,
+                child: Text(
+                  s.name,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            )
+            .toList(),
         onChanged: (id) => id != null ? provider.loadTacticalSession(id) : null,
         hint: const Text('Jugadas', style: TextStyle(color: Colors.white70)),
         icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -287,15 +366,25 @@ class TacticalBoardScreen extends StatelessWidget {
     );
   }
 
-  void _showSaveSessionDialog(BuildContext context, TacticBoardProvider provider) {
+  void _showSaveSessionDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Guardar Jugada'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: 'Nombre de la jugada')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nombre de la jugada'),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -310,15 +399,27 @@ class TacticalBoardScreen extends StatelessWidget {
     );
   }
 
-  void _showSaveFormationDialog(BuildContext context, TacticBoardProvider provider) {
+  void _showSaveFormationDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Guardar Formación'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: 'Nombre de la formación')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Nombre de la formación',
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -333,7 +434,10 @@ class TacticalBoardScreen extends StatelessWidget {
     );
   }
 
-  void _showLoadFormationDialog(BuildContext context, TacticBoardProvider provider) {
+  void _showLoadFormationDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -356,7 +460,10 @@ class TacticalBoardScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
         ],
       ),
     );
@@ -367,7 +474,10 @@ class TacticalBoardScreen extends StatelessWidget {
   // ============================================================
 
   /// Mostrar diálogo para crear nueva alineación
-  void _showCreateAlignmentDialog(BuildContext context, TacticBoardProvider provider) {
+  void _showCreateAlignmentDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -380,25 +490,29 @@ class TacticalBoardScreen extends StatelessWidget {
           children: [
             const Text('¿Qué deseas hacer?'),
             const SizedBox(height: 16),
-            
+
             // Opción 1: Crear desde configuración actual
             ListTile(
               leading: const Icon(Icons.save, color: Colors.green),
               title: const Text('Guardar configuración actual'),
-              subtitle: const Text('Guardar jugadores tal como están en el campo'),
+              subtitle: const Text(
+                'Guardar jugadores tal como están en el campo',
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showSaveCurrentSetupDialog(context, provider);
               },
             ),
-            
+
             const Divider(),
-            
+
             // Opción 2: Crear nueva desde cero
             ListTile(
               leading: const Icon(Icons.add_circle, color: Colors.blue),
               title: const Text('Crear desde cero'),
-              subtitle: const Text('Asignar jugadores a posiciones manualmente'),
+              subtitle: const Text(
+                'Asignar jugadores a posiciones manualmente',
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _navigateToAlignmentEditor(context, provider, null);
@@ -417,10 +531,13 @@ class TacticalBoardScreen extends StatelessWidget {
   }
 
   /// Diálogo para guardar la configuración actual como alineación
-  void _showSaveCurrentSetupDialog(BuildContext context, TacticBoardProvider provider) {
+  void _showSaveCurrentSetupDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
     final nameController = TextEditingController();
     final formationController = TextEditingController(text: '4-4-2');
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -461,9 +578,11 @@ class TacticalBoardScreen extends StatelessWidget {
               if (nameController.text.isNotEmpty) {
                 final alignment = provider.createAlignmentFromCurrentSetup(
                   nameController.text,
-                  formationController.text.isNotEmpty ? formationController.text : '4-4-2',
+                  formationController.text.isNotEmpty
+                      ? formationController.text
+                      : '4-4-2',
                 );
-                
+
                 final success = await provider.saveAlignment(alignment);
                 if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -494,7 +613,9 @@ class TacticalBoardScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => AlignmentEditorScreen(
           alignment: alignment,
-          availablePlayers: provider.allPlayers.where((p) => p.id != null).toList(),
+          availablePlayers: provider.allPlayers
+              .where((p) => p.id != null)
+              .toList(),
         ),
       ),
     );
@@ -511,6 +632,391 @@ class TacticalBoardScreen extends StatelessWidget {
       }
     }
   }
+
+  // ============================================================
+  // GESTIÓN DE VIDEOS DE REFERENCIA TÁCTICA
+  // ============================================================
+
+  /// Muestra el diálogo de videos de referencia
+  void _showTacticalVideosDialog(
+    BuildContext context,
+    TacticBoardProvider provider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => _TacticalVideosDialog(provider: provider),
+    );
+  }
+}
+
+// ============================================================
+// DIÁLOGO: VIDEOS DE REFERENCIA TÁCTICA
+// ============================================================
+
+class _TacticalVideosDialog extends StatefulWidget {
+  final TacticBoardProvider provider;
+
+  const _TacticalVideosDialog({required this.provider});
+
+  @override
+  State<_TacticalVideosDialog> createState() => _TacticalVideosDialogState();
+}
+
+class _TacticalVideosDialogState extends State<_TacticalVideosDialog> {
+  final SupabaseService _supabaseService = SupabaseService();
+  final MediaUploadService _mediaService = MediaUploadService();
+  final ImagePicker _picker = ImagePicker();
+
+  List<TacticalVideo> _videos = [];
+  bool _isLoading = true;
+  bool _isUploading = false;
+  double _uploadProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVideos();
+  }
+
+  Future<void> _loadVideos() async {
+    setState(() => _isLoading = true);
+
+    List<TacticalVideo> videos = [];
+
+    // Cargar videos según si hay sesión o alineación seleccionada
+    if (widget.provider.selectedSession != null) {
+      videos = await widget.provider.getCurrentSessionVideos();
+    } else if (widget.provider.selectedAlignment != null) {
+      videos = await widget.provider.getCurrentAlignmentVideos();
+    }
+
+    if (mounted) {
+      setState(() {
+        _videos = videos;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _uploadVideo() async {
+    // Verificar que hay una sesión o alineación seleccionada
+    if (widget.provider.selectedSession == null &&
+        widget.provider.selectedAlignment == null) {
+      _showMessage('Primero guarda la jugada o selecciona una alineación');
+      return;
+    }
+
+    try {
+      // Seleccionar video
+      final XFile? videoFile = await _picker.pickVideo(
+        source: ImageSource.gallery,
+      );
+      if (videoFile == null) return;
+
+      setState(() {
+        _isUploading = true;
+        _uploadProgress = 0.0;
+      });
+
+      // Subir a Bunny Stream
+      final result = await _mediaService.uploadVideo(
+        File(videoFile.path),
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _uploadProgress = progress);
+          }
+        },
+      );
+
+      // Pedir detalles
+      if (mounted) {
+        final details = await _showVideoDetailsDialog();
+        if (details == null) {
+          setState(() => _isUploading = false);
+          return;
+        }
+
+        // Guardar en Supabase
+        final video = await _supabaseService.uploadTacticalVideo(
+          tacticalSessionId: widget.provider.selectedSession?.id,
+          alignmentId: widget.provider.selectedAlignment?.id,
+          videoUrl: result.directPlayUrl,
+          videoGuid: result.guid,
+          thumbnailUrl: result.thumbnailUrl,
+          title: details['title'] as String,
+          description: details['description'],
+          videoType: details['type'] ?? 'reference',
+        );
+
+        if (video != null) {
+          _showMessage('✅ Video subido correctamente');
+          _loadVideos();
+        } else {
+          _showMessage('❌ Error al guardar el video');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error subiendo video táctico: $e');
+      if (mounted) {
+        _showMessage('❌ Error: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  Future<Map<String, String>?> _showVideoDetailsDialog() async {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String? selectedType = 'reference';
+
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          'Detalles del Video',
+          style: GoogleFonts.oswald(color: Colors.white),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Título',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  hintText: 'Ej: Jugada de Messi vs Madrid',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                dropdownColor: Colors.grey[800],
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Video',
+                  labelStyle: TextStyle(color: Colors.white70),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'reference',
+                    child: Text('Referencia Profesional'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'real_match',
+                    child: Text('Partido Real del Equipo'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'training',
+                    child: Text('Entrenamiento'),
+                  ),
+                ],
+                onChanged: (value) => selectedType = value,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  hintText: 'Descripción de la jugada...',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CANCELAR',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (titleController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('El título es obligatorio')),
+                );
+                return;
+              }
+              Navigator.pop<Map<String, String>>(context, {
+                'title': titleController.text,
+                'description': descriptionController.text,
+                'type': selectedType ?? 'reference',
+              });
+            },
+            child: const Text('GUARDAR'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteVideo(TacticalVideo video) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          'Eliminar Video',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar este video?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCELAR'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ELIMINAR'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _supabaseService.deleteTacticalVideo(video.id);
+      if (success) {
+        _showMessage('Video eliminado');
+        _loadVideos();
+      } else {
+        _showMessage('Error al eliminar');
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[900],
+      title: Row(
+        children: [
+          Icon(Icons.video_library, color: Colors.purple[400]),
+          const SizedBox(width: 12),
+          Text(
+            'Videos de Referencia',
+            style: GoogleFonts.oswald(color: Colors.white),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 400,
+        child: Column(
+          children: [
+            // Botón de subir
+            ElevatedButton.icon(
+              onPressed: _isUploading ? null : _uploadVideo,
+              icon: const Icon(Icons.upload),
+              label: const Text('ADJUNTAR VIDEO'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                minimumSize: const Size(double.infinity, 44),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Indicador de carga
+            if (_isUploading) ...[
+              LinearProgressIndicator(
+                value: _uploadProgress,
+                backgroundColor: Colors.white12,
+                color: Colors.purple,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Subiendo... ${(_uploadProgress * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Lista de videos
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _videos.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No hay videos adjuntos',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _videos.length,
+                      itemBuilder: (context, index) {
+                        final video = _videos[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: VideoThumbnailCard(
+                            thumbnailUrl: video.thumbnailUrl,
+                            title: video.title,
+                            subtitle: video.videoTypeLabel,
+                            duration: video.formattedDuration,
+                            onTap: () {
+                              Navigator.pop(context);
+                              VideoPlayerModal.show(
+                                context,
+                                videoUrl: video.videoUrl,
+                                title: video.title,
+                                description: video.description,
+                              );
+                            },
+                            onDelete: () => _deleteVideo(video),
+                            icon: Icons.play_circle_filled,
+                            iconColor: Colors.purple,
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CERRAR'),
+        ),
+      ],
+    );
+  }
 }
 
 // ============================================================
@@ -519,18 +1025,14 @@ class TacticalBoardScreen extends StatelessWidget {
 class ZoneIndicatorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     final height = size.height;
     final zoneHeight = height / 3;
 
     // Zona de ATAQUE (superior) - Rojo suave
     paint.color = Colors.red.withOpacity(0.1);
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, zoneHeight),
-      paint,
-    );
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, zoneHeight), paint);
 
     // Línea divisoria
     paint
@@ -573,9 +1075,7 @@ class ZoneIndicatorPainter extends CustomPainter {
     );
 
     // Etiquetas de zona
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
     // Label ATAQUE
     textPainter.text = TextSpan(
@@ -588,7 +1088,10 @@ class ZoneIndicatorPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, 20));
+    textPainter.paint(
+      canvas,
+      Offset(size.width / 2 - textPainter.width / 2, 20),
+    );
 
     // Label MEDIO CAMPO
     textPainter.text = TextSpan(
@@ -601,7 +1104,10 @@ class ZoneIndicatorPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, zoneHeight + 20));
+    textPainter.paint(
+      canvas,
+      Offset(size.width / 2 - textPainter.width / 2, zoneHeight + 20),
+    );
 
     // Label DEFENSA
     textPainter.text = TextSpan(
@@ -614,7 +1120,10 @@ class ZoneIndicatorPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(size.width / 2 - textPainter.width / 2, zoneHeight * 2 + 20));
+    textPainter.paint(
+      canvas,
+      Offset(size.width / 2 - textPainter.width / 2, zoneHeight * 2 + 20),
+    );
   }
 
   @override
@@ -669,7 +1178,10 @@ class SubstitutesBench extends StatelessWidget {
                     ),
                     if (provider.isSubstitutionMode)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.amber.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
@@ -677,7 +1189,11 @@ class SubstitutesBench extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.swap_horiz, color: Colors.amber, size: 16),
+                            const Icon(
+                              Icons.swap_horiz,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             const Text(
                               'MODO SUSTITUCIÓN',
@@ -690,7 +1206,11 @@ class SubstitutesBench extends StatelessWidget {
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: provider.cancelSubstitution,
-                              child: const Icon(Icons.close, color: Colors.amber, size: 16),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.amber,
+                                size: 16,
+                              ),
                             ),
                           ],
                         ),
@@ -713,12 +1233,18 @@ class SubstitutesBench extends StatelessWidget {
                         itemCount: substitutes.length,
                         itemBuilder: (context, index) {
                           final player = substitutes[index];
-                          final isSelected = provider.selectedPlayerForSubstitution?.name == player.name;
+                          final isSelected =
+                              provider.selectedPlayerForSubstitution?.name ==
+                              player.name;
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
                             child: GestureDetector(
                               onTap: () {
-                                if (provider.isSubstitutionMode && provider.selectedPlayerForSubstitution != null) {
+                                if (provider.isSubstitutionMode &&
+                                    provider.selectedPlayerForSubstitution !=
+                                        null) {
                                   // Si ya hay un jugador seleccionado, hacer el cambio
                                   provider.substitutePlayer(player);
                                 } else {
