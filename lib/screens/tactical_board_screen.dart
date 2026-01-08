@@ -191,43 +191,48 @@ class TacticalBoardScreen extends StatelessWidget {
                   final RenderBox renderBox = context.findRenderObject() as RenderBox;
                   final localPosition = renderBox.globalToLocal(details.offset);
                   
-                  // Ajustar posición con mejor offset
-                  var adjustedPosition = Offset(
-                    localPosition.dx - 46, // Centrado horizontal del jugador
-                    localPosition.dy - 86, // Centrado vertical del jugador
-                  );
-
-                  // LÍMITES: Evitar que los jugadores salgan del campo
-                  final padding = 16.0;
-                  final playerSize = 60.0;
-                  
-                  // Límite izquierdo
-                  if (adjustedPosition.dx < padding) {
-                    adjustedPosition = Offset(padding, adjustedPosition.dy);
-                  }
-                  // Límite derecho
-                  if (adjustedPosition.dx > pitchWidth - playerSize - padding) {
-                    adjustedPosition = Offset(pitchWidth - playerSize - padding, adjustedPosition.dy);
-                  }
-                  // Límite superior
-                  if (adjustedPosition.dy < padding) {
-                    adjustedPosition = Offset(adjustedPosition.dx, padding);
-                  }
-                  // Límite inferior
-                  if (adjustedPosition.dy > pitchHeight - playerSize - padding - 40) {
-                    adjustedPosition = Offset(adjustedPosition.dx, pitchHeight - playerSize - padding - 40);
-                  }
-
                   if (details.data is Player) {
                     final player = details.data as Player;
+                    
+                    // IGUAL QUE LA BOLA: Usar la mitad del tamaño del avatar (60px / 2 = 30px)
+                    const playerSize = 60.0;
+                    const halfSize = playerSize / 2; // 30px
+                    
+                    var adjustedPosition = Offset(
+                      localPosition.dx - halfSize, // Centro horizontal del avatar
+                      localPosition.dy - halfSize, // Centro vertical del avatar
+                    );
+
+                    // LÍMITES: Evitar que los jugadores salgan del campo
+                    const padding = 16.0;
+                    
+                    // Límite izquierdo
+                    if (adjustedPosition.dx < padding) {
+                      adjustedPosition = Offset(padding, adjustedPosition.dy);
+                    }
+                    // Límite derecho
+                    if (adjustedPosition.dx > pitchWidth - playerSize - padding) {
+                      adjustedPosition = Offset(pitchWidth - playerSize - padding, adjustedPosition.dy);
+                    }
+                    // Límite superior
+                    if (adjustedPosition.dy < padding) {
+                      adjustedPosition = Offset(adjustedPosition.dx, padding);
+                    }
+                    // Límite inferior
+                    if (adjustedPosition.dy > pitchHeight - playerSize - padding - 40) {
+                      adjustedPosition = Offset(adjustedPosition.dx, pitchHeight - playerSize - padding - 40);
+                    }
+
                     if (provider.starters.any((p) => p.name == player.name)) {
                       provider.updateStarterPosition(player, adjustedPosition);
                     } else {
                       provider.addStarter(player, adjustedPosition);
                     }
                     HapticFeedback.lightImpact(); // Feedback al soltar
+                    
                   } else if (details.data == 'ball') {
-                    provider.updateBallPosition(Offset(localPosition.dx - 14, localPosition.dy -14));
+                    // BOLA: Usar la mitad del tamaño (28px / 2 = 14px)
+                    provider.updateBallPosition(Offset(localPosition.dx - 14, localPosition.dy - 14));
                   }
                 },
                 onWillAcceptWithDetails: (details) {
