@@ -204,34 +204,15 @@ class TacticalBoardScreen extends StatelessWidget {
                   if (details.data is Player) {
                     final player = details.data as Player;
                     
-                    // IGUAL QUE LA BOLA: Usar la mitad del tamaño del avatar (60px / 2 = 30px)
+                    // IGUAL QUE LA BOLA: Centrar usando la mitad del tamaño del avatar
                     const playerSize = 60.0;
                     const halfSize = playerSize / 2; // 30px
                     
-                    var adjustedPosition = Offset(
+                    // SIN LÍMITES - Posicionar exactamente donde se suelta (igual que la bola)
+                    final adjustedPosition = Offset(
                       localPosition.dx - halfSize, // Centro horizontal del avatar
                       localPosition.dy - halfSize, // Centro vertical del avatar
                     );
-
-                    // LÍMITES: Evitar que los jugadores salgan del campo
-                    const padding = 16.0;
-                    
-                    // Límite izquierdo
-                    if (adjustedPosition.dx < padding) {
-                      adjustedPosition = Offset(padding, adjustedPosition.dy);
-                    }
-                    // Límite derecho
-                    if (adjustedPosition.dx > pitchWidth - playerSize - padding) {
-                      adjustedPosition = Offset(pitchWidth - playerSize - padding, adjustedPosition.dy);
-                    }
-                    // Límite superior
-                    if (adjustedPosition.dy < padding) {
-                      adjustedPosition = Offset(adjustedPosition.dx, padding);
-                    }
-                    // Límite inferior
-                    if (adjustedPosition.dy > pitchHeight - playerSize - padding - 40) {
-                      adjustedPosition = Offset(adjustedPosition.dx, pitchHeight - playerSize - padding - 40);
-                    }
 
                     if (provider.starters.any((p) => p.name == player.name)) {
                       provider.updateStarterPosition(player, adjustedPosition);
