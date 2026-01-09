@@ -85,9 +85,10 @@ class FieldService {
   }) async {
     try {
       // Construir query con filtros opcionales
+      // Nota: No incluimos teams(name) porque no hay foreign key definida
       dynamic query = _client
           .from('bookings')
-          .select('*, fields(name), teams(name)');
+          .select('*, fields(name)');
 
       if (startDate != null) {
         query = query.filter('start_time', 'gte', startDate.toIso8601String());
@@ -111,9 +112,10 @@ class FieldService {
   /// Obtiene reservas de un campo específico
   Future<List<Booking>> getBookingsByField(String fieldId) async {
     try {
+      // Nota: No incluimos teams(name) porque no hay foreign key definida
       final response = await _client
           .from('bookings')
-          .select('*, fields(name), teams(name)')
+          .select('*, fields(name)')
           .eq('field_id', fieldId)
           .order('start_time');
 
@@ -132,9 +134,10 @@ class FieldService {
     required DateTime endDate,
   }) async {
     try {
+      // Nota: No incluimos teams(name) porque no hay foreign key definida
       final response = await _client
           .from('bookings')
-          .select('*, fields(name), teams(name)')
+          .select('*, fields(name)')
           .gte('start_time', startDate.toIso8601String())
           .lte('end_time', endDate.toIso8601String())
           .order('start_time');

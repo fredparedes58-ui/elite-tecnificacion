@@ -3,6 +3,7 @@
 /// ============================================================
 /// Representa un canal de chat del equipo
 /// ============================================================
+library;
 
 class ChatChannel {
   final String id;

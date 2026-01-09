@@ -6,6 +6,8 @@ import 'package:myapp/models/chat_channel_model.dart';
 import 'package:myapp/models/chat_message_model.dart';
 import 'package:myapp/services/supabase_service.dart';
 import 'package:myapp/services/media_upload_service.dart';
+import 'package:myapp/screens/create_notice_screen.dart';
+import 'package:myapp/screens/add_team_member_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// ============================================================
@@ -43,12 +45,35 @@ class _TeamChatScreenState extends State<TeamChatScreen>
   bool _loadingChannels = true;
   bool _sendingMessage = false;
   String? _currentTeamId;
+  bool _isCoach = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _checkUserRole();
     _loadChannels();
+  }
+
+  Future<void> _checkUserRole() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _isCoach = ['coach', 'admin'].contains(response['role']);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+    }
   }
 
   @override
@@ -64,7 +89,12 @@ class _TeamChatScreenState extends State<TeamChatScreen>
     try {
       // Obtener team_id del usuario
       final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        if (mounted) {
+          setState(() => _loadingChannels = false);
+        }
+        return;
+      }
 
       final teamMember = await Supabase.instance.client
           .from('team_members')
@@ -73,7 +103,12 @@ class _TeamChatScreenState extends State<TeamChatScreen>
           .limit(1)
           .maybeSingle();
 
-      if (teamMember == null) return;
+      if (teamMember == null) {
+        if (mounted) {
+          setState(() => _loadingChannels = false);
+        }
+        return;
+      }
 
       _currentTeamId = teamMember['team_id'] as String;
 
@@ -211,6 +246,26 @@ class _TeamChatScreenState extends State<TeamChatScreen>
             letterSpacing: 1,
           ),
         ),
+        actions: _isCoach
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.person_add),
+                  tooltip: 'Agregar miembro',
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddTeamMemberScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      // Recargar si se agregó un miembro
+                      _loadChannels();
+                    }
+                  },
+                ),
+              ]
+            : null,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -228,20 +283,50 @@ class _TeamChatScreenState extends State<TeamChatScreen>
       ),
       body: _loadingChannels
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
+          : _currentTeamId == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildAnnouncementTab(),
-                      _buildGeneralChatTab(),
+                      Icon(
+                        Icons.group_off,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No estás asignado a ningún equipo',
+                        style: GoogleFonts.roboto(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Contacta a un administrador para ser agregado',
+                        style: GoogleFonts.roboto(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
                     ],
                   ),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildAnnouncementTab(),
+                          _buildGeneralChatTab(),
+                        ],
+                      ),
+                    ),
+                    if (_canWrite) _buildMessageInput(),
+                  ],
                 ),
-                if (_canWrite) _buildMessageInput(),
-              ],
-            ),
     );
   }
 
@@ -294,12 +379,105 @@ class _TeamChatScreenState extends State<TeamChatScreen>
         return ListView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.all(16),
-          itemCount: messages.length,
+          itemCount: messages.length + (_isCoach ? 1 : 0),
           itemBuilder: (context, index) {
-            return _buildAnnouncementCard(messages[index]);
+            // Mostrar tarjeta de crear anuncio primero si es entrenador
+            if (_isCoach && index == 0) {
+              return _buildCreateAnnouncementCard();
+            }
+            // Ajustar índice para los mensajes
+            final messageIndex = _isCoach ? index - 1 : index;
+            return _buildAnnouncementCard(messages[messageIndex]);
           },
         );
       },
+    );
+  }
+
+  /// Tarjeta para crear nuevo anuncio (solo para entrenadores)
+  Widget _buildCreateAnnouncementCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.primary.withOpacity(0.3),
+            colorScheme.secondary.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.primary.withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateNoticeScreen(),
+            ),
+          );
+          if (result == true) {
+            // Recargar mensajes después de crear anuncio
+            setState(() {});
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.add_circle_outline,
+                  size: 32,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Creación de Anuncios',
+                      style: GoogleFonts.roboto(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Toca para crear un nuevo comunicado oficial',
+                      style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 20,
+                color: colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
