@@ -10,6 +10,7 @@ import 'package:myapp/models/notice_board_post_model.dart';
 import 'package:myapp/services/supabase_service.dart';
 import 'package:myapp/services/file_management_service.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 
 class CreateNoticeScreen extends StatefulWidget {
@@ -31,12 +32,42 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   bool _isUrgent = false;
   bool _isUploading = false;
   bool _isSaving = false;
+  bool _isTeamNotice = true; // true = equipo, false = club
+  String? _currentTeamId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentTeamId();
+  }
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCurrentTeamId() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _currentTeamId = response['team_id'] as String?;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo teamId: $e');
+    }
   }
 
   Future<void> _pickAttachment() async {
@@ -104,6 +135,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
     try {
       final notice = await _supabaseService.createNotice(
+        teamId: _isTeamNotice ? _currentTeamId : null, // null = club, teamId = equipo
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         attachmentUrl: _attachmentUrl,
@@ -199,6 +231,155 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+
+            // Selector de tipo de comunicado
+            Card(
+              color: colorScheme.primary.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: colorScheme.primary.withOpacity(0.3),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.category,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tipo de Comunicado',
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() => _isTeamNotice = true);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _isTeamNotice
+                                    ? colorScheme.primary.withOpacity(0.3)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _isTeamNotice
+                                      ? colorScheme.primary
+                                      : Colors.white24,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.group,
+                                    size: 20,
+                                    color: _isTeamNotice
+                                        ? colorScheme.primary
+                                        : Colors.white54,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Equipo',
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 14,
+                                      fontWeight: _isTeamNotice
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: _isTeamNotice
+                                          ? colorScheme.primary
+                                          : Colors.white54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() => _isTeamNotice = false);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: !_isTeamNotice
+                                    ? colorScheme.primary.withOpacity(0.3)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: !_isTeamNotice
+                                      ? colorScheme.primary
+                                      : Colors.white24,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    size: 20,
+                                    color: !_isTeamNotice
+                                        ? colorScheme.primary
+                                        : Colors.white54,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Club',
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 14,
+                                      fontWeight: !_isTeamNotice
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: !_isTeamNotice
+                                          ? colorScheme.primary
+                                          : Colors.white54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isTeamNotice
+                          ? 'El comunicado será visible solo para tu equipo'
+                          : 'El comunicado será visible para todo el club',
+                      style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 
