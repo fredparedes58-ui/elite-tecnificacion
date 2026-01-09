@@ -42,13 +42,10 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen>
     
     setState(() => _loadingAttendance = true);
     try {
-      final stats = await _supabaseService.getAttendanceRate(
-        playerId: widget.player.id!,
-        daysBack: 30,
-      );
+      final rate = await _supabaseService.getAttendanceRate(widget.player.id!);
       if (mounted) {
         setState(() {
-          _attendanceStats = stats;
+          _attendanceStats = {'rate': rate, 'daysBack': 30};
           _loadingAttendance = false;
         });
       }
@@ -591,7 +588,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen>
     if (total == 0) return 'Sin datos de asistencia';
     
     if (absent == 0) {
-      return 'Asistencia perfecta: ${present} de ${total} entrenamientos';
+      return 'Asistencia perfecta: $present de $total entrenamientos';
     } else {
       return 'Ha faltado a $absent de los últimos $total entrenamientos';
     }

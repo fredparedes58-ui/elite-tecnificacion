@@ -47,13 +47,15 @@ class _AnalysisVideoListState extends State<AnalysisVideoList> {
   Future<void> _loadVideos() async {
     setState(() => _isLoading = true);
 
-    final videos = await _supabaseService.getPlayerAnalysisVideos(
-      playerId: widget.playerId,
+    final videosData = await _supabaseService.getPlayerAnalysisVideos(
+      widget.playerId,
     );
 
     if (mounted) {
       setState(() {
-        _videos = videos;
+        _videos = videosData
+            .map((data) => PlayerAnalysisVideo.fromJson(data))
+            .toList();
         _isLoading = false;
       });
     }
@@ -88,6 +90,16 @@ class _AnalysisVideoListState extends State<AnalysisVideoList> {
         },
       );
 
+      // Obtener teamId
+      final teamId = await _getCurrentTeamId();
+      if (teamId == null) {
+        if (mounted) {
+          setState(() => _isUploading = false);
+          _showMessage('❌ No se pudo obtener el equipo');
+        }
+        return;
+      }
+
       // Mostrar diálogo para agregar detalles
       if (mounted) {
         final details = await _showVideoDetailsDialog();
@@ -97,17 +109,19 @@ class _AnalysisVideoListState extends State<AnalysisVideoList> {
         }
 
         // Guardar en Supabase
-        final video = await _supabaseService.uploadPlayerAnalysisVideo(
-          playerId: widget.playerId,
-          videoUrl: result.directPlayUrl,
-          videoGuid: result.guid,
-          thumbnailUrl: result.thumbnailUrl,
-          title: details['title'] as String,
-          comments: details['comments'],
-          analysisType: details['type'],
-        );
+        final videoData = await _supabaseService
+            .savePlayerAnalysisVideoMetadata(
+              playerId: widget.playerId,
+              teamId: teamId,
+              videoUrl: result.directPlayUrl,
+              videoGuid: result.guid,
+              thumbnailUrl: result.thumbnailUrl,
+              title: details['title'] as String,
+              comments: details['comments'],
+              analysisType: details['type'],
+            );
 
-        if (video != null) {
+        if (videoData != null) {
           _showMessage('✅ Video subido correctamente');
           _loadVideos();
         } else {
@@ -161,7 +175,7 @@ class _AnalysisVideoListState extends State<AnalysisVideoList> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedType,
+                initialValue: selectedType,
                 dropdownColor: Colors.grey[800],
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
@@ -276,6 +290,28 @@ class _AnalysisVideoListState extends State<AnalysisVideoList> {
       } else {
         _showMessage('Error al eliminar');
       }
+    }
+  }
+
+  Future<String?> _getCurrentTeamId() async {
+    try {
+      final userId = _supabaseService.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await _supabaseService.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['team_id'] as String;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error obteniendo teamId: $e');
+      return null;
     }
   }
 

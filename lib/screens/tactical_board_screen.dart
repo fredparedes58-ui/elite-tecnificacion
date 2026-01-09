@@ -736,8 +736,17 @@ class _TacticalVideosDialogState extends State<_TacticalVideosDialog> {
           return;
         }
 
+        // Obtener teamId
+        final teamId = await _getCurrentTeamId();
+        if (teamId == null) {
+          setState(() => _isUploading = false);
+          _showMessage('❌ No se pudo obtener el equipo');
+          return;
+        }
+
         // Guardar en Supabase
-        final video = await _supabaseService.uploadTacticalVideo(
+        final videoData = await _supabaseService.saveTacticalVideoMetadata(
+          teamId: teamId,
           tacticalSessionId: widget.provider.selectedSession?.id,
           alignmentId: widget.provider.selectedAlignment?.id,
           videoUrl: result.directPlayUrl,
@@ -748,7 +757,7 @@ class _TacticalVideosDialogState extends State<_TacticalVideosDialog> {
           videoType: details['type'] ?? 'reference',
         );
 
-        if (video != null) {
+        if (videoData != null) {
           _showMessage('✅ Video subido correctamente');
           _loadVideos();
         } else {
@@ -802,7 +811,7 @@ class _TacticalVideosDialogState extends State<_TacticalVideosDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedType,
+                initialValue: selectedType,
                 dropdownColor: Colors.grey[800],
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
@@ -910,6 +919,28 @@ class _TacticalVideosDialogState extends State<_TacticalVideosDialog> {
       } else {
         _showMessage('Error al eliminar');
       }
+    }
+  }
+
+  Future<String?> _getCurrentTeamId() async {
+    try {
+      final userId = _supabaseService.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await _supabaseService.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['team_id'] as String;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error obteniendo teamId: $e');
+      return null;
     }
   }
 

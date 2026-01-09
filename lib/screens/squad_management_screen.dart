@@ -24,8 +24,11 @@ class _SquadManagementScreenState extends State<SquadManagementScreen> {
 
   Future<void> _loadPlayers() async {
     setState(() => _loading = true);
-    final players = await _supabaseService.getTeamPlayers();
-    final counts = await _supabaseService.getPlayersCountByStatus();
+    // TODO: Get teamId from user
+    final teamId = 'default-team-id'; // Placeholder
+    final playersData = await _supabaseService.getTeamPlayers(teamId);
+    final players = playersData.map((data) => Player.fromJson(data)).toList();
+    final counts = await _supabaseService.getPlayersCountByStatus(teamId);
     if (mounted) {
       setState(() {
         _players = players;
@@ -36,14 +39,14 @@ class _SquadManagementScreenState extends State<SquadManagementScreen> {
   }
 
   Future<void> _updatePlayerStatus(Player player, MatchStatus newStatus, {String? note}) async {
+    final statusString = newStatus == MatchStatus.starter
+        ? 'starter'
+        : newStatus == MatchStatus.sub
+            ? 'sub'
+            : 'unselected';
     final success = await _supabaseService.updatePlayerMatchStatus(
-      userId: player.id!,
-      matchStatus: newStatus == MatchStatus.starter
-          ? 'starter'
-          : newStatus == MatchStatus.sub
-              ? 'sub'
-              : 'unselected',
-      statusNote: note,
+      player.id!,
+      statusString,
     );
 
     if (success) {

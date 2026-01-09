@@ -18,11 +18,11 @@ class TopScorersScreen extends StatefulWidget {
   final String clubId;
 
   const TopScorersScreen({
-    Key? key,
+    super.key,
     required this.teamId,
     this.category,
     required this.clubId,
-  }) : super(key: key);
+  });
 
   @override
   State<TopScorersScreen> createState() => _TopScorersScreenState();
@@ -31,13 +31,13 @@ class TopScorersScreen extends StatefulWidget {
 class _TopScorersScreenState extends State<TopScorersScreen>
     with SingleTickerProviderStateMixin {
   final StatsService _statsService = StatsService();
-  
+
   late TabController _tabController;
-  
+
   List<TopScorer> teamScorers = [];
   List<TopScorer> categoryScorers = [];
   List<TopScorer> clubScorers = [];
-  
+
   bool isLoadingTeam = true;
   bool isLoadingCategory = true;
   bool isLoadingClub = true;
@@ -86,7 +86,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
       setState(() => isLoadingCategory = false);
       return;
     }
-    
+
     setState(() => isLoadingCategory = true);
     try {
       final scorers = await _statsService.getCategoryTopScorers(
@@ -147,9 +147,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             fontWeight: FontWeight.bold,
             letterSpacing: 1,
           ),
-          unselectedLabelStyle: GoogleFonts.oswald(
-            fontSize: 13,
-          ),
+          unselectedLabelStyle: GoogleFonts.oswald(fontSize: 13),
           tabs: const [
             Tab(text: 'MI EQUIPO'),
             Tab(text: 'CATEGORÍA'),
@@ -167,7 +165,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             emptyMessage: 'No hay goleadores registrados en tu equipo',
             onRefresh: _loadTeamScorers,
           ),
-          
+
           // TAB 2: Por Categoría
           _buildRankingTab(
             scorers: categoryScorers,
@@ -178,7 +176,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             onRefresh: _loadCategoryScorers,
             showTeamName: true,
           ),
-          
+
           // TAB 3: Club Global
           _buildRankingTab(
             scorers: clubScorers,
@@ -210,19 +208,12 @@ class _TopScorersScreenState extends State<TopScorersScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.sports_soccer,
-              size: 64,
-              color: Colors.white24,
-            ),
+            Icon(Icons.sports_soccer, size: 64, color: Colors.white24),
             const SizedBox(height: 16),
             Text(
               emptyMessage,
               textAlign: TextAlign.center,
-              style: GoogleFonts.roboto(
-                fontSize: 16,
-                color: Colors.white54,
-              ),
+              style: GoogleFonts.roboto(fontSize: 16, color: Colors.white54),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -250,10 +241,10 @@ class _TopScorersScreenState extends State<TopScorersScreen>
           if (index == 0) {
             return _buildRankingHeader();
           }
-          
+
           final scorer = scorers[index - 1];
           final rank = index;
-          
+
           return _buildScorerCard(
             scorer: scorer,
             rank: rank,
@@ -289,9 +280,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             decoration: BoxDecoration(
               color: Colors.amber.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.amber.withOpacity(0.3),
-              ),
+              border: Border.all(color: Colors.amber.withOpacity(0.3)),
             ),
             child: const Icon(
               Icons.emoji_events,
@@ -337,7 +326,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
     // Colores especiales para el Top 3
     Color rankColor;
     Color cardBorderColor;
-    
+
     switch (rank) {
       case 1:
         rankColor = const Color(0xFFFFD700); // Oro
@@ -364,20 +353,14 @@ class _TopScorersScreenState extends State<TopScorersScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isTopThree
-              ? [
-                  rankColor.withOpacity(0.1),
-                  rankColor.withOpacity(0.05),
-                ]
+              ? [rankColor.withOpacity(0.1), rankColor.withOpacity(0.05)]
               : [
                   Colors.white.withOpacity(0.05),
                   Colors.white.withOpacity(0.02),
                 ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cardBorderColor,
-          width: isTopThree ? 2 : 1,
-        ),
+        border: Border.all(color: cardBorderColor, width: isTopThree ? 2 : 1),
       ),
       child: Row(
         children: [
@@ -388,10 +371,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             decoration: BoxDecoration(
               color: rankColor.withOpacity(0.2),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: rankColor.withOpacity(0.3),
-                width: 2,
-              ),
+              border: Border.all(color: rankColor.withOpacity(0.3), width: 2),
             ),
             child: Center(
               child: Text(
@@ -404,9 +384,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Foto del jugador
           CircleAvatar(
             radius: 28,
@@ -424,9 +404,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
                   )
                 : null,
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Info del jugador
           Expanded(
             child: Column(
@@ -454,7 +434,10 @@ class _TopScorersScreenState extends State<TopScorersScreen>
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const Text(' • ', style: TextStyle(color: Colors.white60)),
+                      const Text(
+                        ' • ',
+                        style: TextStyle(color: Colors.white60),
+                      ),
                     ],
                     if (scorer.position != null) ...[
                       Text(
@@ -492,19 +475,20 @@ class _TopScorersScreenState extends State<TopScorersScreen>
               ],
             ),
           ),
-          
+
           // Estadísticas
           Column(
             children: [
               // Goles (grande y destacado)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.green.withOpacity(0.3),
-                  ),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -525,9 +509,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Asistencias y partidos
               Row(
                 children: [

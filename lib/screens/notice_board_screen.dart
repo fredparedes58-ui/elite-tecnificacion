@@ -1,17 +1,10 @@
-// ============================================================
-// PANTALLA: TABLÓN DE ANUNCIOS OFICIALES
-// ============================================================
-// Comunicados unidireccionales con confirmación de lectura
-// ============================================================
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/models/notice_board_post_model.dart';
 import 'package:myapp/services/supabase_service.dart';
-import 'package:myapp/screens/notice_detail_screen.dart';
-import 'package:myapp/screens/create_notice_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:myapp/screens/create_notice_screen.dart';
+import 'package:myapp/screens/notice_detail_screen.dart';
+import 'package:myapp/models/notice_board_post_model.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
   const NoticeBoardScreen({super.key});
@@ -20,319 +13,157 @@ class NoticeBoardScreen extends StatefulWidget {
   State<NoticeBoardScreen> createState() => _NoticeBoardScreenState();
 }
 
-class _NoticeBoardScreenState extends State<NoticeBoardScreen>
-    with SingleTickerProviderStateMixin {
-  final SupabaseService _supabaseService = SupabaseService();
-  late TabController _tabController;
-  List<NoticeBoardPost> _teamNotices = [];
-  List<NoticeBoardPost> _clubNotices = [];
+class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
+  final _supabase = SupabaseService();
+  List<NoticeBoardPost> _notices = [];
   bool _isLoading = true;
-  bool _isCoach = false;
-  String? _currentTeamId;
+  String _filterPriority = 'all';
+  String _filterRole = 'all';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _checkUserRole();
-    _loadCurrentTeamId();
     _loadNotices();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadCurrentTeamId() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final response = await Supabase.instance.client
-          .from('team_members')
-          .select('team_id')
-          .eq('user_id', userId)
-          .limit(1)
-          .maybeSingle();
-
-      if (response != null && mounted) {
-        setState(() {
-          _currentTeamId = response['team_id'] as String?;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error obteniendo teamId: $e');
-    }
-  }
-
-  Future<void> _checkUserRole() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final response = await Supabase.instance.client
-          .from('team_members')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (response != null && mounted) {
-        setState(() {
-          _isCoach = ['coach', 'admin'].contains(response['role']);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error verificando rol: $e');
-    }
   }
 
   Future<void> _loadNotices() async {
     setState(() => _isLoading = true);
-    try {
-      final notices = await _supabaseService.getNotices(teamId: _currentTeamId);
-      if (mounted) {
-        setState(() {
-          // Separar comunicados de equipo y de club
-          _teamNotices = notices.where((n) => n.teamId != null).toList();
-          _clubNotices = notices.where((n) => n.teamId == null).toList();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error cargando comunicados: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
 
-  List<NoticeBoardPost> get _currentNotices {
-    if (_tabController.index == 0) {
-      return _teamNotices;
-    } else {
-      return _clubNotices;
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      // Get user's team and role
+      final teamMember = await _supabase.client
+          .from('team_members')
+          .select('team_id, role')
+          .eq('user_id', user.id)
+          .single();
+
+      final teamId = teamMember['team_id'];
+      final userRole = teamMember['role'];
+
+      // Fetch notices
+      var query = _supabase.client
+          .from('notices')
+          .select('*, created_by_user:profiles!created_by(full_name)')
+          .eq('team_id', teamId);
+
+      if (_filterPriority != 'all') {
+        query = query.eq('priority', _filterPriority);
+      }
+
+      final response = await query.order('created_at', ascending: false);
+
+      final notices = List<Map<String, dynamic>>.from(response);
+
+      // Filter by role
+      final filteredNotices = notices.where((notice) {
+        if (_filterRole == 'all') return true;
+        final targetRoles = List<String>.from(notice['target_roles'] ?? []);
+        return targetRoles.contains(_filterRole) ||
+            targetRoles.contains(userRole);
+      }).toList();
+
+      // Convert to NoticeBoardPost objects
+      final noticeObjects = filteredNotices.map((data) {
+        return NoticeBoardPost(
+          id: data['id'],
+          teamId: data['team_id'],
+          authorId: data['created_by'] ?? '',
+          title: data['title'],
+          content: data['content'],
+          attachmentUrl: null,
+          priority: _mapPriority(data['priority']),
+          createdAt: DateTime.parse(data['created_at']),
+        );
+      }).toList();
+
+      setState(() {
+        _notices = noticeObjects;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading notices: $e');
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'TABLÓN DE ANUNCIOS',
           style: GoogleFonts.oswald(
+            fontSize: 24,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
-            letterSpacing: 1.5,
+            letterSpacing: 2,
           ),
         ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        actions: _isCoach
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateNoticeScreen(),
-                      ),
-                    );
-                    if (result == true) {
-                      _loadNotices();
-                    }
-                  },
-                ),
-              ]
-            : null,
+        backgroundColor: theme.colorScheme.surface,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showFilterDialog,
+          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadNotices),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // TabBar
-                Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface.withOpacity(0.3),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: colorScheme.primary.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: colorScheme.primary,
-                    unselectedLabelColor: Colors.white54,
-                    indicatorColor: colorScheme.primary,
-                    indicatorWeight: 3,
-                    labelStyle: GoogleFonts.roboto(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    unselectedLabelStyle: GoogleFonts.roboto(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 14,
-                    ),
-                    tabs: [
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.group, size: 18),
-                            const SizedBox(width: 8),
-                            Text('Equipo'),
-                            if (_teamNotices.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '${_teamNotices.length}',
-                                  style: GoogleFonts.roboto(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.business, size: 18),
-                            const SizedBox(width: 8),
-                            Text('Club'),
-                            if (_clubNotices.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '${_clubNotices.length}',
-                                  style: GoogleFonts.roboto(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Contenido de los tabs
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Tab de Equipo
-                      _currentNotices.isEmpty && !_isLoading
-                          ? _buildEmptyState(
-                              colorScheme,
-                              'No hay comunicados de equipo',
-                              'Los anuncios de tu equipo aparecerán aquí',
-                              Icons.group_outlined,
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _loadNotices,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _teamNotices.length,
-                                itemBuilder: (context, index) {
-                                  return _buildNoticeCard(
-                                    _teamNotices[index],
-                                    colorScheme,
-                                    isTeamNotice: true,
-                                  );
-                                },
-                              ),
-                            ),
-                      // Tab de Club
-                      _currentNotices.isEmpty && !_isLoading
-                          ? _buildEmptyState(
-                              colorScheme,
-                              'No hay comunicados del club',
-                              'Los anuncios del club aparecerán aquí',
-                              Icons.business_outlined,
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _loadNotices,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _clubNotices.length,
-                                itemBuilder: (context, index) {
-                                  return _buildNoticeCard(
-                                    _clubNotices[index],
-                                    colorScheme,
-                                    isTeamNotice: false,
-                                  );
-                                },
-                              ),
-                            ),
-                    ],
-                  ),
-                ),
-              ],
+          : _notices.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: _loadNotices,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _notices.length,
+                itemBuilder: (context, index) {
+                  return _buildNoticeCard(_notices[index]);
+                },
+              ),
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateNoticeScreen()),
+          );
+          if (result == true) {
+            _loadNotices();
+          }
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('NUEVO ANUNCIO'),
+        backgroundColor: theme.colorScheme.primary,
+      ),
     );
   }
 
-  Widget _buildEmptyState(
-    ColorScheme colorScheme, [
-    String title = 'No hay comunicados',
-    String subtitle = 'Los anuncios oficiales aparecerán aquí',
-    IconData icon = Icons.announcement_outlined,
-  ]) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            icon,
+            Icons.announcement_outlined,
             size: 64,
-            color: colorScheme.primary.withOpacity(0.5),
+            color: Colors.grey.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
           Text(
-            title,
-            style: GoogleFonts.roboto(
-              fontSize: 18,
-              color: Colors.white54,
-            ),
+            'No hay anuncios',
+            style: GoogleFonts.roboto(fontSize: 18, color: Colors.grey),
           ),
           const SizedBox(height: 8),
           Text(
-            subtitle,
+            'Los anuncios del equipo aparecerán aquí',
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: Colors.white38,
+              color: Colors.grey.withOpacity(0.7),
             ),
           ),
         ],
@@ -340,168 +171,154 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen>
     );
   }
 
-  Widget _buildNoticeCard(
-    NoticeBoardPost notice,
-    ColorScheme colorScheme, {
-    bool isTeamNotice = true,
-  }) {
-    final isUrgent = notice.priority == NoticePriority.urgent;
-    final hasAttachment =
-        notice.attachmentUrl != null && notice.attachmentUrl!.isNotEmpty;
+  NoticePriority _mapPriority(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return NoticePriority.urgent;
+      default:
+        return NoticePriority.normal;
+    }
+  }
+
+  Widget _buildNoticeCard(NoticeBoardPost notice) {
+    final theme = Theme.of(context);
+    final priority = notice.priorityString;
+    final title = notice.title;
+    final content = notice.content;
+    final createdBy = 'Equipo'; // TODO: Cargar nombre del autor
+    final createdAt = notice.createdAt;
+
+    Color priorityColor;
+    IconData priorityIcon;
+
+    switch (priority) {
+      case 'urgent':
+        priorityColor = Colors.red;
+        priorityIcon = Icons.priority_high;
+        break;
+      case 'high':
+        priorityColor = Colors.orange;
+        priorityIcon = Icons.warning_amber;
+        break;
+      case 'medium':
+        priorityColor = Colors.blue;
+        priorityIcon = Icons.info;
+        break;
+      default:
+        priorityColor = Colors.green;
+        priorityIcon = Icons.check_circle;
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      color: isUrgent
-          ? Colors.red.withOpacity(0.1)
-          : colorScheme.surface.withOpacity(0.5),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isUrgent
-              ? Colors.red.withOpacity(0.5)
-              : colorScheme.primary.withOpacity(0.3),
-          width: isUrgent ? 2 : 1,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: priorityColor.withOpacity(0.3), width: 1),
       ),
       child: InkWell(
         onTap: () async {
-          // Marcar como leído automáticamente
-          await _supabaseService.markNoticeAsRead(notice.id);
-          
-          // Navegar al detalle
-          await Navigator.push(
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => NoticeDetailScreen(notice: notice),
             ),
           );
-          
-          // Recargar para actualizar estadísticas
-          _loadNotices();
+          if (result == true) {
+            _loadNotices();
+          }
         },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                priorityColor.withOpacity(0.1),
+                priorityColor.withOpacity(0.05),
+              ],
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header con tipo, título y prioridad
+              // Header
               Row(
                 children: [
-                  // Badge de tipo
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isTeamNotice
-                          ? Colors.blue.withOpacity(0.2)
-                          : Colors.purple.withOpacity(0.2),
+                      color: priorityColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isTeamNotice
-                            ? Colors.blue.withOpacity(0.5)
-                            : Colors.purple.withOpacity(0.5),
-                        width: 1,
-                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Icon(priorityIcon, color: priorityColor, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          isTeamNotice ? Icons.group : Icons.business,
-                          size: 12,
-                          color: isTeamNotice ? Colors.blue : Colors.purple,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          isTeamNotice ? 'EQUIPO' : 'CLUB',
+                          title,
                           style: GoogleFonts.roboto(
-                            fontSize: 10,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isTeamNotice ? Colors.blue : Colors.purple,
-                            letterSpacing: 0.5,
+                            color: theme.colorScheme.onSurface,
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              createdBy,
+                              style: GoogleFonts.roboto(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDate(createdAt),
+                              style: GoogleFonts.roboto(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (isUrgent) ...[
-                    Icon(
-                      Icons.priority_high,
-                      color: Colors.red,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      notice.title,
-                      style: GoogleFonts.roboto(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  Icon(Icons.chevron_right, color: priorityColor),
                 ],
               ),
-              const SizedBox(height: 8),
-              
-              // Contenido preview
+              const SizedBox(height: 16),
+              // Content preview
               Text(
-                notice.content,
-                style: GoogleFonts.roboto(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+                content,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.roboto(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
               ),
               const SizedBox(height: 12),
-              
-              // Footer con fecha y estadísticas
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(notice.createdAt),
-                    style: GoogleFonts.roboto(
-                      fontSize: 12,
-                      color: Colors.white54,
-                    ),
-                  ),
-                  if (hasAttachment) ...[
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.attach_file,
-                      size: 14,
-                      color: Colors.white54,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Adjunto',
-                      style: GoogleFonts.roboto(
-                        fontSize: 12,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  // Estadísticas de lectura (solo para coaches)
-                  if (_isCoach && notice.readCount != null && notice.totalUsers != null)
-                    _buildReadStats(notice.readCount!, notice.totalUsers!, colorScheme),
-                ],
-              ),
             ],
           ),
         ),
@@ -509,29 +326,139 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen>
     );
   }
 
-  Widget _buildReadStats(int readCount, int totalUsers, ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.visibility,
-            size: 12,
-            color: colorScheme.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$readCount/$totalUsers',
-            style: GoogleFonts.roboto(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.primary,
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        return 'Hace ${difference.inMinutes} min';
+      }
+      return 'Hace ${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return 'Hace ${difference.inDays}d';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Filtrar Anuncios',
+          style: GoogleFonts.roboto(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Prioridad',
+              style: GoogleFonts.roboto(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Todas'),
+                  selected: _filterPriority == 'all',
+                  onSelected: (selected) {
+                    setState(() => _filterPriority = 'all');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Urgente'),
+                  selected: _filterPriority == 'urgent',
+                  onSelected: (selected) {
+                    setState(() => _filterPriority = 'urgent');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Alta'),
+                  selected: _filterPriority == 'high',
+                  onSelected: (selected) {
+                    setState(() => _filterPriority = 'high');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Media'),
+                  selected: _filterPriority == 'medium',
+                  onSelected: (selected) {
+                    setState(() => _filterPriority = 'medium');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Baja'),
+                  selected: _filterPriority == 'low',
+                  onSelected: (selected) {
+                    setState(() => _filterPriority = 'low');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('Rol', style: GoogleFonts.roboto(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Todos'),
+                  selected: _filterRole == 'all',
+                  onSelected: (selected) {
+                    setState(() => _filterRole = 'all');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Entrenadores'),
+                  selected: _filterRole == 'coach',
+                  onSelected: (selected) {
+                    setState(() => _filterRole = 'coach');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Jugadores'),
+                  selected: _filterRole == 'player',
+                  onSelected: (selected) {
+                    setState(() => _filterRole = 'player');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Padres'),
+                  selected: _filterRole == 'parent',
+                  onSelected: (selected) {
+                    setState(() => _filterRole = 'parent');
+                    Navigator.pop(context);
+                    _loadNotices();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CERRAR'),
           ),
         ],
       ),

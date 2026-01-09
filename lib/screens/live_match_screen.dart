@@ -51,7 +51,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
   List<Player> _teamPlayers = [];
 
   // Contadores rápidos
-  Map<String, int> _eventCounts = {};
+  final Map<String, int> _eventCounts = {};
 
   @override
   void initState() {
@@ -71,7 +71,8 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
   Future<void> _initialize() async {
     try {
       // Cargar jugadores del equipo
-      _teamPlayers = await _supabaseService.getTeamPlayers(teamId: widget.teamId);
+      final playersData = await _supabaseService.getTeamPlayers(widget.teamId);
+      _teamPlayers = playersData.map((data) => Player.fromJson(data)).toList();
       _voiceService.setTeamPlayers(_teamPlayers);
 
       // Inicializar reconocimiento de voz

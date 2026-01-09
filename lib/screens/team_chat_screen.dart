@@ -110,15 +110,17 @@ class _TeamChatScreenState extends State<TeamChatScreen>
         return;
       }
 
-      _currentTeamId = teamMember['team_id'] as String;
+      final teamId = teamMember['team_id'] as String;
+      _currentTeamId = teamId;
 
       // Asegurar que existan los canales por defecto
-      await _supabaseService.ensureDefaultChannels(teamId: _currentTeamId);
+      await _supabaseService.ensureDefaultChannels(teamId);
 
       // Cargar canales
-      final channels = await _supabaseService.getTeamChatChannels(
-        teamId: _currentTeamId,
-      );
+      final channelsData = await _supabaseService.getTeamChatChannels(teamId);
+      final channels = channelsData
+          .map((data) => ChatChannel.fromJson(data))
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -573,7 +575,7 @@ class _TeamChatScreenState extends State<TeamChatScreen>
               height: 200,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant,
+                color: colorScheme.surfaceContainerHighest,
               ),
               child: message.isImage
                   ? Image.network(
@@ -694,7 +696,7 @@ class _TeamChatScreenState extends State<TeamChatScreen>
               decoration: BoxDecoration(
                 color: isMe
                     ? colorScheme.primary
-                    : colorScheme.surfaceVariant,
+                    : colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16).copyWith(
                   bottomRight: isMe ? const Radius.circular(4) : null,
                   bottomLeft: !isMe ? const Radius.circular(4) : null,
@@ -811,7 +813,7 @@ class _TeamChatScreenState extends State<TeamChatScreen>
                   borderRadius: BorderRadius.circular(24),
                 ),
                 filled: true,
-                fillColor: colorScheme.surfaceVariant,
+                fillColor: colorScheme.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,

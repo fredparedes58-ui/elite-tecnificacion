@@ -83,13 +83,52 @@ class TacticBoardProvider with ChangeNotifier {
     }
   }
 
+  /// Obtiene el teamId del usuario actual
+  Future<String?> _getCurrentTeamId() async {
+    try {
+      final userId = _supabaseService.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await _supabaseService.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['team_id'] as String;
+      }
+      return null;
+    } catch (e) {
+      developer.log(
+        'Error obteniendo teamId',
+        error: e,
+        name: 'TacticBoardProvider',
+      );
+      return null;
+    }
+  }
+
   /// Carga alineaciones desde Supabase
   Future<void> _loadAlignmentsFromSupabase() async {
     try {
-      final alignments = await _supabaseService.getAlignments();
-      _alignments = alignments;
+      final teamId = await _getCurrentTeamId();
+      if (teamId == null) {
+        developer.log(
+          'No se pudo obtener teamId, usando alineaciones por defecto',
+          name: 'TacticBoardProvider',
+        );
+        _alignments = _getDefaultAlignments();
+        return;
+      }
+
+      final alignmentsData = await _supabaseService.getAlignments(teamId);
+      _alignments = alignmentsData
+          .map((data) => alignment_model.Alignment.fromJson(data))
+          .toList();
       developer.log(
-        'Alineaciones cargadas desde Supabase: ${alignments.length}',
+        'Alineaciones cargadas desde Supabase: ${_alignments.length}',
         name: 'TacticBoardProvider',
       );
     } catch (e, s) {
@@ -100,24 +139,28 @@ class TacticBoardProvider with ChangeNotifier {
         name: 'TacticBoardProvider',
       );
       // Si falla, crear alineaciones por defecto
-      _alignments = [
-        alignment_model.Alignment(
-          id: '1',
-          name: 'Formación 4-4-2',
-          formation: '4-4-2',
-        ),
-        alignment_model.Alignment(
-          id: '2',
-          name: 'Formación 4-3-3',
-          formation: '4-3-3',
-        ),
-        alignment_model.Alignment(
-          id: '3',
-          name: 'Formación 3-5-2',
-          formation: '3-5-2',
-        ),
-      ];
+      _alignments = _getDefaultAlignments();
     }
+  }
+
+  List<alignment_model.Alignment> _getDefaultAlignments() {
+    return [
+      alignment_model.Alignment(
+        id: '1',
+        name: 'Formación 4-4-2',
+        formation: '4-4-2',
+      ),
+      alignment_model.Alignment(
+        id: '2',
+        name: 'Formación 4-3-3',
+        formation: '4-3-3',
+      ),
+      alignment_model.Alignment(
+        id: '3',
+        name: 'Formación 3-5-2',
+        formation: '3-5-2',
+      ),
+    ];
   }
 
   /// Carga automática de titulares y suplentes según su estado en la base de datos
@@ -382,18 +425,31 @@ class TacticBoardProvider with ChangeNotifier {
   /// Guarda una alineación personalizada
   Future<bool> saveAlignment(alignment_model.Alignment alignment) async {
     try {
-      final success = await _supabaseService.saveAlignment(alignment);
-      if (success) {
+      final teamId = await _getCurrentTeamId();
+      if (teamId == null) {
+        developer.log(
+          'No se pudo obtener teamId para guardar alineación',
+          name: 'TacticBoardProvider',
+        );
+        return false;
+      }
+
+      final alignmentData = alignment.toJson();
+      alignmentData['team_id'] = teamId;
+      final alignmentId = await _supabaseService.saveAlignment(alignmentData);
+      if (alignmentId.isNotEmpty) {
         // Actualizar lista de alineaciones
+        final updatedAlignment = alignment.copyWith(id: alignmentId);
         final index = _alignments.indexWhere((a) => a.id == alignment.id);
         if (index >= 0) {
-          _alignments[index] = alignment;
+          _alignments[index] = updatedAlignment;
         } else {
-          _alignments.add(alignment);
+          _alignments.add(updatedAlignment);
         }
         notifyListeners();
+        return true;
       }
-      return success;
+      return false;
     } catch (e) {
       developer.log(
         'Error guardando alineación',
@@ -576,7 +632,20 @@ class TacticBoardProvider with ChangeNotifier {
   /// Carga jugadores desde Supabase con sus estados de convocatoria
   Future<void> _loadPlayersFromSupabase() async {
     try {
-      _allPlayers = await _supabaseService.getTeamPlayers();
+      final teamId = await _getCurrentTeamId();
+      if (teamId == null) {
+        developer.log(
+          'No se pudo obtener teamId, usando datos locales',
+          name: 'TacticBoardProvider',
+        );
+        await _loadPlayers();
+        return;
+      }
+
+      final playersData = await _supabaseService.getTeamPlayers(teamId);
+      _allPlayers = playersData
+          .map((data) => Player.fromJson(data))
+          .toList();
       developer.log(
         'Jugadores cargados desde Supabase: ${_allPlayers.length}',
         name: 'TacticBoardProvider',
@@ -712,12 +781,12 @@ class TacticBoardProvider with ChangeNotifier {
     if (playerIn.id != null && playerOut.id != null) {
       try {
         await _supabaseService.updatePlayerMatchStatus(
-          userId: playerIn.id!,
-          matchStatus: 'starter',
+          playerIn.id!,
+          'starter',
         );
         await _supabaseService.updatePlayerMatchStatus(
-          userId: playerOut.id!,
-          matchStatus: 'sub',
+          playerOut.id!,
+          'sub',
         );
         developer.log(
           'Sustitución actualizada en Supabase: ${playerIn.name} entra por ${playerOut.name}',
@@ -765,9 +834,12 @@ class TacticBoardProvider with ChangeNotifier {
   Future<List<TacticalVideo>> getCurrentSessionVideos() async {
     if (_selectedSession == null) return [];
     try {
-      return await _supabaseService.getTacticalSessionVideos(
-        tacticalSessionId: _selectedSession!.id,
+      final videosData = await _supabaseService.getTacticalSessionVideos(
+        _selectedSession!.id,
       );
+      return videosData
+          .map((data) => TacticalVideo.fromJson(data))
+          .toList();
     } catch (e) {
       developer.log(
         'Error obteniendo videos de la sesión',
@@ -782,9 +854,12 @@ class TacticBoardProvider with ChangeNotifier {
   Future<List<TacticalVideo>> getCurrentAlignmentVideos() async {
     if (_selectedAlignment == null) return [];
     try {
-      return await _supabaseService.getAlignmentVideos(
-        alignmentId: _selectedAlignment!.id,
+      final videosData = await _supabaseService.getAlignmentVideos(
+        _selectedAlignment!.id,
       );
+      return videosData
+          .map((data) => TacticalVideo.fromJson(data))
+          .toList();
     } catch (e) {
       developer.log(
         'Error obteniendo videos de la alineación',

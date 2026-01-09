@@ -40,8 +40,11 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
     setState(() => _isLoading = true);
     
     try {
+      // TODO: Get current user ID
+      final parentId = 'parent-id'; // Placeholder
+      
       // Cargar hijos del padre
-      final children = await _supabaseService.getParentChildren();
+      final children = await _supabaseService.getParentChildren(parentId);
       
       if (children.isEmpty) {
         if (mounted) {
@@ -87,20 +90,19 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
     if (_selectedChildId == null) return;
 
     try {
-      // Obtener el team_id del hijo seleccionado
-      final child = _children.firstWhere(
-        (c) => c['child_id'] == _selectedChildId,
-        orElse: () => _children.first,
-      );
-      final teamId = child['team_id'] as String?;
-
-      // Cargar sesiones pasadas y futuras
-      final now = DateTime.now();
-      final sessions = await _supabaseService.getParentTrainingSessions(
-        teamId: teamId,
-        startDate: now.subtract(const Duration(days: 30)),
-        endDate: now.add(const Duration(days: 30)),
-      );
+      // Cargar sesiones pasadas y futuras  
+      final sessionsData = await _supabaseService.getParentTrainingSessions(_selectedChildId!);
+      
+      // Convertir a objetos TrainingSession (simplificado)
+      final sessions = sessionsData.map<TrainingSession>((data) {
+        return TrainingSession(
+          id: data['id'] as String,
+          teamId: (data['team_id'] as String?) ?? '',
+          date: DateTime.parse(data['session_date'] as String),
+          topic: data['notes'] as String?,
+          createdAt: DateTime.parse(data['created_at'] as String),
+        );
+      }).toList();
 
       setState(() {
         _trainingSessions = sessions;
@@ -122,20 +124,37 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
       final Map<String, AttendanceRecord> attendanceMap = {};
       
       for (var session in _trainingSessions) {
-        final records = await _supabaseService.getAttendanceRecords(
-          sessionId: session.id,
+        final recordsData = await _supabaseService.getAttendanceRecords(session.id);
+        
+        // Buscar el registro del hijo actual
+        final recordData = recordsData.firstWhere(
+          (r) => r['player_id'] == _selectedChildId,
+          orElse: () => <String, dynamic>{},
         );
         
-        final record = records.firstWhere(
-          (r) => r.playerId == _selectedChildId,
-          orElse: () => AttendanceRecord(
+        AttendanceRecord record;
+        if (recordData.isNotEmpty) {
+          final status = recordData['status'] as String;
+          record = AttendanceRecord(
+            id: recordData['id'] as String,
+            sessionId: session.id,
+            playerId: _selectedChildId!,
+            status: status == 'present' 
+                ? AttendanceStatus.present 
+                : status == 'absent'
+                    ? AttendanceStatus.absent
+                    : AttendanceStatus.late,
+            createdAt: DateTime.parse(recordData['created_at'] as String),
+          );
+        } else {
+          record = AttendanceRecord(
             id: '',
             sessionId: session.id,
             playerId: _selectedChildId!,
             status: AttendanceStatus.present,
             createdAt: DateTime.now(),
-          ),
-        );
+          );
+        }
         
         attendanceMap[session.id] = record;
       }
@@ -185,11 +204,16 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
 
     try {
       final status = _pendingAttendance[sessionId] ?? AttendanceStatus.present;
+      final statusString = status == AttendanceStatus.present 
+          ? 'present' 
+          : status == AttendanceStatus.absent
+              ? 'absent'
+              : 'late';
       
       final success = await _supabaseService.markChildAttendance(
         sessionId: sessionId,
         playerId: _selectedChildId!,
-        status: status,
+        status: statusString,
       );
 
       if (success) {

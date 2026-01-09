@@ -70,7 +70,7 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
 
     setState(() => _isSearching = true);
     try {
-      final results = await _supabaseService.searchUsers(query: query);
+      final results = await _supabaseService.searchUsers(query);
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -99,10 +99,9 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
     setState(() => _isAdding = true);
     try {
       await _supabaseService.addUserToTeam(
-        userId: user['id'] as String,
-        teamId: _selectedTeamId!,
-        role: _selectedRole,
-        userFullName: user['full_name'] as String?,
+        user['id'] as String,
+        _selectedTeamId!,
+        _selectedRole,
       );
 
       if (mounted) {
@@ -194,7 +193,7 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
                     )
                   else
                     DropdownButtonFormField<String>(
-                      value: _selectedTeamId,
+                      initialValue: _selectedTeamId,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -254,7 +253,7 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _selectedRole,
+                    initialValue: _selectedRole,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),

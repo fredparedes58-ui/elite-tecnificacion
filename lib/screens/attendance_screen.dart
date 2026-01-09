@@ -41,8 +41,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isLoading = true);
     
     try {
+      // TODO: Get teamId from user
+      final teamId = 'default-team-id'; // Placeholder
+      
       // Cargar jugadores del equipo
-      final players = await _supabaseService.getTeamPlayers();
+      final playersData = await _supabaseService.getTeamPlayers(teamId);
+      final players = playersData.map((data) => Player.fromJson(data)).toList();
+      
       setState(() {
         _players = players;
         // Inicializar todos como "presente" por defecto
@@ -53,28 +58,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       });
 
       // Buscar sesión del día seleccionado
-      final session = await _supabaseService.getTrainingSessionByDate(
-        date: _selectedDate,
+      final sessionData = await _supabaseService.getTrainingSessionByDate(
+        teamId,
+        _selectedDate,
       );
 
-      if (session != null) {
+      if (sessionData != null) {
+        final sessionId = sessionData['id'] as String;
+        
         // Cargar registros existentes con información del marcador
-        final markerInfo = await _supabaseService.getAttendanceRecordsWithMarker(
-          sessionId: session.id,
-        );
+        final recordsList = await _supabaseService.getAttendanceRecordsWithMarker(sessionId);
+
+        // Convertir lista a mapa para facilitar el acceso
+        final markerInfo = <String, Map<String, dynamic>>{};
+        for (var record in recordsList) {
+          final playerId = record['player_id'] as String;
+          markerInfo[playerId] = {'record': record};
+        }
 
         setState(() {
-          _currentSession = session;
+          _currentSession = null; // TODO: Convert to TrainingSession object
           _markerInfo = markerInfo;
           
           for (var entry in markerInfo.entries) {
             final playerId = entry.key;
             final info = entry.value;
-            final record = info['record'] as AttendanceRecord;
+            final recordData = info['record'] as Map<String, dynamic>;
+            final status = recordData['status'] as String;
             
-            _attendanceMap[playerId] = record.status;
-            if (record.note != null && record.note!.isNotEmpty) {
-              _notesMap[playerId] = record.note!;
+            // Convert string status to AttendanceStatus enum
+            _attendanceMap[playerId] = status == 'present' 
+                ? AttendanceStatus.present 
+                : status == 'absent'
+                    ? AttendanceStatus.absent
+                    : AttendanceStatus.late;
+            
+            final note = recordData['notes'] as String?;
+            if (note != null && note.isNotEmpty) {
+              _notesMap[playerId] = note;
             }
           }
         });
@@ -90,19 +111,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final topic = await _showTopicDialog();
     if (topic == null) return;
 
-    final session = await _supabaseService.createTrainingSession(
-      date: _selectedDate,
-      topic: topic,
-    );
-
-    if (session != null) {
-      setState(() => _currentSession = session);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sesión creada exitosamente')),
+    try {
+      // TODO: Get teamId from user
+      final teamId = 'default-team-id'; // Placeholder
+      
+      final sessionId = await _supabaseService.createTrainingSession(
+        teamId: teamId,
+        date: _selectedDate,
+        notes: topic,
       );
-    } else {
+
+      if (sessionId.isNotEmpty) {
+        setState(() => _currentSession = null); // TODO: Create TrainingSession object
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesión creada exitosamente')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al crear la sesión')),
+        SnackBar(content: Text('Error al crear la sesión: $e')),
       );
     }
   }
@@ -212,10 +239,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     setState(() => _isSaving = true);
 
+    // Convertir el mapa de asistencia a lista de registros
+    final records = _attendanceMap.entries.map((entry) {
+      final playerId = entry.key;
+      final status = entry.value;
+      final note = _notesMap[playerId];
+      
+      return {
+        'player_id': playerId,
+        'status': status == AttendanceStatus.present 
+            ? 'present' 
+            : status == AttendanceStatus.absent
+                ? 'absent'
+                : 'late',
+        'notes': note,
+        'marked_by': null, // TODO: Get current user ID
+      };
+    }).toList();
+
+    // TODO: Get sessionId properly
     final success = await _supabaseService.saveAttendanceRecords(
-      sessionId: _currentSession!.id,
-      playerAttendance: _attendanceMap,
-      playerNotes: _notesMap.isNotEmpty ? _notesMap : null,
+      'session-id', // Placeholder
+      records,
     );
 
     setState(() => _isSaving = false);

@@ -6,7 +6,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/models/notice_board_post_model.dart';
 import 'package:myapp/services/supabase_service.dart';
 import 'package:myapp/services/file_management_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -135,14 +134,15 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
     try {
       final notice = await _supabaseService.createNotice(
-        teamId: _isTeamNotice ? _currentTeamId : null, // null = club, teamId = equipo
+        teamId: _isTeamNotice ? _currentTeamId! : '', // null = club, teamId = equipo
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
+        priority: _isUrgent ? 'urgent' : 'normal',
+        targetRoles: ['coach', 'player', 'parent', 'staff'], // Todos los roles por defecto
         attachmentUrl: _attachmentUrl,
-        priority: _isUrgent ? NoticePriority.urgent : NoticePriority.normal,
       );
 
-      if (notice != null && mounted) {
+      if (notice.isNotEmpty && mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

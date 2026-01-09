@@ -80,7 +80,8 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
 
       // 2. Cargar jugadores del equipo
       if (widget.teamId != null) {
-        _teamPlayers = await _supabaseService.getTeamPlayers(teamId: widget.teamId);
+        final playersData = await _supabaseService.getTeamPlayers(widget.teamId!);
+        _teamPlayers = playersData.map((data) => Player.fromJson(data)).toList();
         _voiceService.setTeamPlayers(_teamPlayers);
       }
 

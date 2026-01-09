@@ -4,6 +4,7 @@
 /// Este archivo muestra cómo integrar ProMatchAnalysisScreen
 /// en diferentes pantallas de tu app
 /// ============================================================
+library;
 
 import 'package:flutter/material.dart';
 import 'package:myapp/screens/promatch_analysis_screen.dart';
@@ -22,7 +23,8 @@ class HomeScreenProMatchButton extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         // VIDEO DE PRUEBA: Reemplaza con tu URL real
-        const testVideoUrl = 'https://vz-xxx.b-cdn.net/VIDEO_GUID/playlist.m3u8';
+        const testVideoUrl =
+            'https://vz-xxx.b-cdn.net/VIDEO_GUID/playlist.m3u8';
         const testVideoGuid = 'tu-video-guid-aqui';
         const testMatchId = 'tu-match-id-aqui';
         const testTeamId = 'tu-team-id-aqui';
@@ -48,10 +50,7 @@ class HomeScreenProMatchButton extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.purple.withOpacity(0.3),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.purple.withOpacity(0.3), width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -221,16 +220,10 @@ class VideoAnalysisCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.cyan.withOpacity(0.1),
-            Colors.blue.withOpacity(0.05),
-          ],
+          colors: [Colors.cyan.withOpacity(0.1), Colors.blue.withOpacity(0.05)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.cyan.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,8 +296,11 @@ class VideoAnalysisCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today,
-                        size: 14, color: Colors.white60),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.white60,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _formatDate(uploadedAt),
@@ -390,10 +386,7 @@ class AnalysisFloatingButton extends StatelessWidget {
       icon: const Icon(Icons.analytics, color: Colors.black),
       label: const Text(
         'ANÁLISIS',
-        style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -407,10 +400,7 @@ class AnalysisFloatingButton extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.grey[900]!,
-              Colors.black,
-            ],
+            colors: [Colors.grey[900]!, Colors.black],
           ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1),
@@ -446,10 +436,14 @@ class AnalysisFloatingButton extends StatelessWidget {
             // Opciones
             ListTile(
               leading: const Icon(Icons.video_library, color: Colors.cyan),
-              title: const Text('ProMatch Analysis',
-                  style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Video + Voz + Dibujo',
-                  style: TextStyle(color: Colors.white60)),
+              title: const Text(
+                'ProMatch Analysis',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Video + Voz + Dibujo',
+                style: TextStyle(color: Colors.white60),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 // Aquí deberías obtener la URL del video del partido
