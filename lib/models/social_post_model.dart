@@ -17,11 +17,13 @@ class SocialPost {
   final int likesCount;
   final int commentsCount;
   final bool isPinned;
+  final SocialPostScope scope; // Nivel de privacidad: team o school
   
   // Campos adicionales de la vista enriquecida
   final String? authorName;
   final String? authorRole;
   final bool? isLikedByMe;
+  final String? teamName; // Nombre del equipo (solo para scope school)
 
   SocialPost({
     required this.id,
@@ -36,9 +38,11 @@ class SocialPost {
     this.likesCount = 0,
     this.commentsCount = 0,
     this.isPinned = false,
+    this.scope = SocialPostScope.team,
     this.authorName,
     this.authorRole,
     this.isLikedByMe,
+    this.teamName,
   });
 
   // Factory constructor desde JSON (Supabase)
@@ -56,9 +60,13 @@ class SocialPost {
       likesCount: json['likes_count'] as int? ?? 0,
       commentsCount: json['comments_count'] as int? ?? 0,
       isPinned: json['is_pinned'] as bool? ?? false,
+      scope: json['scope'] != null
+          ? SocialPostScopeExtension.fromString(json['scope'] as String)
+          : SocialPostScope.team,
       authorName: json['author_name'] as String?,
       authorRole: json['author_role'] as String?,
       isLikedByMe: json['is_liked_by_me'] as bool?,
+      teamName: json['team_name'] as String?,
     );
   }
 
@@ -77,6 +85,7 @@ class SocialPost {
       'likes_count': likesCount,
       'comments_count': commentsCount,
       'is_pinned': isPinned,
+      'scope': scope.value,
     };
   }
 
@@ -89,6 +98,7 @@ class SocialPost {
       'media_url': mediaUrl,
       'media_type': mediaType.value,
       'thumbnail_url': thumbnailUrl,
+      'scope': scope.value,
     };
   }
 
@@ -106,9 +116,11 @@ class SocialPost {
     int? likesCount,
     int? commentsCount,
     bool? isPinned,
+    SocialPostScope? scope,
     String? authorName,
     String? authorRole,
     bool? isLikedByMe,
+    String? teamName,
   }) {
     return SocialPost(
       id: id ?? this.id,
@@ -123,9 +135,11 @@ class SocialPost {
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       isPinned: isPinned ?? this.isPinned,
+      scope: scope ?? this.scope,
       authorName: authorName ?? this.authorName,
       authorRole: authorRole ?? this.authorRole,
       isLikedByMe: isLikedByMe ?? this.isLikedByMe,
+      teamName: teamName ?? this.teamName,
     );
   }
 
@@ -186,6 +200,7 @@ class CreateSocialPostDto {
   final String mediaUrl;
   final MediaType mediaType;
   final String? thumbnailUrl;
+  final SocialPostScope scope; // Nivel de privacidad
 
   CreateSocialPostDto({
     required this.teamId,
@@ -194,6 +209,7 @@ class CreateSocialPostDto {
     required this.mediaUrl,
     required this.mediaType,
     this.thumbnailUrl,
+    this.scope = SocialPostScope.team, // Por defecto scope team
   });
 
   Map<String, dynamic> toJson() {
@@ -204,6 +220,47 @@ class CreateSocialPostDto {
       'media_url': mediaUrl,
       'media_type': mediaType.value,
       'thumbnail_url': thumbnailUrl,
+      'scope': scope.value,
     };
+  }
+}
+
+// ============================================================
+// ENUM: SOCIAL POST SCOPE
+// ============================================================
+
+enum SocialPostScope {
+  team, // Privado del equipo
+  school, // Público para todo el club/escuela
+}
+
+extension SocialPostScopeExtension on SocialPostScope {
+  String get value {
+    switch (this) {
+      case SocialPostScope.team:
+        return 'team';
+      case SocialPostScope.school:
+        return 'school';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case SocialPostScope.team:
+        return 'Mi Equipo';
+      case SocialPostScope.school:
+        return 'Todo el Club';
+    }
+  }
+
+  static SocialPostScope fromString(String value) {
+    switch (value) {
+      case 'team':
+        return SocialPostScope.team;
+      case 'school':
+        return SocialPostScope.school;
+      default:
+        throw ArgumentError('Scope desconocido: $value');
+    }
   }
 }

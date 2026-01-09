@@ -399,12 +399,14 @@ class SocialPostCard extends StatelessWidget {
   final SocialPost post;
   final VoidCallback onLikeToggle;
   final VoidCallback onDelete;
+  final bool showTeamName; // Mostrar nombre del equipo (para posts del club)
 
   const SocialPostCard({
     super.key,
     required this.post,
     required this.onLikeToggle,
     required this.onDelete,
+    this.showTeamName = false,
   });
 
   @override
@@ -439,6 +441,7 @@ class SocialPostCard extends StatelessWidget {
             relativeTime: post.getRelativeTime(),
             isAuthor: isAuthor,
             onDelete: onDelete,
+            teamName: showTeamName ? post.teamName : null,
           ),
 
           // Media Content (Imagen o Video)
@@ -465,6 +468,7 @@ class _PostHeader extends StatelessWidget {
   final String relativeTime;
   final bool isAuthor;
   final VoidCallback onDelete;
+  final String? teamName; // Nombre del equipo (para posts del club)
 
   const _PostHeader({
     required this.authorName,
@@ -472,6 +476,7 @@ class _PostHeader extends StatelessWidget {
     required this.relativeTime,
     required this.isAuthor,
     required this.onDelete,
+    this.teamName,
   });
 
   @override
@@ -509,7 +514,9 @@ class _PostHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$authorRole • $relativeTime',
+                  teamName != null
+                      ? '$authorRole • $teamName • $relativeTime'
+                      : '$authorRole • $relativeTime',
                   style: GoogleFonts.roboto(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.6),

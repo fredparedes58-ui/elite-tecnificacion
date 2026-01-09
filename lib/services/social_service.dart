@@ -15,8 +15,10 @@ class SocialService {
   // ============================================================
 
   /// Obtiene el feed de posts del equipo con paginación
+  /// [scope] puede ser 'team' o 'school'
   Future<List<SocialPost>> getTeamFeed({
     required String teamId,
+    String scope = 'team', // 'team' o 'school'
     int limit = 20,
     int offset = 0,
   }) async {
@@ -25,6 +27,7 @@ class SocialService {
         'get_team_social_feed',
         params: {
           'p_team_id': teamId,
+          'p_scope': scope,
           'p_limit': limit,
           'p_offset': offset,
         },
@@ -42,15 +45,67 @@ class SocialService {
     }
   }
 
+  /// Obtiene el feed público del club (scope school)
+  Future<List<SocialPost>> getSchoolFeed({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_school_social_feed',
+        params: {
+          'p_limit': limit,
+          'p_offset': offset,
+        },
+      );
+
+      if (response == null) {
+        return [];
+      }
+
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => SocialPost.fromJson(json)).toList();
+    } catch (e) {
+      print('❌ Error obteniendo feed del club: $e');
+      rethrow;
+    }
+  }
+
   /// Stream en tiempo real del feed del equipo
-  Stream<List<SocialPost>> streamTeamFeed({required String teamId}) {
+  Stream<List<SocialPost>> streamTeamFeed({
+    required String teamId,
+    String scope = 'team',
+  }) {
     return _supabase
         .from('social_posts')
         .stream(primaryKey: ['id'])
-        .eq('team_id', teamId)
         .order('created_at', ascending: false)
         .map((data) {
-          return data.map((json) => SocialPost.fromJson(json)).toList();
+          return (data as List)
+              .where((json) {
+                final postTeamId = json['team_id'] as String?;
+                final postScope = json['scope'] as String?;
+                return postTeamId == teamId && postScope == scope;
+              })
+              .map((json) => SocialPost.fromJson(json))
+              .toList();
+        });
+  }
+
+  /// Stream en tiempo real del feed público del club
+  Stream<List<SocialPost>> streamSchoolFeed() {
+    return _supabase
+        .from('social_posts')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) {
+          return (data as List)
+              .where((json) {
+                final postScope = json['scope'] as String?;
+                return postScope == 'school';
+              })
+              .map((json) => SocialPost.fromJson(json))
+              .toList();
         });
   }
 

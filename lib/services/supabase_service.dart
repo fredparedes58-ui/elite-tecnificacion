@@ -7,6 +7,8 @@ import 'package:myapp/models/player_analysis_video_model.dart';
 import 'package:myapp/models/training_session_model.dart';
 import 'package:myapp/models/attendance_record_model.dart';
 import 'package:myapp/models/notice_board_post_model.dart';
+import 'package:myapp/models/chat_channel_model.dart';
+import 'package:myapp/models/chat_message_model.dart';
 import 'dart:convert';
 
 class SupabaseService {
@@ -1325,6 +1327,224 @@ class SupabaseService {
       return true;
     } catch (e) {
       debugPrint("❌ Error eliminando comunicado: $e");
+      return false;
+    }
+  }
+
+  // ==========================================
+  // SISTEMA DE CHAT INTELIGENTE
+  // ==========================================
+
+  /// Obtiene todos los canales de chat de un equipo
+  Future<List<ChatChannel>> getTeamChatChannels({String? teamId}) async {
+    try {
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      final response = await client
+          .from('chat_channels')
+          .select()
+          .eq('team_id', finalTeamId)
+          .order('type', ascending: true);
+
+      return (response as List)
+          .map((json) => ChatChannel.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint("❌ Error obteniendo canales de chat: $e");
+      return [];
+    }
+  }
+
+  /// Asegura que existan los canales por defecto para un equipo
+  Future<bool> ensureDefaultChannels({String? teamId}) async {
+    try {
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      await client.rpc(
+        'ensure_default_channels',
+        params: {'p_team_id': finalTeamId},
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("❌ Error creando canales por defecto: $e");
+      return false;
+    }
+  }
+
+  /// Obtiene un canal por tipo y equipo
+  Future<ChatChannel?> getChannelByType({
+    required ChatChannelType type,
+    String? teamId,
+  }) async {
+    try {
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      final response = await client
+          .from('chat_channels')
+          .select()
+          .eq('team_id', finalTeamId)
+          .eq('type', type.value)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return ChatChannel.fromJson(response);
+    } catch (e) {
+      debugPrint("❌ Error obteniendo canal por tipo: $e");
+      return null;
+    }
+  }
+
+  /// Obtiene los mensajes de un canal
+  Future<List<ChatMessage>> getChannelMessages({
+    required String channelId,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await client
+          .from('chat_messages_detailed')
+          .select()
+          .eq('channel_id', channelId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      final messages = (response as List)
+          .map((json) => ChatMessage.fromJson(json))
+          .toList();
+
+      // Invertir para mostrar los más antiguos primero
+      return messages.reversed.toList();
+    } catch (e) {
+      debugPrint("❌ Error obteniendo mensajes del canal: $e");
+      return [];
+    }
+  }
+
+  /// Stream de mensajes en tiempo real para un canal
+  Stream<List<ChatMessage>> streamChannelMessages(String channelId) {
+    try {
+      return client
+          .from('chat_messages_detailed')
+          .stream(primaryKey: ['id'])
+          .eq('channel_id', channelId)
+          .order('created_at', ascending: true)
+          .map(
+            (data) => (data as List)
+                .map((json) => ChatMessage.fromJson(json))
+                .toList(),
+          );
+    } catch (e) {
+      debugPrint("❌ Error creando stream de mensajes: $e");
+      return Stream.value([]);
+    }
+  }
+
+  /// Envía un mensaje a un canal
+  Future<ChatMessage?> sendMessage(CreateChatMessageDto message) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw Exception("Usuario no autenticado");
+
+      final data = {
+        'channel_id': message.channelId,
+        'user_id': userId,
+        'content': message.content,
+        if (message.mediaUrl != null) 'media_url': message.mediaUrl,
+        if (message.mediaType != null) 'media_type': message.mediaType!.value,
+      };
+
+      final response = await client
+          .from('chat_messages')
+          .insert(data)
+          .select()
+          .single();
+
+      // Obtener el mensaje completo con información del usuario
+      final detailedResponse = await client
+          .from('chat_messages_detailed')
+          .select()
+          .eq('id', response['id'] as String)
+          .single();
+
+      return ChatMessage.fromJson(detailedResponse);
+    } catch (e) {
+      debugPrint("❌ Error enviando mensaje: $e");
+      return null;
+    }
+  }
+
+  /// Actualiza un mensaje (solo el autor)
+  Future<bool> updateMessage({
+    required String messageId,
+    String? content,
+  }) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw Exception("Usuario no autenticado");
+
+      final data = <String, dynamic>{};
+      if (content != null) data['content'] = content;
+
+      await client
+          .from('chat_messages')
+          .update(data)
+          .eq('id', messageId)
+          .eq('user_id', userId); // Solo el autor puede actualizar
+
+      return true;
+    } catch (e) {
+      debugPrint("❌ Error actualizando mensaje: $e");
+      return false;
+    }
+  }
+
+  /// Elimina un mensaje (autor o coach/admin)
+  Future<bool> deleteMessage(String messageId) async {
+    try {
+      await client.from('chat_messages').delete().eq('id', messageId);
+      return true;
+    } catch (e) {
+      debugPrint("❌ Error eliminando mensaje: $e");
+      return false;
+    }
+  }
+
+  /// Verifica si el usuario puede escribir en un canal
+  Future<bool> canUserWriteInChannel({required String channelId}) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      // Obtener información del canal y del usuario
+      final channelResponse = await client
+          .from('chat_channels')
+          .select('type, team_id')
+          .eq('id', channelId)
+          .single();
+
+      final channelType = channelResponse['type'] as String;
+      final teamId = channelResponse['team_id'] as String;
+
+      // Si es canal general, todos pueden escribir
+      if (channelType == 'general') return true;
+
+      // Si es canal announcement, solo coaches/admins pueden escribir
+      if (channelType == 'announcement') {
+        final memberResponse = await client
+            .from('team_members')
+            .select('role')
+            .eq('team_id', teamId)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (memberResponse == null) return false;
+        final role = memberResponse['role'] as String?;
+        return ['coach', 'admin'].contains(role);
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint("❌ Error verificando permisos de escritura: $e");
       return false;
     }
   }

@@ -12,11 +12,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/social_post_model.dart';
 import '../services/social_service.dart';
 import 'victory_share_screen.dart';
+import '../services/media_upload_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final String teamId;
+  final SocialPostScope? defaultScope; // Scope por defecto
 
-  const CreatePostScreen({super.key, required this.teamId});
+  const CreatePostScreen({super.key, required this.teamId, this.defaultScope});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -25,17 +27,49 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final SocialService _socialService = SocialService();
+  final MediaUploadService _mediaService = MediaUploadService();
   final ImagePicker _picker = ImagePicker();
 
   File? _selectedFile;
   MediaType? _mediaType;
   bool _isUploading = false;
   double _uploadProgress = 0.0;
+  SocialPostScope _selectedScope = SocialPostScope.team;
+  bool _isCoach = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedScope = widget.defaultScope ?? SocialPostScope.team;
+    _checkUserRole();
+  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkUserRole() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('role')
+          .eq('team_id', widget.teamId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _isCoach = ['coach', 'admin'].contains(response['role']);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+    }
   }
 
   Future<void> _pickImage() async {
@@ -127,6 +161,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         mediaUrl: mediaUrl,
         mediaType: _mediaType!,
         thumbnailUrl: null, // TODO: Generar thumbnail para videos
+        scope: _selectedScope,
       );
 
       await _socialService.createPost(postDto: postDto);
@@ -150,24 +185,31 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<String> _uploadMedia() async {
     if (_selectedFile == null) throw Exception('No hay archivo seleccionado');
 
-    // Simular subida con progreso
-    // TODO: Integrar con MediaUploadService real
-    for (int i = 0; i <= 100; i += 10) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      setState(() => _uploadProgress = i / 100);
-    }
+    setState(() => _uploadProgress = 0.0);
 
-    // Por ahora, retornamos una URL de placeholder
-    // En producción, aquí subirías a R2/Bunny
-    return 'https://via.placeholder.com/800x600';
+    try {
+      String mediaUrl;
+      if (_mediaType == MediaType.image) {
+        mediaUrl = await _mediaService.uploadPhoto(_selectedFile!);
+      } else {
+        final result = await _mediaService.uploadVideo(
+          _selectedFile!,
+          onProgress: (progress) {
+            setState(() => _uploadProgress = progress);
+          },
+        );
+        mediaUrl = result.directPlayUrl;
+      }
+      setState(() => _uploadProgress = 1.0);
+      return mediaUrl;
+    } catch (e) {
+      throw Exception('Error subiendo archivo: $e');
+    }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -180,9 +222,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VictoryShareScreen(
-          imageFile: _selectedFile!,
-        ),
+        builder: (context) => VictoryShareScreen(imageFile: _selectedFile!),
       ),
     );
 
@@ -367,6 +407,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
           const SizedBox(height: 24),
 
+          // Selector de scope (solo para coaches)
+          if (_isCoach) _buildScopeSelector(),
+
+          const SizedBox(height: 24),
+
           // Campo de descripción
           Text(
             'Descripción (Opcional)',
@@ -384,9 +429,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             style: GoogleFonts.roboto(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Escribe algo sobre esta publicación...',
-              hintStyle: GoogleFonts.roboto(
-                color: Colors.white38,
-              ),
+              hintStyle: GoogleFonts.roboto(color: Colors.white38),
               filled: true,
               fillColor: const Color(0xFF1D1E33),
               border: OutlineInputBorder(
@@ -532,6 +575,93 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildScopeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '¿Dónde publicar?',
+          style: GoogleFonts.roboto(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildScopeOption(
+                scope: SocialPostScope.team,
+                icon: Icons.groups,
+                title: 'Mi Equipo',
+                subtitle: 'Solo tu equipo',
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildScopeOption(
+                scope: SocialPostScope.school,
+                icon: Icons.school,
+                title: 'Todo el Club',
+                subtitle: 'Todos los equipos',
+                color: Colors.purple,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScopeOption({
+    required SocialPostScope scope,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    final isSelected = _selectedScope == scope;
+    return InkWell(
+      onTap: () => setState(() => _selectedScope = scope),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1D1E33),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.white.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? color : Colors.white54, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.roboto(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? color : Colors.white70,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: GoogleFonts.roboto(
+                fontSize: 10,
+                color: Colors.white.withOpacity(0.5),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
