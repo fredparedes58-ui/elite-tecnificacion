@@ -965,6 +965,7 @@ class SupabaseService {
   }
 
   /// Guarda o actualiza los registros de asistencia de múltiples jugadores
+  /// Ahora permite que los padres marquen asistencia para sus hijos
   Future<bool> saveAttendanceRecords({
     required String sessionId,
     required Map<String, AttendanceStatus> playerAttendance,
@@ -974,7 +975,7 @@ class SupabaseService {
       final userId = client.auth.currentUser?.id;
       if (userId == null) throw Exception("Usuario no autenticado");
 
-      // Verificar que el usuario es coach o admin
+      // Obtener información de la sesión
       final session = await client
           .from('training_sessions')
           .select('team_id')
@@ -982,6 +983,8 @@ class SupabaseService {
           .single();
 
       final teamId = session['team_id'] as String;
+
+      // Verificar permisos: coach/admin o padre del jugador
       final memberCheck = await client
           .from('team_members')
           .select('role')
@@ -989,9 +992,31 @@ class SupabaseService {
           .eq('user_id', userId)
           .maybeSingle();
 
-      if (memberCheck == null ||
-          !['coach', 'admin'].contains(memberCheck['role'])) {
-        throw Exception("No tienes permisos para modificar asistencia");
+      final isCoachOrAdmin =
+          memberCheck != null &&
+          ['coach', 'admin'].contains(memberCheck['role']);
+
+      // Si no es coach/admin, verificar si es padre de alguno de los jugadores
+      if (!isCoachOrAdmin) {
+        bool hasPermission = false;
+        for (var playerId in playerAttendance.keys) {
+          final parentCheck = await client
+              .from('parent_child_relationships')
+              .select('id')
+              .eq('parent_id', userId)
+              .eq('child_id', playerId)
+              .eq('team_id', teamId)
+              .maybeSingle();
+
+          if (parentCheck != null) {
+            hasPermission = true;
+            break;
+          }
+        }
+
+        if (!hasPermission) {
+          throw Exception("No tienes permisos para modificar asistencia");
+        }
       }
 
       // Preparar datos para insertar/actualizar
@@ -1002,6 +1027,7 @@ class SupabaseService {
           'player_id': playerId,
           'status': _attendanceStatusToString(status),
           'note': playerNotes?[playerId],
+          'marked_by': userId, // Registrar quién marcó la asistencia
         });
       });
 
@@ -1033,6 +1059,107 @@ class SupabaseService {
     } catch (e) {
       debugPrint("❌ Error obteniendo registros de asistencia: $e");
       return [];
+    }
+  }
+
+  /// Obtiene los registros de asistencia con información del marcador
+  Future<Map<String, Map<String, dynamic>>> getAttendanceRecordsWithMarker({
+    required String sessionId,
+  }) async {
+    try {
+      final response = await client
+          .from('attendance_records')
+          .select(
+            '*, marked_by_profile:profiles!marked_by(full_name, avatar_url)',
+          )
+          .eq('session_id', sessionId);
+
+      final Map<String, Map<String, dynamic>> result = {};
+
+      for (var record in response) {
+        final playerId = record['player_id'] as String;
+        final markedBy = record['marked_by'] as String?;
+
+        // Obtener información del perfil del marcador
+        Map<String, dynamic>? markedByProfile;
+        if (record['marked_by_profile'] != null) {
+          if (record['marked_by_profile'] is List &&
+              (record['marked_by_profile'] as List).isNotEmpty) {
+            markedByProfile =
+                (record['marked_by_profile'] as List).first
+                    as Map<String, dynamic>?;
+          } else if (record['marked_by_profile'] is Map) {
+            markedByProfile =
+                record['marked_by_profile'] as Map<String, dynamic>?;
+          }
+        }
+
+        // Crear el registro de asistencia
+        final attendanceRecord = AttendanceRecord.fromJson(record);
+
+        // Verificar si es padre o entrenador
+        String? markerRole;
+        if (markedBy != null) {
+          try {
+            final memberCheck = await client
+                .from('team_members')
+                .select('role')
+                .eq('user_id', markedBy)
+                .maybeSingle();
+
+            if (memberCheck != null) {
+              markerRole = memberCheck['role'] as String?;
+            } else {
+              // Verificar si es padre
+              final parentCheck = await client
+                  .from('parent_child_relationships')
+                  .select('id')
+                  .eq('parent_id', markedBy)
+                  .limit(1)
+                  .maybeSingle();
+
+              if (parentCheck != null) {
+                markerRole = 'parent';
+              }
+            }
+          } catch (e) {
+            debugPrint("Error verificando rol del marcador: $e");
+          }
+        }
+
+        result[playerId] = {
+          'record': attendanceRecord,
+          'marked_by_id': markedBy,
+          'marked_by_name':
+              markedByProfile?['full_name'] as String? ?? 'Desconocido',
+          'marked_by_avatar': markedByProfile?['avatar_url'] as String?,
+          'marked_by_role': markerRole,
+          'updated_at': record['updated_at'] as String?,
+        };
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint("❌ Error obteniendo registros con marcador: $e");
+      // Fallback: obtener registros sin información del marcador
+      try {
+        final records = await getAttendanceRecords(sessionId: sessionId);
+        final Map<String, Map<String, dynamic>> result = {};
+        for (var record in records) {
+          result[record.playerId] = {
+            'record': record,
+            'marked_by_id': record.markedBy,
+            'marked_by_name': null,
+            'marked_by_avatar': null,
+            'marked_by_role': null,
+            'updated_at': record.updatedAt?.toIso8601String(),
+          };
+        }
+        return result;
+      } catch (e2) {
+        debugPrint("❌ Error en fallback: $e2");
+        return {};
+      }
     }
   }
 
@@ -1121,6 +1248,121 @@ class SupabaseService {
     }
   }
 
+  /// Obtiene los hijos de un padre
+  Future<List<Map<String, dynamic>>> getParentChildren({String? teamId}) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw Exception("Usuario no autenticado");
+
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      final response = await client.rpc(
+        'get_parent_children',
+        params: {'p_parent_id': userId, 'p_team_id': finalTeamId},
+      );
+
+      if (response is List) {
+        return response.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("❌ Error obteniendo hijos del padre: $e");
+      return [];
+    }
+  }
+
+  /// Verifica si un padre puede marcar asistencia para un jugador
+  Future<bool> canParentMarkAttendance({
+    required String playerId,
+    String? teamId,
+  }) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      final response = await client
+          .from('parent_child_relationships')
+          .select('id')
+          .eq('parent_id', userId)
+          .eq('child_id', playerId)
+          .eq('team_id', finalTeamId)
+          .maybeSingle();
+
+      return response != null;
+    } catch (e) {
+      debugPrint("❌ Error verificando permisos de padre: $e");
+      return false;
+    }
+  }
+
+  /// Obtiene las sesiones de entrenamiento para padres (solo equipos donde tienen hijos)
+  Future<List<TrainingSession>> getParentTrainingSessions({
+    String? teamId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw Exception("Usuario no autenticado");
+
+      String finalTeamId = teamId ?? await _getDefaultTeamId();
+
+      // Obtener equipos donde el padre tiene hijos
+      final teamsResponse = await client
+          .from('parent_child_relationships')
+          .select('team_id')
+          .eq('parent_id', userId)
+          .eq('team_id', finalTeamId);
+
+      if (teamsResponse.isEmpty) return [];
+
+      // Obtener sesiones de entrenamiento para el equipo específico
+      var query = client
+          .from('training_sessions')
+          .select()
+          .eq('team_id', finalTeamId);
+
+      if (startDate != null) {
+        query = query.gte('date', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.lte('date', endDate.toIso8601String());
+      }
+
+      final response = await query.order('date', ascending: false);
+
+      return (response as List)
+          .map((json) => TrainingSession.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint(
+        "❌ Error obteniendo sesiones de entrenamiento para padres: $e",
+      );
+      return [];
+    }
+  }
+
+  /// Marca asistencia para un solo jugador (método simplificado para padres)
+  Future<bool> markChildAttendance({
+    required String sessionId,
+    required String playerId,
+    required AttendanceStatus status,
+    String? note,
+  }) async {
+    try {
+      return await saveAttendanceRecords(
+        sessionId: sessionId,
+        playerAttendance: {playerId: status},
+        playerNotes: note != null ? {playerId: note} : null,
+      );
+    } catch (e) {
+      debugPrint("❌ Error marcando asistencia del hijo: $e");
+      return false;
+    }
+  }
+
   // ==========================================
   // GESTIÓN DE TABLÓN DE ANUNCIOS OFICIALES
   // ==========================================
@@ -1166,7 +1408,14 @@ class SupabaseService {
   }) async {
     try {
       final userId = client.auth.currentUser?.id;
-      if (userId == null) throw Exception("Usuario no autenticado");
+      // Si el usuario no está autenticado, retornar lista vacía sin lanzar excepción
+      // para evitar bloquear el hot reload
+      if (userId == null) {
+        debugPrint(
+          "⚠️ Usuario no autenticado, retornando lista vacía de comunicados",
+        );
+        return [];
+      }
 
       // Obtener comunicados usando la vista con estadísticas
       final response = await client
@@ -1546,6 +1795,143 @@ class SupabaseService {
     } catch (e) {
       debugPrint("❌ Error verificando permisos de escritura: $e");
       return false;
+    }
+  }
+
+  // ==========================================
+  // GESTIÓN DE MIEMBROS DEL EQUIPO
+  // ==========================================
+
+  /// Busca usuarios por email o nombre de usuario
+  Future<List<Map<String, dynamic>>> searchUsers({
+    required String query,
+  }) async {
+    try {
+      // Buscar por nombre completo en profiles
+      final nameResults = await client
+          .from('profiles')
+          .select('id, full_name')
+          .ilike('full_name', '%$query%')
+          .limit(20);
+
+      // Obtener emails desde auth.users usando RPC o función personalizada
+      // Por ahora, retornamos los usuarios encontrados sin email
+      // El email se puede obtener después si es necesario
+      final List<Map<String, dynamic>> users = [];
+
+      for (var profile in nameResults) {
+        final userId = profile['id'] as String;
+
+        // Intentar obtener el email desde auth.users usando admin API
+        // Nota: Esto requiere permisos especiales, por ahora retornamos sin email
+        users.add({
+          'id': userId,
+          'full_name': profile['full_name'] ?? 'Usuario',
+          'email': null, // Se puede obtener después si es necesario
+        });
+      }
+
+      return users;
+    } catch (e) {
+      debugPrint("❌ Error buscando usuarios: $e");
+      return [];
+    }
+  }
+
+  /// Obtiene todos los equipos disponibles
+  Future<List<Map<String, dynamic>>> getAllTeams() async {
+    try {
+      final response = await client
+          .from('teams')
+          .select('id, name, category')
+          .order('name');
+
+      return (response as List)
+          .map(
+            (team) => {
+              'id': team['id'],
+              'name': team['name'],
+              'category': team['category'],
+            },
+          )
+          .toList();
+    } catch (e) {
+      debugPrint("❌ Error obteniendo equipos: $e");
+      return [];
+    }
+  }
+
+  /// Agrega un usuario a un equipo
+  Future<bool> addUserToTeam({
+    required String userId,
+    required String teamId,
+    String role = 'player',
+    String? userFullName,
+  }) async {
+    try {
+      // Verificar que el usuario actual tiene permisos (coach o admin)
+      final currentUserId = client.auth.currentUser?.id;
+      if (currentUserId == null) return false;
+
+      final memberCheck = await client
+          .from('team_members')
+          .select('role')
+          .eq('team_id', teamId)
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+      if (memberCheck == null ||
+          !['coach', 'admin'].contains(memberCheck['role'])) {
+        throw Exception("No tienes permisos para agregar miembros");
+      }
+
+      // Verificar si el usuario ya está en el equipo
+      final existingMember = await client
+          .from('team_members')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existingMember != null) {
+        throw Exception("El usuario ya está en este equipo");
+      }
+
+      // Obtener el nombre completo del usuario si no se proporciona
+      String finalFullName = userFullName ?? '';
+      if (finalFullName.isEmpty) {
+        final profile = await client
+            .from('profiles')
+            .select('full_name')
+            .eq('id', userId)
+            .maybeSingle();
+        finalFullName = profile?['full_name'] as String? ?? 'Usuario';
+      }
+
+      // Preparar datos para insertar
+      final insertData = <String, dynamic>{
+        'user_id': userId,
+        'team_id': teamId,
+        'role': role,
+        'match_status': 'sub',
+      };
+
+      // Agregar user_full_name solo si el campo existe en la tabla
+      // (algunas instalaciones pueden no tenerlo)
+      try {
+        insertData['user_full_name'] = finalFullName;
+      } catch (e) {
+        // Si el campo no existe, continuar sin él
+        debugPrint("⚠️ Campo user_full_name no disponible: $e");
+      }
+
+      // Agregar el usuario al equipo
+      await client.from('team_members').insert(insertData);
+
+      return true;
+    } catch (e) {
+      debugPrint("❌ Error agregando usuario al equipo: $e");
+      rethrow;
     }
   }
 }

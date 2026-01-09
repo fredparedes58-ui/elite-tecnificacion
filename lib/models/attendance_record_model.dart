@@ -18,6 +18,7 @@ class AttendanceRecord {
   final String playerId;
   final AttendanceStatus status;
   final String? note;
+  final String? markedBy; // ID del usuario que marcó la asistencia (coach, parent, o player)
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -27,6 +28,7 @@ class AttendanceRecord {
     required this.playerId,
     required this.status,
     this.note,
+    this.markedBy,
     required this.createdAt,
     this.updatedAt,
   });
@@ -38,6 +40,7 @@ class AttendanceRecord {
       playerId: json['player_id'] as String,
       status: _parseStatus(json['status'] as String),
       note: json['note'] as String?,
+      markedBy: json['marked_by'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -84,6 +87,7 @@ class AttendanceRecord {
       'player_id': playerId,
       'status': statusString,
       'note': note,
+      'marked_by': markedBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -95,6 +99,7 @@ class AttendanceRecord {
     String? playerId,
     AttendanceStatus? status,
     String? note,
+    String? markedBy,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -104,6 +109,7 @@ class AttendanceRecord {
       playerId: playerId ?? this.playerId,
       status: status ?? this.status,
       note: note ?? this.note,
+      markedBy: markedBy ?? this.markedBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

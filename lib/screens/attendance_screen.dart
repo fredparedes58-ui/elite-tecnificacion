@@ -26,7 +26,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   TrainingSession? _currentSession;
   List<Player> _players = [];
   Map<String, AttendanceStatus> _attendanceMap = {};
-  Map<String, String> _notesMap = {};
+  final Map<String, String> _notesMap = {};
+  Map<String, Map<String, dynamic>> _markerInfo = {}; // Información de quién marcó la asistencia
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -57,17 +58,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
 
       if (session != null) {
-        // Cargar registros existentes
-        final records = await _supabaseService.getAttendanceRecords(
+        // Cargar registros existentes con información del marcador
+        final markerInfo = await _supabaseService.getAttendanceRecordsWithMarker(
           sessionId: session.id,
         );
 
         setState(() {
           _currentSession = session;
-          for (var record in records) {
-            _attendanceMap[record.playerId] = record.status;
+          _markerInfo = markerInfo;
+          
+          for (var entry in markerInfo.entries) {
+            final playerId = entry.key;
+            final info = entry.value;
+            final record = info['record'] as AttendanceRecord;
+            
+            _attendanceMap[playerId] = record.status;
             if (record.note != null && record.note!.isNotEmpty) {
-              _notesMap[record.playerId] = record.note!;
+              _notesMap[playerId] = record.note!;
             }
           }
         });
@@ -214,6 +221,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isSaving = false);
 
     if (success) {
+      // Recargar datos para obtener información actualizada del marcador
+      await _loadData();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Asistencia guardada exitosamente'),
@@ -275,6 +285,70 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  String _formatDate(String? dateString) {
+    if (dateString == null) return '';
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        if (difference.inHours == 0) {
+          if (difference.inMinutes == 0) {
+            return 'Ahora';
+          }
+          return 'Hace ${difference.inMinutes}m';
+        }
+        return 'Hace ${difference.inHours}h';
+      } else if (difference.inDays == 1) {
+        return 'Ayer';
+      } else if (difference.inDays < 7) {
+        return 'Hace ${difference.inDays}d';
+      } else {
+        return DateFormat('dd/MM/yyyy').format(date);
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Color _getMarkerColor(String? role) {
+    switch (role) {
+      case 'parent':
+        return Colors.purple;
+      case 'coach':
+      case 'admin':
+        return Colors.green;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _getMarkerIcon(String? role) {
+    switch (role) {
+      case 'parent':
+        return Icons.family_restroom;
+      case 'coach':
+      case 'admin':
+        return Icons.sports_soccer;
+      default:
+        return Icons.person_outline;
+    }
+  }
+
+  String _getMarkerLabel(String? role) {
+    switch (role) {
+      case 'parent':
+        return 'Padre/Madre';
+      case 'coach':
+        return 'Entrenador';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'Marcado por';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -321,11 +395,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             final status = _attendanceMap[playerId] ??
                                 AttendanceStatus.present;
                             final hasNote = _notesMap.containsKey(playerId);
+                            final markerInfo = _markerInfo[playerId];
 
                             return _buildPlayerCard(
                               player,
                               status,
                               hasNote,
+                              markerInfo,
                               colorScheme,
                             );
                           },
@@ -443,6 +519,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     Player player,
     AttendanceStatus status,
     bool hasNote,
+    Map<String, dynamic>? markerInfo,
     ColorScheme colorScheme,
   ) {
     final playerId = player.id ?? '';
@@ -522,6 +599,54 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                    // Información de quién marcó la asistencia
+                    if (markerInfo != null && markerInfo['marked_by_name'] != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getMarkerIcon(markerInfo['marked_by_role']),
+                              size: 12,
+                              color: _getMarkerColor(markerInfo['marked_by_role']),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '${_getMarkerLabel(markerInfo['marked_by_role'])}: ${markerInfo['marked_by_name']}',
+                                style: GoogleFonts.roboto(
+                                  fontSize: 10,
+                                  color: _getMarkerColor(markerInfo['marked_by_role']),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (markerInfo['updated_at'] != null) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '• ${_formatDate(markerInfo['updated_at'])}',
+                                style: GoogleFonts.roboto(
+                                  fontSize: 9,
+                                  color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
                   ],

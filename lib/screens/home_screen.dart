@@ -17,7 +17,9 @@ import 'package:myapp/screens/top_scorers_screen.dart';
 import 'package:myapp/screens/test_upload_screen.dart';
 import 'package:myapp/screens/social_feed_screen.dart';
 import 'package:myapp/screens/attendance_screen.dart';
+import 'package:myapp/screens/parent_attendance_screen.dart';
 import 'package:myapp/screens/notice_board_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -323,10 +325,72 @@ class HomeScreen extends StatelessWidget {
         title: 'Asistencia',
         icon: Icons.check_circle_outline,
         color: Colors.lime,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AttendanceScreen()),
-        ),
+        onTap: () async {
+          // Verificar si el usuario es padre
+          final userId = Supabase.instance.client.auth.currentUser?.id;
+          if (userId != null) {
+            try {
+              // Verificar si tiene hijos registrados
+              final children = await Supabase.instance.client
+                  .from('parent_child_relationships')
+                  .select('id')
+                  .eq('parent_id', userId)
+                  .limit(1);
+
+              if (children.isNotEmpty) {
+                // Es padre, navegar a pantalla de padres
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ParentAttendanceScreen(),
+                  ),
+                );
+              } else {
+                // No es padre, verificar si es coach/admin
+                final memberCheck = await Supabase.instance.client
+                    .from('team_members')
+                    .select('role')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (memberCheck != null &&
+                    ['coach', 'admin'].contains(memberCheck['role'])) {
+                  // Es coach/admin, navegar a pantalla normal
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AttendanceScreen(),
+                    ),
+                  );
+                } else {
+                  // No tiene permisos
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'No tienes permisos para acceder a la asistencia',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              debugPrint('Error verificando rol: $e');
+              // Por defecto, intentar pantalla normal
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AttendanceScreen(),
+                ),
+              );
+            }
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+            );
+          }
+        },
       ),
       _QuickAccessItem(
         title: 'Tablón',
