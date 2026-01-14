@@ -185,6 +185,7 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["reservation_status"] | null
           title: string
+          trainer_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -198,6 +199,7 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title: string
+          trainer_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -211,6 +213,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title?: string
+          trainer_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -223,6 +226,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -230,6 +240,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trainers: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          photo_url: string | null
+          specialty: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          specialty?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          specialty?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_credits: {
         Row: {
@@ -305,7 +354,12 @@ export type Database = {
       app_role: "admin" | "parent" | "player"
       player_category: "U8" | "U10" | "U12" | "U14" | "U16" | "U18"
       player_level: "beginner" | "intermediate" | "advanced" | "elite"
-      reservation_status: "pending" | "approved" | "rejected"
+      reservation_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "completed"
+        | "no_show"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -436,7 +490,13 @@ export const Constants = {
       app_role: ["admin", "parent", "player"],
       player_category: ["U8", "U10", "U12", "U14", "U16", "U18"],
       player_level: ["beginner", "intermediate", "advanced", "elite"],
-      reservation_status: ["pending", "approved", "rejected"],
+      reservation_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "completed",
+        "no_show",
+      ],
     },
   },
 } as const
