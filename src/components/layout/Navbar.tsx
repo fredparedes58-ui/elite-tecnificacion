@@ -60,8 +60,8 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="relative">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-                <span className="font-orbitron font-bold text-background text-lg">E</span>
+              <div className="w-12 h-10 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
+                <span className="font-orbitron font-bold text-background text-sm">380</span>
               </div>
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-purple opacity-50 blur-md group-hover:opacity-80 transition-opacity" />
             </div>
