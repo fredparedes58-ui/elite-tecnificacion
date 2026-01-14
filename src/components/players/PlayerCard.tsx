@@ -60,8 +60,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onClick }) => {
             {player.position || 'Sin posición'}
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <StatusBadge type="category" value={player.category} />
-            <StatusBadge type="level" value={player.level} />
+            <StatusBadge variant="info">{player.category}</StatusBadge>
+            <StatusBadge variant={player.level === 'elite' ? 'success' : player.level === 'advanced' ? 'info' : 'default'}>
+              {player.level}
+            </StatusBadge>
           </div>
         </div>
       </div>

@@ -48,10 +48,17 @@ export const useUsers = () => {
             .single();
 
           return {
-            ...profile,
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+            phone: profile.phone,
+            is_approved: (profile as any).is_approved ?? false,
+            created_at: profile.created_at,
+            updated_at: profile.updated_at,
             role: roles?.[0]?.role || 'parent',
             credits: credits?.balance || 0,
-          };
+          } as UserProfile;
         })
       );
 

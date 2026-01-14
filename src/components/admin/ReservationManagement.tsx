@@ -37,22 +37,22 @@ const ReservationManagement: React.FC = () => {
   };
 
   const handleReject = async (id: string) => {
-    const success = await updateReservationStatus(id, 'cancelled');
+    const success = await updateReservationStatus(id, 'rejected');
     if (success) {
       toast({
         title: 'Reserva rechazada',
-        description: 'La reserva ha sido cancelada.',
+        description: 'La reserva ha sido rechazada.',
       });
     }
   };
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' | 'default' => {
     switch (status) {
       case 'approved':
         return 'success';
       case 'pending':
         return 'warning';
-      case 'cancelled':
+      case 'rejected':
         return 'error';
       default:
         return 'default';
@@ -65,8 +65,8 @@ const ReservationManagement: React.FC = () => {
         return 'Aprobada';
       case 'pending':
         return 'Pendiente';
-      case 'cancelled':
-        return 'Cancelada';
+      case 'rejected':
+        return 'Rechazada';
       default:
         return status;
     }

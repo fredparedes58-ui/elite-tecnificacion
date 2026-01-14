@@ -1,7 +1,6 @@
 import React from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { NeonButton } from '@/components/ui/NeonButton';
 import PhotoUpload from './PhotoUpload';
 import RadarChart from '@/components/players/RadarChart';
 import type { Player } from '@/hooks/useMyPlayers';
@@ -28,7 +27,7 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
     setPhotoDialogOpen(false);
   };
 
-  const getLevelVariant = (level: string) => {
+  const getLevelVariant = (level: string): 'success' | 'info' | 'warning' | 'default' => {
     switch (level) {
       case 'elite':
         return 'success';
@@ -109,7 +108,7 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
 
         {/* Stats Section */}
         <div className="w-full md:w-48 h-48">
-          <RadarChart stats={player.stats} size="sm" />
+          <RadarChart stats={player.stats} size={150} />
         </div>
       </div>
     </EliteCard>

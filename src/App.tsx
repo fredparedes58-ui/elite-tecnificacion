@@ -7,6 +7,13 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Scouting from "./pages/Scouting";
+import Dashboard from "./pages/Dashboard";
+import Players from "./pages/Players";
+import Reservations from "./pages/Reservations";
+import Chat from "./pages/Chat";
+import AdminUsers from "./pages/AdminUsers";
+import AdminReservations from "./pages/AdminReservations";
+import AdminChat from "./pages/AdminChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +29,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/scouting" element={<Scouting />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/players" element={<Players />} />
+            <Route path="/reservations" element={<Reservations />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/admin" element={<Index />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/reservations" element={<AdminReservations />} />
+            <Route path="/admin/chat" element={<AdminChat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
