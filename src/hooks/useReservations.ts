@@ -139,7 +139,7 @@ export const useAllReservations = () => {
     }
   };
 
-  const updateReservationStatus = async (id: string, status: ReservationStatus) => {
+  const updateReservationStatus = async (id: string, status: ReservationStatus, sendEmail: boolean = true) => {
     try {
       const { error } = await supabase
         .from('reservations')
@@ -147,6 +147,19 @@ export const useAllReservations = () => {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Send email notification
+      if (sendEmail && (status === 'approved' || status === 'rejected')) {
+        try {
+          await supabase.functions.invoke('send-reservation-email', {
+            body: { reservation_id: id, type: status },
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the status update if email fails
+        }
+      }
+      
       await fetchAllReservations();
       return true;
     } catch (err) {
@@ -160,7 +173,7 @@ export const useAllReservations = () => {
     start_time?: string;
     end_time?: string;
     status?: ReservationStatus;
-  }) => {
+  }, sendEmail: boolean = false) => {
     try {
       const { error } = await supabase
         .from('reservations')
@@ -168,6 +181,21 @@ export const useAllReservations = () => {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Send email notification for important updates
+      if (sendEmail) {
+        try {
+          const emailType = updates.status === 'approved' ? 'approved' 
+            : updates.status === 'rejected' ? 'rejected' 
+            : 'updated';
+          await supabase.functions.invoke('send-reservation-email', {
+            body: { reservation_id: id, type: emailType },
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+        }
+      }
+      
       await fetchAllReservations();
       return true;
     } catch (err) {

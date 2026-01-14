@@ -21,11 +21,11 @@ const ReservationManagement: React.FC = () => {
   const { toast } = useToast();
 
   const handleApprove = async (id: string) => {
-    const success = await updateReservationStatus(id, 'approved');
+    const success = await updateReservationStatus(id, 'approved', true);
     if (success) {
       toast({
         title: 'Reserva aprobada',
-        description: 'Se descontará 1 crédito del usuario.',
+        description: 'Se descontará 1 crédito del usuario y se enviará un email de confirmación.',
       });
     } else {
       toast({
@@ -37,11 +37,11 @@ const ReservationManagement: React.FC = () => {
   };
 
   const handleReject = async (id: string) => {
-    const success = await updateReservationStatus(id, 'rejected');
+    const success = await updateReservationStatus(id, 'rejected', true);
     if (success) {
       toast({
         title: 'Reserva rechazada',
-        description: 'La reserva ha sido rechazada.',
+        description: 'La reserva ha sido rechazada y se enviará un email de notificación.',
       });
     }
   };

@@ -235,12 +235,12 @@ const ReservationCalendarView: React.FC = () => {
       trainer_id: targetTrainerId === 'unassigned' ? null : targetTrainerId,
       start_time: newStart.toISOString(),
       end_time: newEnd.toISOString(),
-    });
+    }, true); // Send email notification
 
     if (success) {
       toast({
         title: 'Sesión movida',
-        description: `La sesión ha sido reasignada correctamente.`,
+        description: `La sesión ha sido reasignada y se enviará una notificación por email.`,
       });
     } else {
       toast({
@@ -252,11 +252,14 @@ const ReservationCalendarView: React.FC = () => {
   }, [dayReservations, selectedDate, updateReservation, toast]);
 
   const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected' | 'completed' | 'no_show' | 'pending') => {
-    const success = await updateReservationStatus(id, status);
+    const sendEmail = status === 'approved' || status === 'rejected';
+    const success = await updateReservationStatus(id, status, sendEmail);
     if (success) {
       toast({
         title: 'Estado actualizado',
-        description: `La reserva ha sido marcada como ${getStatusConfig(status).label}.`,
+        description: sendEmail 
+          ? `La reserva ha sido marcada como ${getStatusConfig(status).label} y se enviará un email.`
+          : `La reserva ha sido marcada como ${getStatusConfig(status).label}.`,
       });
       setDetailModalOpen(false);
     } else {
