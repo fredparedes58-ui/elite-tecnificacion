@@ -57,6 +57,7 @@ export const useReservations = () => {
     start_time: string;
     end_time: string;
     player_id?: string;
+    trainer_id?: string;
     credit_cost?: number;
   }) => {
     if (!user) return null;
@@ -154,9 +155,30 @@ export const useAllReservations = () => {
     }
   };
 
+  const updateReservation = async (id: string, updates: {
+    trainer_id?: string | null;
+    start_time?: string;
+    end_time?: string;
+    status?: ReservationStatus;
+  }) => {
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchAllReservations();
+      return true;
+    } catch (err) {
+      console.error('Error updating reservation:', err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchAllReservations();
   }, [isAdmin]);
 
-  return { reservations, loading, updateReservationStatus, refetch: fetchAllReservations };
+  return { reservations, loading, updateReservationStatus, updateReservation, refetch: fetchAllReservations };
 };

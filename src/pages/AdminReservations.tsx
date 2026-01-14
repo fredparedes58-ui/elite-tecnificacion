@@ -5,8 +5,9 @@ import Layout from '@/components/layout/Layout';
 import ReservationManagement from '@/components/admin/ReservationManagement';
 import ReservationCalendarView from '@/components/admin/ReservationCalendarView';
 import TrainerManagement from '@/components/admin/TrainerManagement';
+import AttendanceReports from '@/components/admin/AttendanceReports';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Users } from 'lucide-react';
+import { Calendar, List, Users, BarChart3 } from 'lucide-react';
 
 const AdminReservations: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
@@ -50,6 +51,10 @@ const AdminReservations: React.FC = () => {
               <Users className="w-4 h-4 mr-2" />
               Entrenadores
             </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Reportes
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="mt-0">
@@ -62,6 +67,10 @@ const AdminReservations: React.FC = () => {
 
           <TabsContent value="trainers" className="mt-0">
             <TrainerManagement />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-0">
+            <AttendanceReports />
           </TabsContent>
         </Tabs>
       </div>

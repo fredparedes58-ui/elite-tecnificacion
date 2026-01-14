@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTrainers } from '@/hooks/useTrainers';
 import type { Player } from '@/hooks/useMyPlayers';
 
 const reservationSchema = z.object({
@@ -29,6 +30,7 @@ const reservationSchema = z.object({
   start_time: z.string().min(1, 'Selecciona hora de inicio'),
   end_time: z.string().min(1, 'Selecciona hora de fin'),
   player_id: z.string().optional(),
+  trainer_id: z.string().optional(),
 });
 
 type ReservationFormData = z.infer<typeof reservationSchema>;
@@ -42,6 +44,7 @@ interface ReservationFormProps {
     start_time: string;
     end_time: string;
     player_id?: string;
+    trainer_id?: string;
   }) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
@@ -54,6 +57,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   onCancel,
   loading,
 }) => {
+  const { trainers } = useTrainers();
+  
   const form = useForm<ReservationFormData>({
     resolver: zodResolver(reservationSchema),
     defaultValues: {
@@ -63,6 +68,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       start_time: '',
       end_time: '',
       player_id: '',
+      trainer_id: '',
     },
   });
 
@@ -76,6 +82,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       start_time: startDateTime,
       end_time: endDateTime,
       player_id: data.player_id || undefined,
+      trainer_id: data.trainer_id || undefined,
     });
 
     form.reset();
@@ -125,6 +132,32 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   {players.map((player) => (
                     <SelectItem key={player.id} value={player.id}>
                       {player.name} - {player.category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="trainer_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-rajdhani">Entrenador preferido (opcional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-muted/50 border-neon-purple/30">
+                    <SelectValue placeholder="Selecciona entrenador" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">Sin preferencia</SelectItem>
+                  {trainers.map((trainer) => (
+                    <SelectItem key={trainer.id} value={trainer.id}>
+                      {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
