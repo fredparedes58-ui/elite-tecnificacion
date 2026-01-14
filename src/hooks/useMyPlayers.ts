@@ -102,11 +102,21 @@ export const useMyPlayers = () => {
     }
   };
 
-  const updatePlayer = async (id: string, updates: Partial<Player>) => {
+  const updatePlayer = async (id: string, updates: Partial<Omit<Player, 'stats'>> & { stats?: Record<string, number> }) => {
     try {
+      const { stats, ...otherUpdates } = updates;
+      const updateData: Record<string, unknown> = {
+        ...otherUpdates,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (stats) {
+        updateData.stats = stats;
+      }
+
       const { error } = await supabase
         .from('players')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;

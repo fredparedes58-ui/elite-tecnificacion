@@ -19,13 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Constants } from '@/integrations/supabase/types';
+
+const PLAYER_CATEGORIES = ['U8', 'U10', 'U12', 'U14', 'U16', 'U18'] as const;
+const PLAYER_LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'] as const;
 
 const playerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   birth_date: z.string().optional(),
-  category: z.enum(Constants.player_category as [string, ...string[]]),
-  level: z.enum(Constants.player_level as [string, ...string[]]).optional(),
+  category: z.enum(PLAYER_CATEGORIES),
+  level: z.enum(PLAYER_LEVELS).optional(),
   position: z.string().optional(),
 });
 
@@ -106,7 +108,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ onSubmit, onCancel, loading }) 
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Constants.player_category.map((cat) => (
+                  {PLAYER_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -131,7 +133,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ onSubmit, onCancel, loading }) 
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Constants.player_level.map((level) => (
+                  {PLAYER_LEVELS.map((level) => (
                     <SelectItem key={level} value={level}>
                       {level.charAt(0).toUpperCase() + level.slice(1)}
                     </SelectItem>
