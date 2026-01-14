@@ -46,7 +46,7 @@ const Scouting: React.FC = () => {
     search: search.trim() || undefined,
   }), [category, level, search]);
 
-  const { players, isLoading, error } = usePlayers(filters);
+  const { players, isLoading, error, refetch } = usePlayers(filters);
 
   const handlePlayerClick = useCallback((player: Player) => {
     setSelectedPlayer(player);
@@ -57,6 +57,10 @@ const Scouting: React.FC = () => {
     setIsModalOpen(false);
     setSelectedPlayer(null);
   }, []);
+
+  const handleStatsUpdated = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // Redirect if not authenticated or not approved
   if (authLoading) {
@@ -151,6 +155,7 @@ const Scouting: React.FC = () => {
           player={selectedPlayer}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
+          onStatsUpdated={handleStatsUpdated}
         />
       </div>
     </Layout>

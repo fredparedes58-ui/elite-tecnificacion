@@ -29,69 +29,69 @@ export function usePlayers(filters?: UsePlayersFilters) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchPlayers() {
-      setIsLoading(true);
-      setError(null);
+  const fetchPlayers = async () => {
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        let query = supabase.from('players').select('*');
+    try {
+      let query = supabase.from('players').select('*');
 
-        if (filters?.category && filters.category !== 'all') {
-          query = query.eq('category', filters.category);
-        }
-
-        if (filters?.level && filters.level !== 'all') {
-          query = query.eq('level', filters.level);
-        }
-
-        if (filters?.search) {
-          query = query.ilike('name', `%${filters.search}%`);
-        }
-
-        const { data, error: fetchError } = await query.order('name');
-
-        if (fetchError) throw fetchError;
-
-        // Transform the data to ensure stats is properly typed
-        const transformedData: PlayerWithStats[] = (data || []).map(player => {
-          const rawStats = player.stats as unknown;
-          const defaultStats: PlayerStats = {
-            speed: 50,
-            technique: 50,
-            physical: 50,
-            mental: 50,
-            tactical: 50
-          };
-
-          let stats: PlayerStats = defaultStats;
-          if (rawStats && typeof rawStats === 'object' && !Array.isArray(rawStats)) {
-            const obj = rawStats as Record<string, unknown>;
-            stats = {
-              speed: typeof obj.speed === 'number' ? obj.speed : defaultStats.speed,
-              technique: typeof obj.technique === 'number' ? obj.technique : defaultStats.technique,
-              physical: typeof obj.physical === 'number' ? obj.physical : defaultStats.physical,
-              mental: typeof obj.mental === 'number' ? obj.mental : defaultStats.mental,
-              tactical: typeof obj.tactical === 'number' ? obj.tactical : defaultStats.tactical,
-            };
-          }
-
-          return {
-            ...player,
-            stats
-          };
-        });
-
-        setPlayers(transformedData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar jugadores');
-      } finally {
-        setIsLoading(false);
+      if (filters?.category && filters.category !== 'all') {
+        query = query.eq('category', filters.category);
       }
-    }
 
+      if (filters?.level && filters.level !== 'all') {
+        query = query.eq('level', filters.level);
+      }
+
+      if (filters?.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+      }
+
+      const { data, error: fetchError } = await query.order('name');
+
+      if (fetchError) throw fetchError;
+
+      // Transform the data to ensure stats is properly typed
+      const transformedData: PlayerWithStats[] = (data || []).map(player => {
+        const rawStats = player.stats as unknown;
+        const defaultStats: PlayerStats = {
+          speed: 50,
+          technique: 50,
+          physical: 50,
+          mental: 50,
+          tactical: 50
+        };
+
+        let stats: PlayerStats = defaultStats;
+        if (rawStats && typeof rawStats === 'object' && !Array.isArray(rawStats)) {
+          const obj = rawStats as Record<string, unknown>;
+          stats = {
+            speed: typeof obj.speed === 'number' ? obj.speed : defaultStats.speed,
+            technique: typeof obj.technique === 'number' ? obj.technique : defaultStats.technique,
+            physical: typeof obj.physical === 'number' ? obj.physical : defaultStats.physical,
+            mental: typeof obj.mental === 'number' ? obj.mental : defaultStats.mental,
+            tactical: typeof obj.tactical === 'number' ? obj.tactical : defaultStats.tactical,
+          };
+        }
+
+        return {
+          ...player,
+          stats
+        };
+      });
+
+      setPlayers(transformedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar jugadores');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPlayers();
   }, [filters?.category, filters?.level, filters?.search]);
 
-  return { players, isLoading, error, refetch: () => {} };
+  return { players, isLoading, error, refetch: fetchPlayers };
 }

@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { NeonButton } from '@/components/ui/NeonButton';
+import { Slider } from '@/components/ui/slider';
 import RadarChart from '@/components/players/RadarChart';
-import { User, Calendar, MapPin } from 'lucide-react';
+import { User, Calendar, MapPin, Save, Edit3, X } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type PlayerCategory = Database['public']['Enums']['player_category'];
 type PlayerLevel = Database['public']['Enums']['player_level'];
@@ -32,6 +37,7 @@ interface PlayerDetailModalProps {
   player: Player | null;
   isOpen: boolean;
   onClose: () => void;
+  onStatsUpdated?: () => void;
 }
 
 const statLabels: Record<keyof PlayerStats, string> = {
@@ -42,7 +48,26 @@ const statLabels: Record<keyof PlayerStats, string> = {
   tactical: 'Táctico',
 };
 
-const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, isOpen, onClose }) => {
+const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ 
+  player, 
+  isOpen, 
+  onClose,
+  onStatsUpdated 
+}) => {
+  const { isAdmin } = useAuth();
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedStats, setEditedStats] = useState<PlayerStats | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Reset editing state when modal opens/closes or player changes
+  useEffect(() => {
+    if (player) {
+      setEditedStats({ ...player.stats });
+    }
+    setIsEditing(false);
+  }, [player, isOpen]);
+
   if (!player) return null;
 
   const calculateAge = (birthDate: string | null | undefined) => {
@@ -59,13 +84,79 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, isOpen, o
 
   const age = calculateAge(player.birth_date);
 
+  const handleStatChange = (stat: keyof PlayerStats, value: number[]) => {
+    if (editedStats) {
+      setEditedStats({
+        ...editedStats,
+        [stat]: value[0],
+      });
+    }
+  };
+
+  const handleSaveStats = async () => {
+    if (!editedStats) return;
+
+    setIsSaving(true);
+    try {
+      const statsJson = editedStats as unknown as Record<string, number>;
+      
+      const { error } = await supabase
+        .from('players')
+        .update({ 
+          stats: statsJson,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', player.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Estadísticas Guardadas',
+        description: `Las stats de ${player.name} han sido actualizadas.`,
+      });
+
+      setIsEditing(false);
+      onStatsUpdated?.();
+    } catch (error) {
+      console.error('Error saving stats:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron guardar las estadísticas.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedStats({ ...player.stats });
+    setIsEditing(false);
+  };
+
+  const displayStats = isEditing && editedStats ? editedStats : player.stats;
+  const overallRating = Math.round(Object.values(displayStats).reduce((a, b) => a + b, 0) / 5);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-neon-cyan/30 max-w-2xl">
+      <DialogContent className="bg-card border-neon-cyan/30 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-orbitron gradient-text text-2xl">
-            Perfil del Jugador
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="font-orbitron gradient-text text-2xl">
+              Perfil del Jugador
+            </DialogTitle>
+            {isAdmin && !isEditing && (
+              <NeonButton
+                variant="purple"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="mr-8"
+              >
+                <Edit3 className="w-4 h-4 mr-1" />
+                Editar Stats
+              </NeonButton>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -127,28 +218,40 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, isOpen, o
           <div className="space-y-4">
             {/* Radar Chart */}
             <div className="flex justify-center py-4">
-              <RadarChart stats={player.stats} size={240} showLabels={true} />
+              <RadarChart stats={displayStats} size={240} showLabels={true} />
             </div>
 
-            {/* Stat Bars */}
-            <div className="space-y-3">
-              {(Object.entries(player.stats) as [keyof PlayerStats, number][]).map(([key, value]) => (
+            {/* Stat Bars / Sliders */}
+            <div className="space-y-4">
+              {(Object.entries(displayStats) as [keyof PlayerStats, number][]).map(([key, value]) => (
                 <div key={key}>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex justify-between mb-2">
                     <span className="text-sm font-rajdhani text-muted-foreground">
                       {statLabels[key]}
                     </span>
                     <span className="text-sm font-orbitron text-neon-cyan">{value}</span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${value}%`,
-                        background: `linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-purple)))`
-                      }}
+                  
+                  {isEditing && editedStats ? (
+                    <Slider
+                      value={[editedStats[key]]}
+                      onValueChange={(val) => handleStatChange(key, val)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="w-full"
                     />
-                  </div>
+                  ) : (
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${value}%`,
+                          background: `linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-purple)))`
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -159,9 +262,38 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, isOpen, o
                 Puntuación General
               </span>
               <span className="font-orbitron font-bold text-4xl gradient-text">
-                {Math.round(Object.values(player.stats).reduce((a, b) => a + b, 0) / 5)}
+                {overallRating}
               </span>
             </div>
+
+            {/* Edit Actions */}
+            {isEditing && (
+              <div className="flex gap-3">
+                <NeonButton
+                  variant="cyan"
+                  size="md"
+                  className="flex-1"
+                  onClick={handleSaveStats}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-background/50 border-t-background rounded-full animate-spin mr-2" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Guardar
+                </NeonButton>
+                <NeonButton
+                  variant="outline"
+                  size="md"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </NeonButton>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
