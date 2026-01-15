@@ -6,7 +6,7 @@ import Layout from '@/components/layout/Layout';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import MyPlayerCard from '@/components/dashboard/MyPlayerCard';
-import PlayerForm from '@/components/dashboard/PlayerForm';
+import PlayerOnboardingWizard from '@/components/onboarding/PlayerOnboardingWizard';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog,
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Users, Plus } from 'lucide-react';
+import { Users, Plus, UserPlus } from 'lucide-react';
 
 const Players: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
@@ -44,12 +44,33 @@ const Players: React.FC = () => {
 
   const handleCreatePlayer = async (data: any) => {
     setSubmitting(true);
-    const result = await createPlayer(data);
+    
+    // Map level to stats values
+    const statsMap: Record<string, number> = {
+      beginner: 30,
+      intermediate: 50,
+      advanced: 70,
+      elite: 85,
+    };
+    const statsValue = statsMap[data.level] || 50;
+    
+    const playerData = {
+      ...data,
+      stats: {
+        speed: statsValue,
+        technique: statsValue,
+        physical: statsValue,
+        mental: statsValue,
+        tactical: statsValue,
+      },
+    };
+    
+    const result = await createPlayer(playerData);
     setSubmitting(false);
     if (result) {
       toast({
-        title: 'Jugador registrado',
-        description: 'El jugador ha sido añadido exitosamente.',
+        title: '⚽ ¡Fichaje Completado!',
+        description: `${data.name} ha sido añadido al plantel.`,
       });
       setPlayerDialogOpen(false);
     } else {
@@ -95,17 +116,17 @@ const Players: React.FC = () => {
           <Dialog open={playerDialogOpen} onOpenChange={setPlayerDialogOpen}>
             <DialogTrigger asChild>
               <NeonButton variant="gradient">
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar Jugador
+                <UserPlus className="w-4 h-4 mr-2" />
+                Fichar Jugador
               </NeonButton>
             </DialogTrigger>
-            <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
+            <DialogContent className="bg-background border-neon-cyan/30 max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="font-orbitron gradient-text">
-                  Nuevo Jugador
+                <DialogTitle className="font-orbitron gradient-text text-xl">
+                  ⚽ Fichaje Pro
                 </DialogTitle>
               </DialogHeader>
-              <PlayerForm
+              <PlayerOnboardingWizard
                 onSubmit={handleCreatePlayer}
                 onCancel={() => setPlayerDialogOpen(false)}
                 loading={submitting}
@@ -125,8 +146,8 @@ const Players: React.FC = () => {
               Agrega a tus hijos para comenzar a gestionar sus entrenamientos
             </p>
             <NeonButton variant="gradient" onClick={() => setPlayerDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar tu primer jugador
+              <UserPlus className="w-4 h-4 mr-2" />
+              Fichar tu primer jugador
             </NeonButton>
           </EliteCard>
         ) : (
