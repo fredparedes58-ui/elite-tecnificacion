@@ -11,10 +11,21 @@ import PlayerDirectory from '@/components/admin/PlayerDirectory';
 import PlayerCreditsView from '@/components/admin/PlayerCreditsView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, List, Users, BarChart3, UserCircle, CalendarDays, CreditCard } from 'lucide-react';
+import { useAllReservations } from '@/hooks/useReservations';
+import { useTrainers } from '@/hooks/useTrainers';
+import { usePlayers } from '@/hooks/usePlayers';
 
 const AdminReservations: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('weekly');
+
+  // Centralized data fetching - data is cached and shared across all tabs
+  const { reservations, loading: reservationsLoading, updateReservation, updateReservationStatus, createReservation, refetch: refetchReservations } = useAllReservations();
+  const { trainers, loading: trainersLoading } = useTrainers();
+  const { players, isLoading: playersLoading, refetch: refetchPlayers } = usePlayers();
+
+  // Combined loading state for initial load only
+  const initialLoading = reservationsLoading && trainersLoading && playersLoading;
 
   if (isLoading) {
     return (
@@ -72,32 +83,58 @@ const AdminReservations: React.FC = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="weekly" className="mt-0">
-            <WeeklyScheduleView />
+          {/* Use forceMount + hidden class to keep components mounted */}
+          <TabsContent value="weekly" forceMount className={activeTab !== 'weekly' ? 'hidden' : 'mt-0'}>
+            <WeeklyScheduleView 
+              reservations={reservations}
+              reservationsLoading={reservationsLoading}
+              trainers={trainers}
+              players={players}
+              updateReservation={updateReservation}
+              createReservation={createReservation}
+              refetch={refetchReservations}
+            />
           </TabsContent>
 
-          <TabsContent value="calendar" className="mt-0">
-            <ReservationCalendarView />
+          <TabsContent value="calendar" forceMount className={activeTab !== 'calendar' ? 'hidden' : 'mt-0'}>
+            <ReservationCalendarView 
+              reservations={reservations}
+              reservationsLoading={reservationsLoading}
+              trainers={trainers}
+              players={players}
+              updateReservation={updateReservation}
+              updateReservationStatus={updateReservationStatus}
+              refetch={refetchReservations}
+            />
           </TabsContent>
 
-          <TabsContent value="list" className="mt-0">
-            <ReservationManagement />
+          <TabsContent value="list" forceMount className={activeTab !== 'list' ? 'hidden' : 'mt-0'}>
+            <ReservationManagement 
+              reservations={reservations}
+              loading={reservationsLoading}
+              updateReservationStatus={updateReservationStatus}
+            />
           </TabsContent>
 
-          <TabsContent value="players" className="mt-0">
+          <TabsContent value="players" forceMount className={activeTab !== 'players' ? 'hidden' : 'mt-0'}>
             <PlayerDirectory />
           </TabsContent>
 
-          <TabsContent value="credits" className="mt-0">
+          <TabsContent value="credits" forceMount className={activeTab !== 'credits' ? 'hidden' : 'mt-0'}>
             <PlayerCreditsView />
           </TabsContent>
 
-          <TabsContent value="trainers" className="mt-0">
+          <TabsContent value="trainers" forceMount className={activeTab !== 'trainers' ? 'hidden' : 'mt-0'}>
             <TrainerManagement />
           </TabsContent>
 
-          <TabsContent value="reports" className="mt-0">
-            <AttendanceReports />
+          <TabsContent value="reports" forceMount className={activeTab !== 'reports' ? 'hidden' : 'mt-0'}>
+            <AttendanceReports 
+              reservations={reservations}
+              reservationsLoading={reservationsLoading}
+              trainers={trainers}
+              players={players}
+            />
           </TabsContent>
         </Tabs>
       </div>

@@ -4,9 +4,8 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Calendar } from '@/components/ui/calendar';
-import { useAllReservations, Reservation } from '@/hooks/useReservations';
-import { useTrainers, Trainer } from '@/hooks/useTrainers';
-import { usePlayers } from '@/hooks/usePlayers';
+import { Reservation } from '@/hooks/useReservations';
+import { Trainer } from '@/hooks/useTrainers';
 import { useToast } from '@/hooks/use-toast';
 import { format, isSameDay, parseISO, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,13 +43,38 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import type { Database } from '@/integrations/supabase/types';
+
+type ReservationStatus = Database['public']['Enums']['reservation_status'];
 
 // Session time slots (7am to 9pm)
 const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => i + 7);
 
 interface ReservationWithTrainer extends Reservation {
   trainer?: Trainer;
-  trainer_id?: string;
+}
+
+interface PlayerWithStats {
+  id: string;
+  name: string;
+  category: string;
+  level: string;
+}
+
+interface ReservationCalendarViewProps {
+  reservations: Reservation[];
+  reservationsLoading: boolean;
+  trainers: Trainer[];
+  players: PlayerWithStats[];
+  updateReservation: (id: string, updates: {
+    trainer_id?: string | null;
+    player_id?: string | null;
+    start_time?: string;
+    end_time?: string;
+    status?: ReservationStatus;
+  }, sendEmail?: boolean) => Promise<boolean>;
+  updateReservationStatus: (id: string, status: ReservationStatus, sendEmail?: boolean) => Promise<boolean>;
+  refetch: () => void;
 }
 
 const getStatusConfig = (status: string) => {
@@ -142,10 +166,15 @@ const DroppableCell: React.FC<{
   );
 };
 
-const ReservationCalendarView: React.FC = () => {
-  const { reservations, loading, updateReservationStatus, updateReservation, refetch } = useAllReservations();
-  const { trainers } = useTrainers();
-  const { players } = usePlayers();
+const ReservationCalendarView: React.FC<ReservationCalendarViewProps> = ({
+  reservations,
+  reservationsLoading,
+  trainers,
+  players,
+  updateReservation,
+  updateReservationStatus,
+  refetch
+}) => {
   const { toast } = useToast();
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -172,8 +201,7 @@ const ReservationCalendarView: React.FC = () => {
     const search = playerSearch.toLowerCase();
     return players.filter(p => 
       p.name.toLowerCase().includes(search) ||
-      p.category.toLowerCase().includes(search) ||
-      p.position?.toLowerCase().includes(search)
+      p.category.toLowerCase().includes(search)
     );
   }, [players, playerSearch]);
 
@@ -214,7 +242,7 @@ const ReservationCalendarView: React.FC = () => {
 
     dayReservations.forEach(reservation => {
       const hour = parseISO(reservation.start_time).getHours();
-      const trainerId = (reservation as any).trainer_id || 'unassigned';
+      const trainerId = reservation.trainer_id || 'unassigned';
       const trainer = trainers.find(t => t.id === trainerId);
       
       const targetColumn = columns.find(c => c.id === trainerId) ? trainerId : 'unassigned';
@@ -223,7 +251,6 @@ const ReservationCalendarView: React.FC = () => {
         grid[targetColumn][hour].push({
           ...reservation,
           trainer,
-          trainer_id: trainerId
         });
       }
     });
@@ -257,7 +284,7 @@ const ReservationCalendarView: React.FC = () => {
     if (!reservation) return;
 
     const currentHour = parseISO(reservation.start_time).getHours();
-    const currentTrainerId = (reservation as any).trainer_id || 'unassigned';
+    const currentTrainerId = reservation.trainer_id || 'unassigned';
     
     // No change needed
     if (currentHour === targetHour && currentTrainerId === targetTrainerId) return;
@@ -290,7 +317,7 @@ const ReservationCalendarView: React.FC = () => {
     }
   }, [dayReservations, selectedDate, updateReservation, toast]);
 
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected' | 'completed' | 'no_show' | 'pending') => {
+  const handleStatusUpdate = async (id: string, status: ReservationStatus) => {
     const sendEmail = status === 'approved' || status === 'rejected';
     const success = await updateReservationStatus(id, status, sendEmail);
     if (success) {
@@ -361,7 +388,7 @@ const ReservationCalendarView: React.FC = () => {
 
   const activeReservation = activeId ? dayReservations.find(r => r.id === activeId) : null;
 
-  if (loading) {
+  if (reservationsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-12 h-12 border-4 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin" />

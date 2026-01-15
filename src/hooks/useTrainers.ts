@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface Trainer {
   id: string;
@@ -29,48 +29,44 @@ export interface TrainerPublic {
 
 export const useTrainers = () => {
   const { user, isAdmin } = useAuth();
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchTrainers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
+  const { data: trainers = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['trainers', isAdmin],
+    queryFn: async () => {
       if (isAdmin) {
         // Admins get full trainer data from trainers table
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('trainers')
           .select('*')
           .eq('is_active', true)
           .order('name');
 
-        if (fetchError) throw fetchError;
-        setTrainers((data || []) as Trainer[]);
+        if (error) throw error;
+        return (data || []) as Trainer[];
       } else {
         // Non-admins get public trainer data (no email/phone)
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('trainers_public')
           .select('*')
           .eq('is_active', true)
           .order('name');
 
-        if (fetchError) throw fetchError;
+        if (error) throw error;
         // Map to Trainer type with null contact fields
-        setTrainers((data || []).map(t => ({
+        return (data || []).map(t => ({
           ...t,
           email: null,
           phone: null,
-        })) as Trainer[]);
+        })) as Trainer[];
       }
-    } catch (err) {
-      console.error('Error fetching trainers:', err);
-      setError('Error al cargar entrenadores');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute - trainers don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const error = queryError ? 'Error al cargar entrenadores' : null;
 
   const createTrainer = async (trainer: Omit<Trainer, 'id' | 'created_at' | 'updated_at'>) => {
     try {
@@ -81,7 +77,7 @@ export const useTrainers = () => {
         .single();
 
       if (error) throw error;
-      await fetchTrainers();
+      queryClient.invalidateQueries({ queryKey: ['trainers'] });
       return data as Trainer;
     } catch (err) {
       console.error('Error creating trainer:', err);
@@ -97,7 +93,7 @@ export const useTrainers = () => {
         .eq('id', id);
 
       if (error) throw error;
-      await fetchTrainers();
+      queryClient.invalidateQueries({ queryKey: ['trainers'] });
       return true;
     } catch (err) {
       console.error('Error updating trainer:', err);
@@ -114,19 +110,13 @@ export const useTrainers = () => {
         .eq('id', id);
 
       if (error) throw error;
-      await fetchTrainers();
+      queryClient.invalidateQueries({ queryKey: ['trainers'] });
       return true;
     } catch (err) {
       console.error('Error deleting trainer:', err);
       return false;
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchTrainers();
-    }
-  }, [user, isAdmin]);
 
   return {
     trainers,
@@ -135,6 +125,6 @@ export const useTrainers = () => {
     createTrainer,
     updateTrainer,
     deleteTrainer,
-    refetch: fetchTrainers,
+    refetch,
   };
 };
