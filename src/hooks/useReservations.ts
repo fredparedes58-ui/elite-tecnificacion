@@ -89,7 +89,7 @@ export const useReservations = () => {
 };
 
 export const useAllReservations = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -136,6 +136,36 @@ export const useAllReservations = () => {
       console.error('Error fetching all reservations:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createReservation = async (reservation: {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    player_id?: string;
+    trainer_id?: string;
+    credit_cost?: number;
+    user_id?: string;
+    status?: ReservationStatus;
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .insert({
+          user_id: reservation.user_id || user?.id,
+          ...reservation,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchAllReservations();
+      return data;
+    } catch (err) {
+      console.error('Error creating reservation:', err);
+      return null;
     }
   };
 
@@ -209,5 +239,5 @@ export const useAllReservations = () => {
     fetchAllReservations();
   }, [isAdmin]);
 
-  return { reservations, loading, updateReservationStatus, updateReservation, refetch: fetchAllReservations };
+  return { reservations, loading, updateReservationStatus, updateReservation, createReservation, refetch: fetchAllReservations };
 };

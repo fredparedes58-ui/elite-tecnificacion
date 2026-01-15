@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, closestCenter } from '@dnd-kit/core';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
@@ -7,10 +7,9 @@ import { useAllReservations, Reservation } from '@/hooks/useReservations';
 import { useTrainers, Trainer } from '@/hooks/useTrainers';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useToast } from '@/hooks/use-toast';
-import { format, startOfWeek, addDays, isSameDay, parseISO, setHours, setMinutes } from 'date-fns';
+import { format, startOfWeek, addDays, parseISO, setHours, setMinutes, differenceInYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
-  Clock, 
   User, 
   ChevronLeft,
   ChevronRight,
@@ -19,7 +18,12 @@ import {
   Search,
   CreditCard,
   X,
-  Plus
+  Plus,
+  Calendar,
+  Footprints,
+  MapPin,
+  AlertTriangle,
+  CalendarPlus
 } from 'lucide-react';
 import {
   Dialog,
@@ -40,6 +44,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Session time slots (7am to 9pm)
 const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => i + 7);
@@ -52,19 +57,22 @@ interface ReservationWithTrainer extends Reservation {
   trainer_id?: string;
 }
 
-interface PlayerWithCredits {
+interface PlayerWithFullInfo {
   id: string;
   name: string;
   category: string;
   level: string;
   position: string | null;
+  dominant_leg: string | null;
+  birth_date: string | null;
   parent_id: string;
+  parent_name: string | null;
   credits: number;
 }
 
-// Draggable player from sidebar
+// Draggable player from sidebar with full info
 const DraggablePlayer: React.FC<{
-  player: PlayerWithCredits;
+  player: PlayerWithFullInfo;
   isSelected: boolean;
   onClick: () => void;
 }> = ({ player, isSelected, onClick }) => {
@@ -73,29 +81,69 @@ const DraggablePlayer: React.FC<{
     data: { type: 'player', player },
   });
 
+  const age = player.birth_date ? differenceInYears(new Date(), new Date(player.birth_date)) : null;
+  const legLabel = player.dominant_leg === 'right' ? 'Der' : player.dominant_leg === 'left' ? 'Izq' : player.dominant_leg === 'both' ? 'Amb' : '-';
+
   return (
     <div
       ref={setNodeRef}
       onClick={onClick}
-      className={`p-2 rounded-lg border cursor-pointer transition-all ${
+      className={`p-3 rounded-lg border cursor-pointer transition-all ${
         isDragging ? 'opacity-50' : ''
       } ${
         isSelected 
           ? 'bg-neon-cyan/20 border-neon-cyan/50' 
-          : 'bg-muted/30 border-border hover:border-neon-cyan/30'
+          : player.credits === 0 
+            ? 'bg-red-500/10 border-red-500/30 hover:border-red-500/50'
+            : player.credits <= 5
+              ? 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+              : 'bg-muted/30 border-border hover:border-neon-cyan/30'
       }`}
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <GripVertical className="w-3 h-3 text-muted-foreground" />
-          <div>
-            <p className="text-sm font-rajdhani font-medium truncate">{player.name}</p>
-            <p className="text-xs text-muted-foreground">{player.category}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
+          <GripVertical className="w-3 h-3 text-muted-foreground mt-1 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-rajdhani font-bold truncate">{player.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              Padre: {player.parent_name || 'N/A'}
+            </p>
+            <div className="flex flex-wrap gap-1 mt-1">
+              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-neon-cyan/10 text-neon-cyan border-neon-cyan/30">
+                {player.category}
+              </Badge>
+              {age && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  {age} años
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+              {player.position && (
+                <span className="flex items-center gap-0.5">
+                  <MapPin className="w-2.5 h-2.5" />
+                  {player.position}
+                </span>
+              )}
+              <span className="flex items-center gap-0.5">
+                <Footprints className="w-2.5 h-2.5" />
+                {legLabel}
+              </span>
+            </div>
           </div>
         </div>
-        <Badge variant="outline" className={`text-xs ${player.credits > 0 ? 'text-green-400 border-green-400/30' : 'text-red-400 border-red-400/30'}`}>
+        <Badge 
+          variant="outline" 
+          className={`text-xs shrink-0 ${
+            player.credits === 0 
+              ? 'text-red-400 border-red-400/30 bg-red-500/10' 
+              : player.credits <= 5
+                ? 'text-yellow-400 border-yellow-400/30 bg-yellow-500/10'
+                : 'text-green-400 border-green-400/30 bg-green-500/10'
+          }`}
+        >
           <CreditCard className="w-3 h-3 mr-1" />
           {player.credits}
         </Badge>
@@ -168,46 +216,81 @@ const DroppableCell: React.FC<{
 };
 
 const WeeklyScheduleView: React.FC = () => {
-  const { reservations, loading, updateReservation, refetch } = useAllReservations();
+  const { reservations, loading, updateReservation, createReservation, refetch } = useAllReservations();
   const { trainers } = useTrainers();
   const { players } = usePlayers();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithCredits | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithFullInfo | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [playerSearch, setPlayerSearch] = useState('');
   const [addPlayerModalOpen, setAddPlayerModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ day: Date; hour: number } | null>(null);
   const [selectedPlayerForAdd, setSelectedPlayerForAdd] = useState<string>('');
+  const [selectedTrainerForAdd, setSelectedTrainerForAdd] = useState<string>('');
+  const [sessionTitle, setSessionTitle] = useState('');
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationWithTrainer | null>(null);
+  const [lowCreditsNotified, setLowCreditsNotified] = useState<Set<string>>(new Set());
 
-  // Fetch players with credits
-  const { data: playersWithCredits = [] } = useQuery({
-    queryKey: ['players-with-credits'],
+  // Fetch players with full info including credits and parent name
+  const { data: playersWithFullInfo = [] } = useQuery({
+    queryKey: ['players-full-info'],
     queryFn: async () => {
       const { data: playersData, error: playersError } = await supabase
         .from('players')
-        .select('id, name, category, level, position, parent_id')
+        .select('id, name, category, level, position, dominant_leg, birth_date, parent_id')
         .order('name');
 
       if (playersError) throw playersError;
 
       const parentIds = [...new Set(playersData?.map(p => p.parent_id) || [])];
-      const { data: creditsData } = await supabase
-        .from('user_credits')
-        .select('user_id, balance')
-        .in('user_id', parentIds);
+      
+      const [creditsRes, profilesRes] = await Promise.all([
+        supabase.from('user_credits').select('user_id, balance').in('user_id', parentIds),
+        supabase.from('profiles').select('id, full_name').in('id', parentIds)
+      ]);
 
-      const creditsMap = new Map(creditsData?.map(c => [c.user_id, c.balance]) || []);
+      const creditsMap = new Map(creditsRes.data?.map(c => [c.user_id, c.balance]) || []);
+      const profilesMap = new Map(profilesRes.data?.map(p => [p.id, p.full_name]) || []);
 
       return (playersData || []).map(player => ({
         ...player,
-        credits: creditsMap.get(player.parent_id) || 0
-      })) as PlayerWithCredits[];
+        credits: creditsMap.get(player.parent_id) || 0,
+        parent_name: profilesMap.get(player.parent_id) || null
+      })) as PlayerWithFullInfo[];
     }
   });
+
+  // Check for low credits and notify
+  useEffect(() => {
+    const lowCreditPlayers = playersWithFullInfo.filter(p => p.credits === 0 || p.credits <= 5);
+    const newNotifications: string[] = [];
+    
+    lowCreditPlayers.forEach(player => {
+      if (!lowCreditsNotified.has(player.id)) {
+        newNotifications.push(player.id);
+        if (player.credits === 0) {
+          toast({
+            title: '⚠️ Sin Créditos',
+            description: `${player.name} (Padre: ${player.parent_name || 'N/A'}) no tiene créditos disponibles.`,
+            variant: 'destructive',
+          });
+        } else if (player.credits <= 5) {
+          toast({
+            title: '⚡ Créditos Bajos',
+            description: `${player.name} solo tiene ${player.credits} créditos restantes.`,
+          });
+        }
+      }
+    });
+
+    if (newNotifications.length > 0) {
+      setLowCreditsNotified(prev => new Set([...prev, ...newNotifications]));
+    }
+  }, [playersWithFullInfo, lowCreditsNotified, toast]);
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -216,13 +299,23 @@ const WeeklyScheduleView: React.FC = () => {
 
   // Filter players by search
   const filteredPlayers = useMemo(() => {
-    if (!playerSearch) return playersWithCredits;
+    if (!playerSearch) return playersWithFullInfo;
     const search = playerSearch.toLowerCase();
-    return playersWithCredits.filter(p => 
+    return playersWithFullInfo.filter(p => 
       p.name.toLowerCase().includes(search) ||
-      p.category.toLowerCase().includes(search)
+      p.category.toLowerCase().includes(search) ||
+      p.parent_name?.toLowerCase().includes(search) ||
+      p.position?.toLowerCase().includes(search)
     );
-  }, [playersWithCredits, playerSearch]);
+  }, [playersWithFullInfo, playerSearch]);
+
+  // Stats for sidebar
+  const stats = useMemo(() => {
+    const total = playersWithFullInfo.length;
+    const zeroCredits = playersWithFullInfo.filter(p => p.credits === 0).length;
+    const lowCredits = playersWithFullInfo.filter(p => p.credits > 0 && p.credits <= 5).length;
+    return { total, zeroCredits, lowCredits };
+  }, [playersWithFullInfo]);
 
   // Group reservations by day and hour
   const scheduleGrid = useMemo(() => {
@@ -269,23 +362,35 @@ const WeeklyScheduleView: React.FC = () => {
     const activeData = active.data.current;
     
     if (activeData?.type === 'player') {
-      // Dropping a player to create/assign to a session
-      const player = activeData.player as PlayerWithCredits;
-      
-      // Check if there's already a reservation in this slot
+      const player = activeData.player as PlayerWithFullInfo;
       const existingReservations = scheduleGrid[dayKey]?.[targetHour] || [];
       
       if (existingReservations.length === 0) {
-        // No session exists - we could create one or show modal
-        toast({
-          title: 'Sin sesión',
-          description: 'No hay sesión en este horario. Haz click en la celda para crear una.',
-          variant: 'destructive',
+        // Create new session with this player
+        const newStart = setMinutes(setHours(targetDate, targetHour), 0);
+        const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000); // 1 hour
+
+        const result = await createReservation({
+          title: `Sesión - ${player.name}`,
+          start_time: newStart.toISOString(),
+          end_time: newEnd.toISOString(),
+          player_id: player.id,
+          user_id: user?.id,
+          status: 'approved',
+          credit_cost: 1,
         });
+
+        if (result) {
+          toast({
+            title: 'Sesión creada',
+            description: `Nueva sesión creada para ${player.name}.`,
+          });
+          refetch();
+        }
         return;
       }
       
-      // Assign player to first available session in this slot
+      // Assign player to existing session
       const targetReservation = existingReservations[0];
       const success = await updateReservation(targetReservation.id, {
         player_id: player.id,
@@ -299,7 +404,6 @@ const WeeklyScheduleView: React.FC = () => {
         refetch();
       }
     } else if (activeData?.type === 'reservation') {
-      // Moving a reservation
       const reservation = activeData.reservation as ReservationWithTrainer;
       
       const originalStart = parseISO(reservation.start_time);
@@ -321,24 +425,27 @@ const WeeklyScheduleView: React.FC = () => {
         });
       }
     }
-  }, [scheduleGrid, updateReservation, toast, refetch]);
+  }, [scheduleGrid, updateReservation, createReservation, toast, refetch, user]);
 
   const handleCellClick = (day: Date, hour: number) => {
     setSelectedCell({ day, hour });
     setSelectedPlayerForAdd('');
+    setSelectedTrainerForAdd('');
+    setSessionTitle('Sesión de entrenamiento');
     setAddPlayerModalOpen(true);
   };
 
-  const handleAddPlayerToSession = async () => {
-    if (!selectedCell || !selectedPlayerForAdd) return;
+  const handleCreateOrAssignSession = async () => {
+    if (!selectedCell) return;
     
     const dayKey = format(selectedCell.day, 'yyyy-MM-dd');
     const existingReservations = scheduleGrid[dayKey]?.[selectedCell.hour] || [];
     
-    if (existingReservations.length > 0) {
+    if (existingReservations.length > 0 && selectedPlayerForAdd) {
       // Assign to existing session
       const success = await updateReservation(existingReservations[0].id, {
         player_id: selectedPlayerForAdd,
+        trainer_id: selectedTrainerForAdd || null,
       });
       
       if (success) {
@@ -350,11 +457,29 @@ const WeeklyScheduleView: React.FC = () => {
         refetch();
       }
     } else {
-      toast({
-        title: 'Sin sesión',
-        description: 'No hay sesión en este horario para asignar el jugador.',
-        variant: 'destructive',
+      // Create new session
+      const newStart = setMinutes(setHours(selectedCell.day, selectedCell.hour), 0);
+      const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000);
+
+      const result = await createReservation({
+        title: sessionTitle || 'Sesión de entrenamiento',
+        start_time: newStart.toISOString(),
+        end_time: newEnd.toISOString(),
+        player_id: selectedPlayerForAdd || undefined,
+        trainer_id: selectedTrainerForAdd || undefined,
+        user_id: user?.id,
+        status: 'approved',
+        credit_cost: 1,
       });
+
+      if (result) {
+        toast({
+          title: 'Sesión creada',
+          description: 'La nueva sesión ha sido creada exitosamente.',
+        });
+        setAddPlayerModalOpen(false);
+        refetch();
+      }
     }
   };
 
@@ -366,6 +491,10 @@ const WeeklyScheduleView: React.FC = () => {
   const navigateWeek = (direction: 'prev' | 'next') => {
     setWeekStart(prev => addDays(prev, direction === 'next' ? 7 : -7));
   };
+
+  const existingSessionsInCell = selectedCell 
+    ? (scheduleGrid[format(selectedCell.day, 'yyyy-MM-dd')]?.[selectedCell.hour] || [])
+    : [];
 
   if (loading) {
     return (
@@ -382,18 +511,34 @@ const WeeklyScheduleView: React.FC = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-4">
-        {/* Left Sidebar - Players with Credits */}
-        <EliteCard className="w-72 shrink-0 p-4">
+        {/* Left Sidebar - Players with Full Info */}
+        <EliteCard className="w-80 shrink-0 p-4">
           <div className="mb-4">
             <h3 className="font-orbitron text-lg gradient-text mb-2">Jugadores</h3>
-            <p className="text-xs text-muted-foreground">Arrastra un jugador a una sesión</p>
+            <p className="text-xs text-muted-foreground">Arrastra un jugador a una celda</p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 text-center">
+              <p className="text-lg font-orbitron text-neon-cyan">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground">Total</p>
+            </div>
+            <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+              <p className="text-lg font-orbitron text-red-400">{stats.zeroCredits}</p>
+              <p className="text-[10px] text-muted-foreground">Sin créditos</p>
+            </div>
+            <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+              <p className="text-lg font-orbitron text-yellow-400">{stats.lowCredits}</p>
+              <p className="text-[10px] text-muted-foreground">Bajos</p>
+            </div>
           </div>
           
           {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar jugador..."
+              placeholder="Buscar jugador, padre, posición..."
               value={playerSearch}
               onChange={(e) => setPlayerSearch(e.target.value)}
               className="pl-10 bg-background border-neon-cyan/30 text-sm"
@@ -401,7 +546,7 @@ const WeeklyScheduleView: React.FC = () => {
           </div>
           
           {/* Players List */}
-          <ScrollArea className="h-[500px]">
+          <ScrollArea className="h-[450px]">
             <div className="space-y-2 pr-2">
               {filteredPlayers.map(player => (
                 <DraggablePlayer
@@ -414,20 +559,22 @@ const WeeklyScheduleView: React.FC = () => {
             </div>
           </ScrollArea>
           
-          {/* Selected Player Info */}
+          {/* Selected Player Detail */}
           {selectedPlayer && (
             <div className="mt-4 p-3 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-rajdhani font-medium">{selectedPlayer.name}</span>
+                <span className="font-rajdhani font-bold">{selectedPlayer.name}</span>
                 <button onClick={() => setSelectedPlayer(null)}>
                   <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>Categoría: {selectedPlayer.category}</p>
-                <p>Nivel: {selectedPlayer.level}</p>
-                <p className={selectedPlayer.credits > 0 ? 'text-green-400' : 'text-red-400'}>
-                  Créditos: {selectedPlayer.credits}
+              <div className="text-xs space-y-1">
+                <p><span className="text-muted-foreground">Padre:</span> {selectedPlayer.parent_name || 'N/A'}</p>
+                <p><span className="text-muted-foreground">Categoría:</span> {selectedPlayer.category}</p>
+                <p><span className="text-muted-foreground">Posición:</span> {selectedPlayer.position || 'N/A'}</p>
+                <p><span className="text-muted-foreground">Pierna:</span> {selectedPlayer.dominant_leg === 'right' ? 'Derecha' : selectedPlayer.dominant_leg === 'left' ? 'Izquierda' : 'Ambidiestro'}</p>
+                <p className={selectedPlayer.credits > 5 ? 'text-green-400' : selectedPlayer.credits > 0 ? 'text-yellow-400' : 'text-red-400'}>
+                  <span className="text-muted-foreground">Créditos:</span> {selectedPlayer.credits}
                 </p>
               </div>
             </div>
@@ -519,47 +666,60 @@ const WeeklyScheduleView: React.FC = () => {
         )}
       </DragOverlay>
 
-      {/* Add Player Modal */}
+      {/* Create/Add Session Modal */}
       <Dialog open={addPlayerModalOpen} onOpenChange={setAddPlayerModalOpen}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-orbitron gradient-text">
-              Agregar Jugador a Sesión
+            <DialogTitle className="font-orbitron gradient-text flex items-center gap-2">
+              <CalendarPlus className="w-5 h-5" />
+              {existingSessionsInCell.length > 0 ? 'Agregar Jugador a Sesión' : 'Crear Nueva Sesión'}
             </DialogTitle>
           </DialogHeader>
           
           {selectedCell && (
             <div className="space-y-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Fecha:</span>{' '}
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-neon-cyan" />
                   <span className="font-orbitron text-neon-cyan">
-                    {format(selectedCell.day, "EEEE dd/MM", { locale: es })}
+                    {format(selectedCell.day, "EEEE dd/MM", { locale: es })} - {String(selectedCell.hour).padStart(2, '0')}:00
                   </span>
-                </p>
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Hora:</span>{' '}
-                  <span className="font-orbitron text-neon-cyan">
-                    {String(selectedCell.hour).padStart(2, '0')}:00
-                  </span>
-                </p>
+                </div>
+                {existingSessionsInCell.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Ya existe {existingSessionsInCell.length} sesión(es) en este horario
+                  </p>
+                )}
               </div>
+
+              {existingSessionsInCell.length === 0 && (
+                <div className="space-y-2">
+                  <Label>Título de la sesión</Label>
+                  <Input
+                    value={sessionTitle}
+                    onChange={(e) => setSessionTitle(e.target.value)}
+                    placeholder="Sesión de entrenamiento"
+                    className="bg-background border-neon-cyan/30"
+                  />
+                </div>
+              )}
               
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-neon-cyan" />
-                  Seleccionar Jugador
+                  Jugador (opcional)
                 </Label>
                 <Select value={selectedPlayerForAdd} onValueChange={setSelectedPlayerForAdd}>
                   <SelectTrigger className="bg-background border-neon-cyan/30">
-                    <SelectValue placeholder="Buscar jugador..." />
+                    <SelectValue placeholder="Seleccionar jugador..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {playersWithCredits.map(player => (
+                    <SelectItem value="none">Sin jugador asignado</SelectItem>
+                    {playersWithFullInfo.map(player => (
                       <SelectItem key={player.id} value={player.id}>
-                        <div className="flex items-center justify-between w-full gap-4">
+                        <div className="flex items-center justify-between w-full gap-2">
                           <span>{player.name}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className={`text-xs ${player.credits === 0 ? 'text-red-400' : player.credits <= 5 ? 'text-yellow-400' : 'text-muted-foreground'}`}>
                             {player.category} • {player.credits} créditos
                           </span>
                         </div>
@@ -568,15 +728,50 @@ const WeeklyScheduleView: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-neon-purple" />
+                  Entrenador (opcional)
+                </Label>
+                <Select value={selectedTrainerForAdd} onValueChange={setSelectedTrainerForAdd}>
+                  <SelectTrigger className="bg-background border-neon-purple/30">
+                    <SelectValue placeholder="Seleccionar entrenador..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin entrenador asignado</SelectItem>
+                    {trainers.map(trainer => (
+                      <SelectItem key={trainer.id} value={trainer.id}>
+                        {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedPlayerForAdd && playersWithFullInfo.find(p => p.id === selectedPlayerForAdd)?.credits === 0 && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <p className="text-xs text-red-400">Este jugador no tiene créditos disponibles</p>
+                </div>
+              )}
               
               <NeonButton 
                 variant="cyan" 
                 className="w-full"
-                onClick={handleAddPlayerToSession}
-                disabled={!selectedPlayerForAdd}
+                onClick={handleCreateOrAssignSession}
               >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Agregar a Sesión
+                {existingSessionsInCell.length > 0 ? (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Agregar a Sesión
+                  </>
+                ) : (
+                  <>
+                    <CalendarPlus className="w-4 h-4 mr-2" />
+                    Crear Sesión
+                  </>
+                )}
               </NeonButton>
             </div>
           )}
