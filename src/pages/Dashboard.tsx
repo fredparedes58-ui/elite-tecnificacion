@@ -9,7 +9,7 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import MyPlayerCard from '@/components/dashboard/MyPlayerCard';
-import PlayerForm from '@/components/dashboard/PlayerForm';
+import PlayerOnboardingWizard from '@/components/onboarding/PlayerOnboardingWizard';
 import ReservationForm from '@/components/dashboard/ReservationForm';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -27,12 +27,15 @@ import {
   Coins, 
   Plus, 
   MessageSquare,
-  Clock
+  Clock,
+  AlertTriangle,
+  UserPlus
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Dashboard: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
-  const { credits } = useCredits();
+  const { credits, loading: creditsLoading } = useCredits();
   const { players, createPlayer, uploadPlayerPhoto } = useMyPlayers();
   const { reservations, createReservation } = useReservations();
   const { toast } = useToast();
@@ -60,12 +63,32 @@ const Dashboard: React.FC = () => {
 
   const handleCreatePlayer = async (data: any) => {
     setSubmitting(true);
-    const result = await createPlayer(data);
+    
+    const statsMap: Record<string, number> = {
+      beginner: 30,
+      intermediate: 50,
+      advanced: 70,
+      elite: 85,
+    };
+    const statsValue = statsMap[data.level] || 50;
+    
+    const playerData = {
+      ...data,
+      stats: {
+        speed: statsValue,
+        technique: statsValue,
+        physical: statsValue,
+        mental: statsValue,
+        tactical: statsValue,
+      },
+    };
+    
+    const result = await createPlayer(playerData);
     setSubmitting(false);
     if (result) {
       toast({
-        title: 'Jugador registrado',
-        description: 'El jugador ha sido añadido exitosamente.',
+        title: '⚽ ¡Fichaje Completado!',
+        description: `${data.name} ha sido añadido al plantel.`,
       });
       setPlayerDialogOpen(false);
     } else {
@@ -140,7 +163,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const pendingReservations = reservations.filter((r) => r.status === 'pending');
+  const hasNoCredits = credits === 0;
+  const hasLowCredits = credits > 0 && credits <= 3;
 
   return (
     <Layout>
@@ -155,16 +179,75 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
+        {/* Credits Alert Banner */}
+        {hasNoCredits && (
+          <EliteCard className="p-4 border-red-500/50 bg-red-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/20">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-orbitron font-bold text-red-400">Sin Créditos Disponibles</p>
+                <p className="text-sm text-muted-foreground">
+                  No puedes hacer nuevas reservas. Contacta a la academia para recargar.
+                </p>
+              </div>
+            </div>
+          </EliteCard>
+        )}
+
+        {hasLowCredits && (
+          <EliteCard className="p-4 border-yellow-500/50 bg-yellow-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-yellow-500/20">
+                <Coins className="w-6 h-6 text-yellow-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-orbitron font-bold text-yellow-400">Créditos Bajos</p>
+                <p className="text-sm text-muted-foreground">
+                  Solo te quedan {credits} créditos. Considera recargar pronto.
+                </p>
+              </div>
+            </div>
+          </EliteCard>
+        )}
+
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-4">
-          <EliteCard className="p-5">
+          {/* Dynamic Credits Card */}
+          <EliteCard className={cn(
+            "p-5 transition-all",
+            hasNoCredits 
+              ? "border-red-500/50 bg-gradient-to-br from-red-500/10 to-red-500/5" 
+              : hasLowCredits
+                ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5"
+                : ""
+          )}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-cyan/5 border border-neon-cyan/30 flex items-center justify-center">
-                <Coins className="w-6 h-6 text-neon-cyan" />
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center",
+                hasNoCredits
+                  ? "bg-red-500/20 border border-red-500/30"
+                  : hasLowCredits
+                    ? "bg-yellow-500/20 border border-yellow-500/30"
+                    : "bg-gradient-to-br from-neon-cyan/20 to-neon-cyan/5 border border-neon-cyan/30"
+              )}>
+                <Coins className={cn(
+                  "w-6 h-6",
+                  hasNoCredits ? "text-red-400" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
+                )} />
               </div>
               <div>
                 <p className="text-muted-foreground text-sm font-rajdhani">Créditos</p>
-                <p className="font-orbitron font-bold text-2xl text-neon-cyan">{credits}</p>
+                <p className={cn(
+                  "font-orbitron font-bold text-2xl",
+                  hasNoCredits ? "text-red-400" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
+                )}>
+                  {creditsLoading ? '...' : credits}
+                </p>
+                {hasNoCredits && (
+                  <p className="text-xs text-red-400 mt-0.5">Sin créditos</p>
+                )}
               </div>
             </div>
           </EliteCard>
@@ -215,17 +298,17 @@ const Dashboard: React.FC = () => {
             <Dialog open={playerDialogOpen} onOpenChange={setPlayerDialogOpen}>
               <DialogTrigger asChild>
                 <NeonButton variant="cyan" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Jugador
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Fichar Jugador
                 </NeonButton>
               </DialogTrigger>
-              <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
+              <DialogContent className="bg-background border-neon-cyan/30 max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="font-orbitron gradient-text">
-                    Nuevo Jugador
+                  <DialogTitle className="font-orbitron gradient-text text-xl">
+                    ⚽ Fichaje Pro
                   </DialogTitle>
                 </DialogHeader>
-                <PlayerForm
+                <PlayerOnboardingWizard
                   onSubmit={handleCreatePlayer}
                   onCancel={() => setPlayerDialogOpen(false)}
                   loading={submitting}
@@ -239,8 +322,8 @@ const Dashboard: React.FC = () => {
               <Users className="w-12 h-12 text-neon-cyan/30 mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No tienes jugadores registrados</p>
               <NeonButton variant="gradient" onClick={() => setPlayerDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar tu primer jugador
+                <UserPlus className="w-4 h-4 mr-2" />
+                Fichar tu primer jugador
               </NeonButton>
             </EliteCard>
           ) : (
@@ -263,7 +346,12 @@ const Dashboard: React.FC = () => {
             <h2 className="font-orbitron font-bold text-xl">Mis Reservas</h2>
             <Dialog open={reservationDialogOpen} onOpenChange={setReservationDialogOpen}>
               <DialogTrigger asChild>
-                <NeonButton variant="purple" size="sm">
+                <NeonButton 
+                  variant="purple" 
+                  size="sm"
+                  disabled={hasNoCredits}
+                  className={hasNoCredits ? 'opacity-50 cursor-not-allowed' : ''}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Reserva
                 </NeonButton>
@@ -285,7 +373,20 @@ const Dashboard: React.FC = () => {
             </Dialog>
           </div>
 
-          {reservations.length === 0 ? (
+          {/* Block message when no credits */}
+          {hasNoCredits && (
+            <EliteCard className="p-6 text-center border-red-500/30 bg-red-500/5">
+              <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+              <p className="font-rajdhani font-bold text-red-400 mb-2">
+                Acceso al Calendario Bloqueado
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Necesitas créditos para hacer reservas. Contacta a Elite 380 para recargar tu cartera.
+              </p>
+            </EliteCard>
+          )}
+
+          {!hasNoCredits && reservations.length === 0 ? (
             <EliteCard className="p-8 text-center">
               <Calendar className="w-12 h-12 text-neon-purple/30 mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No tienes reservas</p>
@@ -294,7 +395,7 @@ const Dashboard: React.FC = () => {
                 Crear tu primera reserva
               </NeonButton>
             </EliteCard>
-          ) : (
+          ) : !hasNoCredits && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {reservations.slice(0, 6).map((reservation) => (
                 <EliteCard key={reservation.id} className="p-4">

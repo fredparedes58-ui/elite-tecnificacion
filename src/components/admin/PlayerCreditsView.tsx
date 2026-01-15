@@ -3,6 +3,8 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { NeonButton } from '@/components/ui/NeonButton';
+import CreditWalletManager from './CreditWalletManager';
+import CreditTransactionHistory from './CreditTransactionHistory';
 import { 
   Table, 
   TableBody, 
@@ -18,10 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, Bell, BellRing } from 'lucide-react';
+import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, BellRing, Wallet, History } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -43,14 +51,29 @@ interface PlayerWithCreditsAndParent {
   credits: number;
 }
 
+interface CreditTransaction {
+  id: string;
+  user_id: string;
+  reservation_id: string | null;
+  amount: number;
+  transaction_type: 'debit' | 'credit' | 'refund' | 'manual_adjustment';
+  description: string | null;
+  created_at: string;
+}
+
 const PlayerCreditsView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [creditFilter, setCreditFilter] = useState<string>('all');
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set());
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithCreditsAndParent | null>(null);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: players = [], isLoading } = useQuery({
+  const { data: players = [], isLoading, refetch } = useQuery({
     queryKey: ['players-credits-directory'],
     queryFn: async () => {
       const { data: playersData, error } = await supabase
@@ -70,7 +93,6 @@ const PlayerCreditsView: React.FC = () => {
 
       if (error) throw error;
 
-      // Fetch parent info and credits
       const parentIds = [...new Set(playersData?.map(p => p.parent_id) || [])];
       
       const [profilesRes, creditsRes] = await Promise.all([
@@ -89,7 +111,25 @@ const PlayerCreditsView: React.FC = () => {
     }
   });
 
-  // Auto-notify on load for players with low/zero credits
+  // Fetch transactions for selected user
+  const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
+    queryKey: ['credit-transactions', selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) return [];
+      
+      const { data, error } = await supabase
+        .from('credit_transactions')
+        .select('*')
+        .eq('user_id', selectedUserId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data as CreditTransaction[];
+    },
+    enabled: !!selectedUserId,
+  });
+
   useEffect(() => {
     if (players.length === 0) return;
 
@@ -170,6 +210,21 @@ const PlayerCreditsView: React.FC = () => {
       return <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{credits} créditos</Badge>;
     }
     return <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">{credits} créditos</Badge>;
+  };
+
+  const handleOpenWallet = (player: PlayerWithCreditsAndParent) => {
+    setSelectedPlayer(player);
+    setWalletModalOpen(true);
+  };
+
+  const handleOpenHistory = (userId: string) => {
+    setSelectedUserId(userId);
+    setHistoryModalOpen(true);
+  };
+
+  const handleBalanceUpdated = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ['credit-transactions', selectedUserId] });
   };
 
   const handleNotifyLowCredits = () => {
@@ -324,10 +379,9 @@ const PlayerCreditsView: React.FC = () => {
                 <TableHead className="font-orbitron">Edad</TableHead>
                 <TableHead className="font-orbitron">Categoría</TableHead>
                 <TableHead className="font-orbitron">Posición</TableHead>
-                <TableHead className="font-orbitron">Pierna</TableHead>
                 <TableHead className="font-orbitron">Padre/Tutor</TableHead>
-                <TableHead className="font-orbitron">Contacto</TableHead>
                 <TableHead className="font-orbitron text-center">Créditos</TableHead>
+                <TableHead className="font-orbitron text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -366,36 +420,39 @@ const PlayerCreditsView: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Footprints className="w-3 h-3 text-muted-foreground" />
-                      {getLegLabel(player.dominant_leg)}
+                    <div>
+                      <span className="font-rajdhani font-medium">
+                        {player.parent?.full_name || 'Sin asignar'}
+                      </span>
+                      {player.parent?.email && (
+                        <p className="text-xs text-muted-foreground truncate max-w-32">
+                          {player.parent.email}
+                        </p>
+                      )}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-rajdhani font-medium">
-                      {player.parent?.full_name || 'Sin asignar'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {player.parent ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Mail className="w-3 h-3" />
-                          <span className="truncate max-w-32">{player.parent.email}</span>
-                        </div>
-                        {player.parent.phone && (
-                          <div className="flex items-center gap-1 text-xs text-neon-cyan">
-                            <Phone className="w-3 h-3" />
-                            <span>{player.parent.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     {getCreditsBadge(player.credits)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2">
+                      <NeonButton
+                        variant="cyan"
+                        size="sm"
+                        onClick={() => handleOpenWallet(player)}
+                      >
+                        <Wallet className="w-3 h-3 mr-1" />
+                        Cargar
+                      </NeonButton>
+                      <NeonButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => player.parent && handleOpenHistory(player.parent.id)}
+                        disabled={!player.parent}
+                      >
+                        <History className="w-3 h-3" />
+                      </NeonButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -403,6 +460,47 @@ const PlayerCreditsView: React.FC = () => {
           </Table>
         </div>
       </EliteCard>
+
+      {/* Wallet Modal */}
+      <Dialog open={walletModalOpen} onOpenChange={setWalletModalOpen}>
+        <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-orbitron gradient-text flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Gestión de Cartera
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPlayer && selectedPlayer.parent && (
+            <CreditWalletManager
+              userId={selectedPlayer.parent.id}
+              userName={selectedPlayer.parent.full_name || selectedPlayer.name}
+              currentBalance={selectedPlayer.credits}
+              onBalanceUpdated={handleBalanceUpdated}
+              onViewHistory={() => {
+                setSelectedUserId(selectedPlayer.parent!.id);
+                setWalletModalOpen(false);
+                setHistoryModalOpen(true);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* History Modal */}
+      <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+        <DialogContent className="bg-background border-neon-cyan/30 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-orbitron gradient-text flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Historial de Movimientos
+            </DialogTitle>
+          </DialogHeader>
+          <CreditTransactionHistory
+            transactions={transactions}
+            loading={loadingTransactions}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
