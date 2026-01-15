@@ -170,6 +170,7 @@ export const useAllReservations = () => {
 
   const updateReservation = async (id: string, updates: {
     trainer_id?: string | null;
+    player_id?: string | null;
     start_time?: string;
     end_time?: string;
     status?: ReservationStatus;

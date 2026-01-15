@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Calendar } from '@/components/ui/calendar';
 import { useAllReservations, Reservation } from '@/hooks/useReservations';
 import { useTrainers, Trainer } from '@/hooks/useTrainers';
+import { usePlayers } from '@/hooks/usePlayers';
 import { useToast } from '@/hooks/use-toast';
 import { format, isSameDay, parseISO, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -19,7 +20,9 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  GripVertical
+  GripVertical,
+  UserPlus,
+  UserMinus
 } from 'lucide-react';
 import {
   Dialog,
@@ -136,6 +139,7 @@ const DroppableCell: React.FC<{
 const ReservationCalendarView: React.FC = () => {
   const { reservations, loading, updateReservationStatus, updateReservation, refetch } = useAllReservations();
   const { trainers } = useTrainers();
+  const { players } = usePlayers();
   const { toast } = useToast();
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -284,6 +288,28 @@ const ReservationCalendarView: React.FC = () => {
         description: 'Se ha actualizado el entrenador de la sesión.',
       });
       setSelectedReservation(prev => prev ? { ...prev, trainer_id: trainerId } : null);
+    }
+  };
+
+  const handlePlayerChange = async (playerId: string) => {
+    if (!selectedReservation) return;
+    
+    const success = await updateReservation(selectedReservation.id, {
+      player_id: playerId === 'none' ? null : playerId,
+    });
+
+    if (success) {
+      const playerName = players.find(p => p.id === playerId)?.name || 'Ninguno';
+      toast({
+        title: 'Jugador actualizado',
+        description: `Se ha asignado a ${playerName} a esta sesión.`,
+      });
+      setSelectedReservation(prev => prev ? { 
+        ...prev, 
+        player_id: playerId === 'none' ? null : playerId,
+        player: playerId === 'none' ? undefined : { name: playerName }
+      } : null);
+      refetch();
     }
   };
 
@@ -482,9 +508,41 @@ const ReservationCalendarView: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Player Assignment */}
+                <div className="space-y-2 p-4 rounded-lg bg-muted/30 border border-border">
+                  <Label className="font-rajdhani flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-neon-cyan" />
+                    Asignar Jugador
+                  </Label>
+                  <Select 
+                    value={selectedReservation.player_id || 'none'} 
+                    onValueChange={handlePlayerChange}
+                  >
+                    <SelectTrigger className="bg-background border-neon-cyan/30">
+                      <SelectValue placeholder="Seleccionar jugador" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="none">
+                        <span className="flex items-center gap-2">
+                          <UserMinus className="w-4 h-4" />
+                          Sin jugador asignado
+                        </span>
+                      </SelectItem>
+                      {players.map(player => (
+                        <SelectItem key={player.id} value={player.id}>
+                          {player.name} - {player.category} ({player.level})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Trainer Assignment */}
                 <div className="space-y-2 p-4 rounded-lg bg-muted/30 border border-border">
-                  <Label className="font-rajdhani">Asignar Entrenador</Label>
+                  <Label className="font-rajdhani flex items-center gap-2">
+                    <User className="w-4 h-4 text-neon-purple" />
+                    Asignar Entrenador
+                  </Label>
                   <Select 
                     value={selectedReservation.trainer_id || 'unassigned'} 
                     onValueChange={handleTrainerChange}
