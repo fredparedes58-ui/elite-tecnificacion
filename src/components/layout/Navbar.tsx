@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { NeonButton } from '@/components/ui/NeonButton';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { 
   User, 
   LogOut, 
@@ -12,7 +13,8 @@ import {
   MessageSquare, 
   Calendar, 
   Target,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +93,9 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* User Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {user && <NotificationBell />}
+            
             {user ? (
               <div className="hidden md:flex items-center gap-4">
                 <Link

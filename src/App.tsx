@@ -14,6 +14,8 @@ import Chat from "./pages/Chat";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReservations from "./pages/AdminReservations";
 import AdminChat from "./pages/AdminChat";
+import Notifications from "./pages/Notifications";
+import AdminNotifications from "./pages/AdminNotifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,10 +35,12 @@ const App = () => (
             <Route path="/players" element={<Players />} />
             <Route path="/reservations" element={<Reservations />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/reservations" element={<AdminReservations />} />
             <Route path="/admin/chat" element={<AdminChat />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
