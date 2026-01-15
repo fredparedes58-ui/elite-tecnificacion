@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { useAllReservations } from '@/hooks/useReservations';
-import { useTrainers } from '@/hooks/useTrainers';
-import { usePlayers } from '@/hooks/usePlayers';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, isSameMonth } from 'date-fns';
+import { Reservation } from '@/hooks/useReservations';
+import { Trainer } from '@/hooks/useTrainers';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   BarChart, 
@@ -13,31 +12,35 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Users, User, Calendar, TrendingUp } from 'lucide-react';
 import { NeonButton } from '@/components/ui/NeonButton';
 
-const COLORS = ['hsl(180, 100%, 50%)', 'hsl(280, 100%, 65%)', 'hsl(45, 100%, 50%)', 'hsl(120, 70%, 50%)', 'hsl(0, 70%, 50%)'];
+interface PlayerWithStats {
+  id: string;
+  name: string;
+  category: string;
+  level: string;
+}
 
-const AttendanceReports: React.FC = () => {
-  const { reservations, loading } = useAllReservations();
-  const { trainers } = useTrainers();
-  const { players } = usePlayers();
-  
+interface AttendanceReportsProps {
+  reservations: Reservation[];
+  reservationsLoading: boolean;
+  trainers: Trainer[];
+  players: PlayerWithStats[];
+}
+
+const AttendanceReports: React.FC<AttendanceReportsProps> = ({
+  reservations,
+  reservationsLoading,
+  trainers,
+  players
+}) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [viewType, setViewType] = useState<'trainer' | 'player'>('trainer');
 
   // Navigate months
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -94,7 +97,7 @@ const AttendanceReports: React.FC = () => {
     stats['unassigned'] = { name: 'Sin Asignar', total: 0, completed: 0, no_show: 0 };
 
     monthReservations.forEach(r => {
-      const trainerId = (r as any).trainer_id || 'unassigned';
+      const trainerId = r.trainer_id || 'unassigned';
       if (!stats[trainerId]) {
         stats[trainerId] = { name: 'Desconocido', total: 0, completed: 0, no_show: 0 };
       }
@@ -145,7 +148,7 @@ const AttendanceReports: React.FC = () => {
     return { total, completed, noShow, rate };
   }, [monthReservations]);
 
-  if (loading) {
+  if (reservationsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-12 h-12 border-4 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin" />

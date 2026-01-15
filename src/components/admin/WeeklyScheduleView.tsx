@@ -3,9 +3,8 @@ import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, clos
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { useAllReservations, Reservation } from '@/hooks/useReservations';
-import { useTrainers, Trainer } from '@/hooks/useTrainers';
-import { usePlayers } from '@/hooks/usePlayers';
+import { Reservation } from '@/hooks/useReservations';
+import { Trainer } from '@/hooks/useTrainers';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, parseISO, setHours, setMinutes, differenceInYears } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -45,6 +44,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
+
+type ReservationStatus = Database['public']['Enums']['reservation_status'];
 
 // Session time slots (7am to 9pm)
 const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => i + 7);
@@ -54,7 +56,6 @@ const DAYS_OF_WEEK = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 interface ReservationWithTrainer extends Reservation {
   trainer?: Trainer;
-  trainer_id?: string;
 }
 
 interface PlayerWithFullInfo {
@@ -68,6 +69,39 @@ interface PlayerWithFullInfo {
   parent_id: string;
   parent_name: string | null;
   credits: number;
+}
+
+interface PlayerWithStats {
+  id: string;
+  name: string;
+  category: string;
+  level: string;
+}
+
+interface WeeklyScheduleViewProps {
+  reservations: Reservation[];
+  reservationsLoading: boolean;
+  trainers: Trainer[];
+  players: PlayerWithStats[];
+  updateReservation: (id: string, updates: {
+    trainer_id?: string | null;
+    player_id?: string | null;
+    start_time?: string;
+    end_time?: string;
+    status?: ReservationStatus;
+  }, sendEmail?: boolean) => Promise<boolean>;
+  createReservation: (reservation: {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    player_id?: string;
+    trainer_id?: string;
+    credit_cost?: number;
+    user_id?: string;
+    status?: ReservationStatus;
+  }) => Promise<any>;
+  refetch: () => void;
 }
 
 // Draggable player from sidebar with full info
@@ -215,10 +249,15 @@ const DroppableCell: React.FC<{
   );
 };
 
-const WeeklyScheduleView: React.FC = () => {
-  const { reservations, loading, updateReservation, createReservation, refetch } = useAllReservations();
-  const { trainers } = useTrainers();
-  const { players } = usePlayers();
+const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
+  reservations,
+  reservationsLoading,
+  trainers,
+  players,
+  updateReservation,
+  createReservation,
+  refetch
+}) => {
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -261,7 +300,9 @@ const WeeklyScheduleView: React.FC = () => {
         credits: creditsMap.get(player.parent_id) || 0,
         parent_name: profilesMap.get(player.parent_id) || null
       })) as PlayerWithFullInfo[];
-    }
+    },
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000,
   });
 
   // Check for low credits and notify
@@ -335,11 +376,10 @@ const WeeklyScheduleView: React.FC = () => {
       const hour = resDate.getHours();
       
       if (grid[dayKey] && grid[dayKey][hour] !== undefined) {
-        const trainer = trainers.find(t => t.id === (reservation as any).trainer_id);
+        const trainer = trainers.find(t => t.id === reservation.trainer_id);
         grid[dayKey][hour].push({
           ...reservation,
           trainer,
-          trainer_id: (reservation as any).trainer_id
         });
       }
     });
@@ -496,7 +536,7 @@ const WeeklyScheduleView: React.FC = () => {
     ? (scheduleGrid[format(selectedCell.day, 'yyyy-MM-dd')]?.[selectedCell.hour] || [])
     : [];
 
-  if (loading) {
+  if (reservationsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-12 h-12 border-4 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin" />

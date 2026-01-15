@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAllReservations } from '@/hooks/useReservations';
+import { Reservation } from '@/hooks/useReservations';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -15,9 +15,21 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Check, X, Clock, Calendar } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-const ReservationManagement: React.FC = () => {
-  const { reservations, loading, updateReservationStatus } = useAllReservations();
+type ReservationStatus = Database['public']['Enums']['reservation_status'];
+
+interface ReservationManagementProps {
+  reservations: Reservation[];
+  loading: boolean;
+  updateReservationStatus: (id: string, status: ReservationStatus, sendEmail?: boolean) => Promise<boolean>;
+}
+
+const ReservationManagement: React.FC<ReservationManagementProps> = ({
+  reservations,
+  loading,
+  updateReservationStatus
+}) => {
   const { toast } = useToast();
 
   const handleApprove = async (id: string) => {

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type ReservationStatus = Database['public']['Enums']['reservation_status'];
 
@@ -9,6 +9,7 @@ export interface Reservation {
   id: string;
   user_id: string;
   player_id: string | null;
+  trainer_id: string | null;
   title: string;
   description: string | null;
   start_time: string;
@@ -26,16 +27,15 @@ export interface Reservation {
   };
 }
 
+// Hook for user's own reservations
 export const useReservations = () => {
   const { user } = useAuth();
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchReservations = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
+  const { data: reservations = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['reservations', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('reservations')
         .select('*')
@@ -43,13 +43,12 @@ export const useReservations = () => {
         .order('start_time', { ascending: false });
 
       if (error) throw error;
-      setReservations(data || []);
-    } catch (err) {
-      console.error('Error fetching reservations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data as Reservation[];
+    },
+    enabled: !!user,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const createReservation = async (reservation: {
     title: string;
@@ -73,7 +72,7 @@ export const useReservations = () => {
         .single();
 
       if (error) throw error;
-      await fetchReservations();
+      refetch();
       return data;
     } catch (err) {
       console.error('Error creating reservation:', err);
@@ -81,63 +80,51 @@ export const useReservations = () => {
     }
   };
 
-  useEffect(() => {
-    fetchReservations();
-  }, [user]);
-
-  return { reservations, loading, createReservation, refetch: fetchReservations };
+  return { reservations, loading, createReservation, refetch };
 };
 
+// Hook for admin - all reservations with optimized fetching
 export const useAllReservations = () => {
   const { isAdmin, user } = useAuth();
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchAllReservations = async () => {
-    if (!isAdmin) return;
-
-    try {
-      setLoading(true);
+  const { data: reservations = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['all-reservations'],
+    queryFn: async () => {
+      // Single query with JOINs - eliminates N+1 problem
       const { data, error } = await supabase
         .from('reservations')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id(full_name, email),
+          players:player_id(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const reservationsWithDetails = await Promise.all(
-        (data || []).map(async (res) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, email')
-            .eq('id', res.user_id)
-            .single();
-
-          let player = null;
-          if (res.player_id) {
-            const { data: playerData } = await supabase
-              .from('players')
-              .select('name')
-              .eq('id', res.player_id)
-              .single();
-            player = playerData;
-          }
-
-          return {
-            ...res,
-            user: profile || undefined,
-            player: player || undefined,
-          };
-        })
-      );
-
-      setReservations(reservationsWithDetails);
-    } catch (err) {
-      console.error('Error fetching all reservations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Transform the joined data
+      return (data || []).map(res => ({
+        id: res.id,
+        user_id: res.user_id,
+        player_id: res.player_id,
+        trainer_id: res.trainer_id,
+        title: res.title,
+        description: res.description,
+        start_time: res.start_time,
+        end_time: res.end_time,
+        status: res.status,
+        credit_cost: res.credit_cost,
+        created_at: res.created_at,
+        updated_at: res.updated_at,
+        user: res.profiles || undefined,
+        player: res.players || undefined,
+      })) as Reservation[];
+    },
+    enabled: isAdmin,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const createReservation = async (reservation: {
     title: string;
@@ -161,7 +148,9 @@ export const useAllReservations = () => {
         .single();
 
       if (error) throw error;
-      await fetchAllReservations();
+      
+      // Invalidate cache to refetch
+      queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
       return data;
     } catch (err) {
       console.error('Error creating reservation:', err);
@@ -171,6 +160,11 @@ export const useAllReservations = () => {
 
   const updateReservationStatus = async (id: string, status: ReservationStatus, sendEmail: boolean = true) => {
     try {
+      // Optimistic update
+      queryClient.setQueryData<Reservation[]>(['all-reservations'], (old) =>
+        old?.map(r => r.id === id ? { ...r, status, updated_at: new Date().toISOString() } : r)
+      );
+
       const { error } = await supabase
         .from('reservations')
         .update({ status, updated_at: new Date().toISOString() })
@@ -186,14 +180,14 @@ export const useAllReservations = () => {
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
-          // Don't fail the status update if email fails
         }
       }
       
-      await fetchAllReservations();
       return true;
     } catch (err) {
       console.error('Error updating reservation:', err);
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
       return false;
     }
   };
@@ -206,6 +200,11 @@ export const useAllReservations = () => {
     status?: ReservationStatus;
   }, sendEmail: boolean = false) => {
     try {
+      // Optimistic update
+      queryClient.setQueryData<Reservation[]>(['all-reservations'], (old) =>
+        old?.map(r => r.id === id ? { ...r, ...updates, updated_at: new Date().toISOString() } : r)
+      );
+
       const { error } = await supabase
         .from('reservations')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -227,17 +226,19 @@ export const useAllReservations = () => {
         }
       }
       
-      await fetchAllReservations();
+      // Refetch to get updated player/user names if player_id changed
+      if (updates.player_id !== undefined) {
+        queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
+      }
+      
       return true;
     } catch (err) {
       console.error('Error updating reservation:', err);
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
       return false;
     }
   };
 
-  useEffect(() => {
-    fetchAllReservations();
-  }, [isAdmin]);
-
-  return { reservations, loading, updateReservationStatus, updateReservation, createReservation, refetch: fetchAllReservations };
+  return { reservations, loading, updateReservationStatus, updateReservation, createReservation, refetch };
 };
