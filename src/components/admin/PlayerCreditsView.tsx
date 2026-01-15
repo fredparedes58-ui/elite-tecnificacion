@@ -29,7 +29,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, BellRing, Wallet, History, Send, Loader2 } from 'lucide-react';
+import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, BellRing, Wallet, History, Send, Loader2, Zap } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -71,6 +71,7 @@ const PlayerCreditsView: React.FC = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [sendingEmails, setSendingEmails] = useState(false);
+  const [isRealtime, setIsRealtime] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -109,8 +110,45 @@ const PlayerCreditsView: React.FC = () => {
         parent: profileMap.get(player.parent_id) || null,
         credits: creditsMap.get(player.parent_id) || 0
       })) as PlayerWithCreditsAndParent[];
-    }
+    },
+    staleTime: 10 * 1000, // 10 seconds
   });
+
+  // Real-time subscription for credits updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('player-credits-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_credits',
+        },
+        () => {
+          setIsRealtime(true);
+          refetch();
+          // Flash effect
+          setTimeout(() => setIsRealtime(false), 1000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_transactions',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch, queryClient]);
 
   // Fetch transactions for selected user
   const { data: transactions = [], isLoading: loadingTransactions } = useQuery({
@@ -313,9 +351,22 @@ const PlayerCreditsView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div>
-          <h2 className="font-orbitron font-bold text-2xl gradient-text">
-            Créditos de Jugadores
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-orbitron font-bold text-2xl gradient-text">
+              Créditos de Jugadores
+            </h2>
+            <Badge 
+              variant="outline" 
+              className={`transition-all duration-300 ${
+                isRealtime 
+                  ? 'bg-green-500/30 text-green-400 border-green-500/50 animate-pulse' 
+                  : 'bg-neon-cyan/10 text-neon-cyan/70 border-neon-cyan/30'
+              }`}
+            >
+              <Zap className="w-3 h-3 mr-1" />
+              {isRealtime ? 'Actualizando...' : 'Tiempo Real'}
+            </Badge>
+          </div>
           <p className="text-muted-foreground mt-1">
             Control de créditos disponibles por jugador
           </p>
