@@ -15,8 +15,20 @@ export interface Trainer {
   updated_at: string;
 }
 
+// Public trainer info (without contact details)
+export interface TrainerPublic {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  specialty: string | null;
+  bio: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useTrainers = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,16 +38,32 @@ export const useTrainers = () => {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
-        .from('trainers')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      if (isAdmin) {
+        // Admins get full trainer data from trainers table
+        const { data, error: fetchError } = await supabase
+          .from('trainers')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
-      if (fetchError) throw fetchError;
-      
-      // Cast the data to our Trainer type
-      setTrainers((data || []) as Trainer[]);
+        if (fetchError) throw fetchError;
+        setTrainers((data || []) as Trainer[]);
+      } else {
+        // Non-admins get public trainer data (no email/phone)
+        const { data, error: fetchError } = await supabase
+          .from('trainers_public')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+
+        if (fetchError) throw fetchError;
+        // Map to Trainer type with null contact fields
+        setTrainers((data || []).map(t => ({
+          ...t,
+          email: null,
+          phone: null,
+        })) as Trainer[]);
+      }
     } catch (err) {
       console.error('Error fetching trainers:', err);
       setError('Error al cargar entrenadores');
@@ -98,7 +126,7 @@ export const useTrainers = () => {
     if (user) {
       fetchTrainers();
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   return {
     trainers,

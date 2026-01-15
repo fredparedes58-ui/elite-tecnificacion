@@ -192,11 +192,11 @@ const handler = async (req: Request): Promise<Response> => {
       playerName = player?.name || "";
     }
 
-    // Fetch trainer name if exists
+    // Fetch trainer name if exists (using public view - no sensitive data needed)
     let trainerName = "";
     if (reservation.trainer_id) {
       const { data: trainer } = await supabase
-        .from("trainers")
+        .from("trainers_public")
         .select("name")
         .eq("id", reservation.trainer_id)
         .single();

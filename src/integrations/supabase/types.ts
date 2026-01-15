@@ -260,6 +260,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -408,6 +415,39 @@ export type Database = {
           full_name?: string | null
           id?: string | null
           is_approved?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trainers_public: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          photo_url: string | null
+          specialty: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          photo_url?: string | null
+          specialty?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          photo_url?: string | null
+          specialty?: string | null
           updated_at?: string | null
         }
         Relationships: []
