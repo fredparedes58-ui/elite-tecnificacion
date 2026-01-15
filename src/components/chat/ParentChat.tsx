@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageSquare, Send, Plus, Shield } from 'lucide-react';
+import { MessageSquare, Send, Plus, User } from 'lucide-react';
 
 const ParentChat: React.FC = () => {
   const { user } = useAuth();
@@ -68,13 +68,19 @@ const ParentChat: React.FC = () => {
         {/* Header */}
         <div className="p-4 border-b border-neon-cyan/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-              <Shield className="w-5 h-5 text-background" />
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
+                <User className="w-6 h-6 text-background" />
+              </div>
+              {/* Online indicator */}
+              <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
             </div>
             <div>
-              <h3 className="font-orbitron font-semibold">Elite 380 Staff</h3>
-              <p className="text-xs text-muted-foreground">
-                {selectedConversation?.subject || 'Chat con el equipo'}
+              <h3 className="font-orbitron font-semibold">Pedro</h3>
+              <p className="text-xs text-muted-foreground">Director de Elite 380</p>
+              <p className="text-xs text-green-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                En línea
               </p>
             </div>
           </div>
@@ -90,10 +96,10 @@ const ParentChat: React.FC = () => {
               <MessageSquare className="w-10 h-10 text-neon-cyan/50" />
             </div>
             <h3 className="font-orbitron font-semibold text-lg mb-2">
-              Inicia una conversación
+              Inicia una conversación con Pedro
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Comunícate directamente con el staff de Elite 380
+              Comunícate directamente con el director de Elite 380
             </p>
             <NeonButton variant="gradient" onClick={handleNewConversation}>
               <Plus className="w-4 h-4 mr-2" />
@@ -132,7 +138,7 @@ const ParentChat: React.FC = () => {
                         >
                           {!isMe && (
                             <p className="text-xs text-neon-purple font-semibold mb-1">
-                              Staff Elite 380
+                              Pedro
                             </p>
                           )}
                           <p className="font-rajdhani text-sm">{msg.content}</p>

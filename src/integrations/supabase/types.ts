@@ -53,12 +53,46 @@ export type Database = {
           },
         ]
       }
+      credit_packages: {
+        Row: {
+          created_at: string | null
+          credits: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
           created_at: string
           description: string | null
           id: string
+          package_id: string | null
           reservation_id: string | null
           transaction_type: string
           user_id: string
@@ -68,6 +102,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          package_id?: string | null
           reservation_id?: string | null
           transaction_type: string
           user_id: string
@@ -77,11 +112,19 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          package_id?: string | null
           reservation_id?: string | null
           transaction_type?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_transactions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_transactions_reservation_id_fkey"
             columns: ["reservation_id"]

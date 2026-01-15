@@ -5,11 +5,10 @@ import {
   Home, 
   Calendar, 
   Users, 
-  User,
   MessageSquare,
   Shield,
   Target,
-  Bell
+  Coins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,9 +38,9 @@ const BottomNav: React.FC = () => {
     if (isApproved) {
       return [
         { href: '/dashboard', label: 'Inicio', icon: Home },
-        { href: '/reservations', label: 'Calendario', icon: Calendar },
-        { href: '/players', label: 'Mi Carta', icon: Users },
-        { href: '/notifications', label: 'Alertas', icon: Bell },
+        { href: '/reservations', label: 'Reservas', icon: Calendar },
+        { href: '/players', label: 'Jugadores', icon: Users },
+        { href: '/my-credits', label: 'Créditos', icon: Coins },
         { href: '/chat', label: 'Chat', icon: MessageSquare },
       ];
     }
