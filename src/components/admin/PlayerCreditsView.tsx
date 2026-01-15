@@ -29,7 +29,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, BellRing, Wallet, History } from 'lucide-react';
+import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, BellRing, Wallet, History, Send, Loader2 } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -70,6 +70,7 @@ const PlayerCreditsView: React.FC = () => {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [sendingEmails, setSendingEmails] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -246,6 +247,59 @@ const PlayerCreditsView: React.FC = () => {
     });
   };
 
+  const handleSendEmailAlerts = async () => {
+    const lowCreditPlayers = players.filter(p => p.credits <= 5 && p.parent);
+    
+    if (lowCreditPlayers.length === 0) {
+      toast({
+        title: 'Sin alertas',
+        description: 'No hay jugadores con créditos bajos o agotados',
+      });
+      return;
+    }
+
+    setSendingEmails(true);
+    let sentCount = 0;
+    let errorCount = 0;
+
+    for (const player of lowCreditPlayers) {
+      if (!player.parent) continue;
+      
+      try {
+        const alertType = player.credits === 0 ? 'exhausted' : 'low';
+        const { error } = await supabase.functions.invoke('send-credit-alert-email', {
+          body: {
+            user_id: player.parent.id,
+            player_name: player.name,
+            credits_remaining: player.credits,
+            alert_type: alertType,
+          },
+        });
+        
+        if (error) throw error;
+        sentCount++;
+      } catch (err) {
+        console.error(`Error sending alert for ${player.name}:`, err);
+        errorCount++;
+      }
+    }
+
+    setSendingEmails(false);
+    
+    if (sentCount > 0) {
+      toast({
+        title: '📧 Emails enviados',
+        description: `${sentCount} alertas enviadas${errorCount > 0 ? `, ${errorCount} fallaron` : ''}`,
+      });
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudieron enviar los emails',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -266,14 +320,29 @@ const PlayerCreditsView: React.FC = () => {
             Control de créditos disponibles por jugador
           </p>
         </div>
-        <NeonButton 
-          variant="outline" 
-          onClick={handleNotifyLowCredits}
-          className="flex items-center gap-2"
-        >
-          <BellRing className="w-4 h-4" />
-          Ver alertas de créditos
-        </NeonButton>
+        <div className="flex items-center gap-2">
+          <NeonButton 
+            variant="outline" 
+            onClick={handleNotifyLowCredits}
+            className="flex items-center gap-2"
+          >
+            <BellRing className="w-4 h-4" />
+            Ver alertas
+          </NeonButton>
+          <NeonButton 
+            variant="gradient" 
+            onClick={handleSendEmailAlerts}
+            disabled={sendingEmails}
+            className="flex items-center gap-2"
+          >
+            {sendingEmails ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            Enviar emails de alerta
+          </NeonButton>
+        </div>
       </div>
 
       {/* Stats Cards */}

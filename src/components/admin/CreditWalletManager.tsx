@@ -69,6 +69,12 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
 
       if (logError) throw logError;
 
+      // Check if credits were low/zero before and send notification
+      const newBalance = currentBalance + amount;
+      if (currentBalance === 0 || currentBalance <= 5) {
+        // Credits restored - no need for alert
+      }
+
       toast({
         title: '✅ Créditos añadidos',
         description: `+${amount} créditos para ${userName}`,
