@@ -193,20 +193,32 @@ const handler = async (req: Request): Promise<Response> => {
     let sentCount = 0;
     let errorCount = 0;
 
-    // Send emails to each parent
+    // Send emails and create in-app notifications for each parent
     for (const [parentId, data] of parentAlerts) {
       try {
-        // Send one email per player (could be combined into one email if preferred)
         for (const playerInfo of data.players) {
           const alertType = playerInfo.credits === 0 ? 'exhausted' : 'low';
           const { subject, html } = getEmailContent(playerInfo.name, playerInfo.credits, alertType);
           
+          // Send email
           await sendEmailWithResend(data.email, subject, html, resendApiKey);
+          
+          // Create in-app notification
+          await supabase.from('notifications').insert({
+            user_id: parentId,
+            type: alertType === 'exhausted' ? 'credit_exhausted' : 'credit_low',
+            title: alertType === 'exhausted' ? '⚠️ Créditos Agotados' : '⚡ Créditos Bajos',
+            message: alertType === 'exhausted' 
+              ? `Los créditos de ${playerInfo.name} se han agotado. Contacta con el administrador.`
+              : `Los créditos de ${playerInfo.name} están bajos (${playerInfo.credits} restantes).`,
+            metadata: { player_name: playerInfo.name, credits: playerInfo.credits }
+          });
+          
           sentCount++;
           console.log(`Sent ${alertType} alert for ${playerInfo.name} to ${data.email}`);
         }
       } catch (err) {
-        console.error(`Error sending email to ${data.email}:`, err);
+        console.error(`Error sending alert to ${data.email}:`, err);
         errorCount++;
       }
     }

@@ -8,7 +8,8 @@ import {
   User,
   MessageSquare,
   Shield,
-  Target
+  Target,
+  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,8 +41,8 @@ const BottomNav: React.FC = () => {
         { href: '/dashboard', label: 'Inicio', icon: Home },
         { href: '/reservations', label: 'Calendario', icon: Calendar },
         { href: '/players', label: 'Mi Carta', icon: Users },
+        { href: '/notifications', label: 'Alertas', icon: Bell },
         { href: '/chat', label: 'Chat', icon: MessageSquare },
-        { href: '/profile', label: 'Perfil', icon: User },
       ];
     }
 
