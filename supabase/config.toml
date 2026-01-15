@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-credit-alert-email]
 verify_jwt = false
+
+[functions.daily-credit-alerts]
+verify_jwt = false
