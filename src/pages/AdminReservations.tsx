@@ -4,15 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import ReservationManagement from '@/components/admin/ReservationManagement';
 import ReservationCalendarView from '@/components/admin/ReservationCalendarView';
+import WeeklyScheduleView from '@/components/admin/WeeklyScheduleView';
 import TrainerManagement from '@/components/admin/TrainerManagement';
 import AttendanceReports from '@/components/admin/AttendanceReports';
 import PlayerDirectory from '@/components/admin/PlayerDirectory';
+import PlayerCreditsView from '@/components/admin/PlayerCreditsView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Users, BarChart3, UserCircle } from 'lucide-react';
+import { Calendar, List, Users, BarChart3, UserCircle, CalendarDays, CreditCard } from 'lucide-react';
 
 const AdminReservations: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('calendar');
+  const [activeTab, setActiveTab] = useState('weekly');
 
   if (isLoading) {
     return (
@@ -40,6 +42,10 @@ const AdminReservations: React.FC = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-card border border-neon-cyan/20 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="weekly" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Semanal
+            </TabsTrigger>
             <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
               <Calendar className="w-4 h-4 mr-2" />
               Calendario
@@ -52,6 +58,10 @@ const AdminReservations: React.FC = () => {
               <UserCircle className="w-4 h-4 mr-2" />
               Jugadores
             </TabsTrigger>
+            <TabsTrigger value="credits" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Créditos
+            </TabsTrigger>
             <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple">
               <Users className="w-4 h-4 mr-2" />
               Entrenadores
@@ -61,6 +71,10 @@ const AdminReservations: React.FC = () => {
               Reportes
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="weekly" className="mt-0">
+            <WeeklyScheduleView />
+          </TabsContent>
 
           <TabsContent value="calendar" className="mt-0">
             <ReservationCalendarView />
@@ -72,6 +86,10 @@ const AdminReservations: React.FC = () => {
 
           <TabsContent value="players" className="mt-0">
             <PlayerDirectory />
+          </TabsContent>
+
+          <TabsContent value="credits" className="mt-0">
+            <PlayerCreditsView />
           </TabsContent>
 
           <TabsContent value="trainers" className="mt-0">
