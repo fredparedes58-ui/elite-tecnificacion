@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 type ReservationStatus = Database['public']['Enums']['reservation_status'];
 
@@ -30,6 +31,7 @@ export interface Reservation {
 // Hook for user's own reservations
 export const useReservations = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: reservations = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['reservations', user?.id],
@@ -46,9 +48,34 @@ export const useReservations = () => {
       return data as Reservation[];
     },
     enabled: !!user,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
+
+  // Real-time subscription for user's reservations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user-reservations-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['reservations', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const createReservation = async (reservation: {
     title: string;
@@ -83,7 +110,7 @@ export const useReservations = () => {
   return { reservations, loading, createReservation, refetch };
 };
 
-// Hook for admin - all reservations with optimized fetching
+// Hook for admin - all reservations with real-time updates
 export const useAllReservations = () => {
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
@@ -91,7 +118,6 @@ export const useAllReservations = () => {
   const { data: reservations = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['all-reservations'],
     queryFn: async () => {
-      // Single query with JOINs - eliminates N+1 problem
       const { data, error } = await supabase
         .from('reservations')
         .select(`
@@ -103,7 +129,6 @@ export const useAllReservations = () => {
 
       if (error) throw error;
 
-      // Transform the joined data
       return (data || []).map(res => ({
         id: res.id,
         user_id: res.user_id,
@@ -122,9 +147,35 @@ export const useAllReservations = () => {
       })) as Reservation[];
     },
     enabled: isAdmin,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
+
+  // Real-time subscription for all reservations (admin)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-reservations-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+        },
+        (payload) => {
+          console.log('🔄 Realtime reservation update:', payload.eventType);
+          // Invalidate and refetch to get complete data with JOINs
+          queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient]);
 
   const createReservation = async (reservation: {
     title: string;
