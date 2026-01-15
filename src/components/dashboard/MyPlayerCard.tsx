@@ -11,7 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Edit, User } from 'lucide-react';
+import { Calendar, Edit, User, Footprints, Building2, Activity } from 'lucide-react';
+import { differenceInYears } from 'date-fns';
 
 interface MyPlayerCardProps {
   player: Player;
@@ -40,6 +41,23 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
     }
   };
 
+  // Calculate age from birth date
+  const getAge = (birthDate: string | null) => {
+    if (!birthDate) return null;
+    return differenceInYears(new Date(), new Date(birthDate));
+  };
+
+  const age = getAge(player.birth_date);
+
+  // Get dominant leg label
+  const getDominantLegLabel = (leg: string | null) => {
+    switch (leg) {
+      case 'right': return 'Derecha';
+      case 'left': return 'Izquierda';
+      case 'both': return 'Ambidiestro';
+      default: return null;
+    }
+  };
   return (
     <EliteCard className="p-6">
       <div className="flex flex-col md:flex-row gap-6">
@@ -98,10 +116,39 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
             </div>
           </div>
 
-          {player.birth_date && (
+          {/* Player Details Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {player.birth_date && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4 text-neon-cyan" />
+                <span>{age} años</span>
+              </div>
+            )}
+            
+            {player.current_club && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="w-4 h-4 text-neon-purple" />
+                <span className="truncate">{player.current_club}</span>
+              </div>
+            )}
+
+            {getDominantLegLabel(player.dominant_leg) && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Footprints className="w-4 h-4 text-neon-cyan" />
+                <span>Pierna {getDominantLegLabel(player.dominant_leg)}</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Nacimiento: {new Date(player.birth_date).toLocaleDateString('es-ES')}</span>
+              <Activity className="w-4 h-4 text-green-400" />
+              <span>Activo</span>
+            </div>
+          </div>
+
+          {/* Notes if any */}
+          {player.notes && (
+            <div className="p-3 rounded-lg bg-muted/30 border border-neon-cyan/10">
+              <p className="text-xs text-muted-foreground italic">{player.notes}</p>
             </div>
           )}
         </div>

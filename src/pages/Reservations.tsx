@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Clock, Plus, Coins } from 'lucide-react';
+import { Calendar, Clock, Plus, Coins, User, Users } from 'lucide-react';
 
 const Reservations: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
@@ -72,8 +72,13 @@ const Reservations: React.FC = () => {
         return 'success';
       case 'pending':
         return 'warning';
+      case 'rejected':
       case 'cancelled':
         return 'error';
+      case 'completed':
+        return 'info';
+      case 'no_show':
+        return 'warning';
       default:
         return 'default';
     }
@@ -82,14 +87,59 @@ const Reservations: React.FC = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'Aprobada';
+        return '✅ Aprobada';
       case 'pending':
-        return 'Pendiente';
+        return '⏳ Pendiente';
+      case 'rejected':
+        return '❌ Rechazada';
       case 'cancelled':
-        return 'Cancelada';
+        return '🚫 Cancelada';
+      case 'completed':
+        return '✔️ Completada';
+      case 'no_show':
+        return '⚠️ No Asistió';
       default:
         return status;
     }
+  };
+
+  // Get player name by ID
+  const getPlayerName = (playerId: string | null) => {
+    if (!playerId) return null;
+    const player = players.find(p => p.id === playerId);
+    return player?.name || null;
+  };
+
+  // Sort reservations: upcoming first, then by date
+  const sortedReservations = [...reservations].sort((a, b) => {
+    const dateA = new Date(a.start_time).getTime();
+    const dateB = new Date(b.start_time).getTime();
+    const now = Date.now();
+    
+    // Upcoming reservations first
+    const aIsUpcoming = dateA > now && (a.status === 'approved' || a.status === 'pending');
+    const bIsUpcoming = dateB > now && (b.status === 'approved' || b.status === 'pending');
+    
+    if (aIsUpcoming && !bIsUpcoming) return -1;
+    if (!aIsUpcoming && bIsUpcoming) return 1;
+    
+    return dateB - dateA;
+  });
+
+  // Get next upcoming session
+  const nextSession = sortedReservations.find(r => 
+    new Date(r.start_time) > new Date() && r.status === 'approved'
+  );
+
+  // Calculate days until next session
+  const getDaysUntil = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Hoy';
+    if (diffDays === 1) return 'Mañana';
+    return `Faltan ${diffDays} días`;
   };
 
   return (
@@ -136,8 +186,38 @@ const Reservations: React.FC = () => {
           </div>
         </div>
 
+        {/* Next Session Highlight */}
+        {nextSession && (
+          <EliteCard className="p-6 border-neon-cyan/50 bg-gradient-to-r from-neon-cyan/5 to-neon-purple/5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-neon-cyan" />
+              <h3 className="font-orbitron font-semibold text-lg">Próxima Sesión</h3>
+              <StatusBadge variant="success">{getDaysUntil(nextSession.start_time)}</StatusBadge>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-orbitron font-bold text-xl mb-2">{nextSession.title}</h4>
+                {getPlayerName(nextSession.player_id) && (
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <User className="w-4 h-4 text-neon-purple" />
+                    <span>{getPlayerName(nextSession.player_id)}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4 text-neon-cyan" />
+                  <span>{format(new Date(nextSession.start_time), "EEEE dd 'de' MMMM", { locale: es })}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 text-neon-purple" />
+                  <span>{format(new Date(nextSession.start_time), 'HH:mm')} - {format(new Date(nextSession.end_time), 'HH:mm')}</span>
+                </div>
+              </div>
+            </div>
+          </EliteCard>
+        )}
+
         {/* Reservations List */}
-        {reservations.length === 0 ? (
+        {sortedReservations.length === 0 ? (
           <EliteCard className="p-12 text-center">
             <Calendar className="w-16 h-16 text-neon-purple/30 mx-auto mb-4" />
             <h3 className="font-orbitron font-semibold text-lg mb-2">
@@ -152,45 +232,56 @@ const Reservations: React.FC = () => {
             </NeonButton>
           </EliteCard>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {reservations.map((reservation) => (
-              <EliteCard key={reservation.id} className="p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="font-orbitron font-semibold truncate pr-2">
-                    {reservation.title}
-                  </h3>
-                  <StatusBadge variant={getStatusVariant(reservation.status || 'pending')}>
-                    {getStatusLabel(reservation.status || 'pending')}
-                  </StatusBadge>
-                </div>
+          <div className="space-y-4">
+            <h3 className="font-orbitron font-semibold text-lg">Historial de Reservas</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedReservations.map((reservation) => (
+                <EliteCard key={reservation.id} className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="font-orbitron font-semibold truncate pr-2">
+                      {reservation.title}
+                    </h3>
+                    <StatusBadge variant={getStatusVariant(reservation.status || 'pending')}>
+                      {getStatusLabel(reservation.status || 'pending')}
+                    </StatusBadge>
+                  </div>
 
-                {reservation.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {reservation.description}
-                  </p>
-                )}
+                  {/* Player Info */}
+                  {getPlayerName(reservation.player_id) && (
+                    <div className="flex items-center gap-2 text-sm text-neon-purple mb-2">
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">{getPlayerName(reservation.player_id)}</span>
+                    </div>
+                  )}
 
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4 text-neon-cyan" />
-                    <span>
-                      {format(new Date(reservation.start_time), "EEEE, dd 'de' MMMM yyyy", { locale: es })}
-                    </span>
+                  {reservation.description && (
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {reservation.description}
+                    </p>
+                  )}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-4 h-4 text-neon-cyan" />
+                      <span>
+                        {format(new Date(reservation.start_time), "EEE, dd MMM yyyy", { locale: es })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="w-4 h-4 text-neon-purple" />
+                      <span>
+                        {format(new Date(reservation.start_time), 'HH:mm')} -{' '}
+                        {format(new Date(reservation.end_time), 'HH:mm')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Coins className="w-4 h-4 text-neon-cyan" />
+                      <span>{reservation.credit_cost} crédito{reservation.credit_cost !== 1 ? 's' : ''}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="w-4 h-4 text-neon-purple" />
-                    <span>
-                      {format(new Date(reservation.start_time), 'HH:mm')} -{' '}
-                      {format(new Date(reservation.end_time), 'HH:mm')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Coins className="w-4 h-4 text-neon-cyan" />
-                    <span>{reservation.credit_cost} crédito{reservation.credit_cost !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-              </EliteCard>
-            ))}
+                </EliteCard>
+              ))}
+            </div>
           </div>
         )}
       </div>

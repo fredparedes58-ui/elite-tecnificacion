@@ -25,6 +25,8 @@ export interface Player {
   photo_url: string | null;
   stats: PlayerStats;
   notes: string | null;
+  current_club: string | null;
+  dominant_leg: string | null;
   created_at: string;
   updated_at: string;
 }
