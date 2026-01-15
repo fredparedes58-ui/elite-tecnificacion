@@ -22,7 +22,10 @@ import {
   XCircle,
   GripVertical,
   UserPlus,
-  UserMinus
+  UserMinus,
+  Search,
+  Filter,
+  XCircle as ClearIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,6 +41,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Session time slots (7am to 9pm)
 const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => i + 7);
@@ -146,14 +152,43 @@ const ReservationCalendarView: React.FC = () => {
   const [selectedReservation, setSelectedReservation] = useState<ReservationWithTrainer | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [selectedPlayerFilters, setSelectedPlayerFilters] = useState<string[]>([]);
 
-  // Filter reservations for selected date
+  // Filter reservations for selected date and selected players
   const dayReservations = useMemo(() => {
     return reservations.filter(r => {
       const reservationDate = parseISO(r.start_time);
-      return isSameDay(reservationDate, selectedDate);
+      const matchesDate = isSameDay(reservationDate, selectedDate);
+      const matchesPlayerFilter = selectedPlayerFilters.length === 0 || 
+        (r.player_id && selectedPlayerFilters.includes(r.player_id));
+      return matchesDate && matchesPlayerFilter;
     }) as ReservationWithTrainer[];
-  }, [reservations, selectedDate]);
+  }, [reservations, selectedDate, selectedPlayerFilters]);
+
+  // Filtered players for modal search
+  const filteredPlayersForModal = useMemo(() => {
+    if (!playerSearch) return players;
+    const search = playerSearch.toLowerCase();
+    return players.filter(p => 
+      p.name.toLowerCase().includes(search) ||
+      p.category.toLowerCase().includes(search) ||
+      p.position?.toLowerCase().includes(search)
+    );
+  }, [players, playerSearch]);
+
+  // Toggle player filter
+  const togglePlayerFilter = (playerId: string) => {
+    setSelectedPlayerFilters(prev => 
+      prev.includes(playerId) 
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    );
+  };
+
+  const clearPlayerFilters = () => {
+    setSelectedPlayerFilters([]);
+  };
 
   // Get active trainers plus unassigned column
   const columns = useMemo(() => {
@@ -389,6 +424,82 @@ const ReservationCalendarView: React.FC = () => {
                 Arrastra las sesiones para moverlas
               </p>
             </div>
+
+            {/* Player Filter */}
+            <div className="mt-4 space-y-2">
+              <Label className="font-rajdhani flex items-center gap-2 text-sm">
+                <Filter className="w-4 h-4 text-neon-purple" />
+                Filtrar por Jugadores
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar jugador..."
+                  className="pl-10 bg-background border-neon-purple/30 text-sm"
+                  onChange={(e) => {
+                    const search = e.target.value.toLowerCase();
+                    if (search) {
+                      const matches = players.filter(p => 
+                        p.name.toLowerCase().includes(search)
+                      ).slice(0, 5);
+                      if (matches.length === 1) {
+                        if (!selectedPlayerFilters.includes(matches[0].id)) {
+                          togglePlayerFilter(matches[0].id);
+                        }
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                />
+              </div>
+              
+              {selectedPlayerFilters.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPlayerFilters.map(id => {
+                      const player = players.find(p => p.id === id);
+                      return player ? (
+                        <Badge 
+                          key={id} 
+                          variant="secondary"
+                          className="bg-neon-purple/20 text-neon-purple border-neon-purple/30 text-xs cursor-pointer hover:bg-neon-purple/30"
+                          onClick={() => togglePlayerFilter(id)}
+                        >
+                          {player.name}
+                          <X className="w-3 h-3 ml-1" />
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                  <button
+                    onClick={clearPlayerFilters}
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <ClearIcon className="w-3 h-3" />
+                    Limpiar filtros
+                  </button>
+                </div>
+              )}
+
+              <ScrollArea className="h-32 rounded border border-border">
+                <div className="p-2 space-y-1">
+                  {players.slice(0, 20).map(player => (
+                    <button
+                      key={player.id}
+                      onClick={() => togglePlayerFilter(player.id)}
+                      className={`w-full text-left text-xs p-2 rounded transition-colors ${
+                        selectedPlayerFilters.includes(player.id)
+                          ? 'bg-neon-purple/20 text-neon-purple'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <span className="font-medium">{player.name}</span>
+                      <span className="text-muted-foreground ml-2">{player.category}</span>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           </EliteCard>
 
           {/* Schedule Grid */}
@@ -508,12 +619,24 @@ const ReservationCalendarView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Player Assignment */}
+                {/* Player Assignment with Search */}
                 <div className="space-y-2 p-4 rounded-lg bg-muted/30 border border-border">
                   <Label className="font-rajdhani flex items-center gap-2">
                     <UserPlus className="w-4 h-4 text-neon-cyan" />
                     Asignar Jugador
                   </Label>
+                  
+                  {/* Search input */}
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar jugador..."
+                      value={playerSearch}
+                      onChange={(e) => setPlayerSearch(e.target.value)}
+                      className="pl-10 bg-background border-neon-cyan/30 text-sm"
+                    />
+                  </div>
+                  
                   <Select 
                     value={selectedReservation.player_id || 'none'} 
                     onValueChange={handlePlayerChange}
@@ -528,9 +651,14 @@ const ReservationCalendarView: React.FC = () => {
                           Sin jugador asignado
                         </span>
                       </SelectItem>
-                      {players.map(player => (
+                      {filteredPlayersForModal.map(player => (
                         <SelectItem key={player.id} value={player.id}>
-                          {player.name} - {player.category} ({player.level})
+                          <div className="flex items-center justify-between w-full">
+                            <span>{player.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {player.category} • {player.level}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

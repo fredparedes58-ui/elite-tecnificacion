@@ -93,6 +93,8 @@ export type Database = {
           birth_date: string | null
           category: Database["public"]["Enums"]["player_category"]
           created_at: string | null
+          current_club: string | null
+          dominant_leg: string | null
           id: string
           level: Database["public"]["Enums"]["player_level"]
           name: string
@@ -107,6 +109,8 @@ export type Database = {
           birth_date?: string | null
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string | null
+          current_club?: string | null
+          dominant_leg?: string | null
           id?: string
           level?: Database["public"]["Enums"]["player_level"]
           name: string
@@ -121,6 +125,8 @@ export type Database = {
           birth_date?: string | null
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string | null
+          current_club?: string | null
+          dominant_leg?: string | null
           id?: string
           level?: Database["public"]["Enums"]["player_level"]
           name?: string

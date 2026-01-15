@@ -6,8 +6,9 @@ import ReservationManagement from '@/components/admin/ReservationManagement';
 import ReservationCalendarView from '@/components/admin/ReservationCalendarView';
 import TrainerManagement from '@/components/admin/TrainerManagement';
 import AttendanceReports from '@/components/admin/AttendanceReports';
+import PlayerDirectory from '@/components/admin/PlayerDirectory';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Users, BarChart3 } from 'lucide-react';
+import { Calendar, List, Users, BarChart3, UserCircle } from 'lucide-react';
 
 const AdminReservations: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
@@ -38,7 +39,7 @@ const AdminReservations: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-card border border-neon-cyan/20">
+          <TabsList className="bg-card border border-neon-cyan/20 flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
               <Calendar className="w-4 h-4 mr-2" />
               Calendario
@@ -46,6 +47,10 @@ const AdminReservations: React.FC = () => {
             <TabsTrigger value="list" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
               <List className="w-4 h-4 mr-2" />
               Lista
+            </TabsTrigger>
+            <TabsTrigger value="players" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple">
+              <UserCircle className="w-4 h-4 mr-2" />
+              Jugadores
             </TabsTrigger>
             <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple">
               <Users className="w-4 h-4 mr-2" />
@@ -63,6 +68,10 @@ const AdminReservations: React.FC = () => {
 
           <TabsContent value="list" className="mt-0">
             <ReservationManagement />
+          </TabsContent>
+
+          <TabsContent value="players" className="mt-0">
+            <PlayerDirectory />
           </TabsContent>
 
           <TabsContent value="trainers" className="mt-0">
