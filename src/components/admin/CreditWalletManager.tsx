@@ -3,7 +3,6 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -12,9 +11,12 @@ import {
   Minus,
   Package,
   History,
-  Loader2
+  Loader2,
+  Edit3,
+  Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CreditWalletManagerProps {
   userId: string;
@@ -38,7 +40,10 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
   onViewHistory,
 }) => {
   const [customAmount, setCustomAmount] = useState<string>('');
+  const [removeAmount, setRemoveAmount] = useState<string>('');
+  const [directBalance, setDirectBalance] = useState<string>(currentBalance.toString());
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('add');
   const { toast } = useToast();
 
   const addCredits = async (amount: number, description: string) => {
@@ -46,7 +51,6 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
     
     setLoading(true);
     try {
-      // Update balance
       const { error: updateError } = await supabase
         .from('user_credits')
         .update({ 
@@ -57,7 +61,6 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
 
       if (updateError) throw updateError;
 
-      // Log transaction
       const { error: logError } = await supabase
         .from('credit_transactions')
         .insert({
@@ -69,23 +72,132 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
 
       if (logError) throw logError;
 
-      // Check if credits were low/zero before and send notification
-      const newBalance = currentBalance + amount;
-      if (currentBalance === 0 || currentBalance <= 5) {
-        // Credits restored - no need for alert
-      }
-
       toast({
         title: '✅ Créditos añadidos',
         description: `+${amount} créditos para ${userName}`,
       });
 
       onBalanceUpdated();
+      setCustomAmount('');
     } catch (error) {
       console.error('Error adding credits:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron añadir los créditos',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeCredits = async (amount: number) => {
+    if (amount <= 0) return;
+    if (amount > currentBalance) {
+      toast({
+        title: 'Error',
+        description: 'No puedes quitar más créditos de los disponibles',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('user_credits')
+        .update({ 
+          balance: currentBalance - amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (updateError) throw updateError;
+
+      const { error: logError } = await supabase
+        .from('credit_transactions')
+        .insert({
+          user_id: userId,
+          amount: -amount,
+          transaction_type: 'debit',
+          description: `Ajuste manual -${amount}`,
+        });
+
+      if (logError) throw logError;
+
+      toast({
+        title: '⚠️ Créditos quitados',
+        description: `-${amount} créditos de ${userName}`,
+      });
+
+      onBalanceUpdated();
+      setRemoveAmount('');
+    } catch (error) {
+      console.error('Error removing credits:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron quitar los créditos',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setDirectCredits = async () => {
+    const newBalance = parseInt(directBalance, 10);
+    if (isNaN(newBalance) || newBalance < 0) {
+      toast({
+        title: 'Cantidad inválida',
+        description: 'Ingresa un número válido (0 o mayor)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newBalance === currentBalance) {
+      toast({
+        title: 'Sin cambios',
+        description: 'El saldo es igual al actual',
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('user_credits')
+        .update({ 
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (updateError) throw updateError;
+
+      const difference = newBalance - currentBalance;
+      const { error: logError } = await supabase
+        .from('credit_transactions')
+        .insert({
+          user_id: userId,
+          amount: difference,
+          transaction_type: 'manual_adjustment',
+          description: `Ajuste directo: ${currentBalance} → ${newBalance}`,
+        });
+
+      if (logError) throw logError;
+
+      toast({
+        title: '✅ Saldo actualizado',
+        description: `Nuevo saldo: ${newBalance} créditos`,
+      });
+
+      onBalanceUpdated();
+    } catch (error) {
+      console.error('Error setting credits:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar el saldo',
         variant: 'destructive',
       });
     } finally {
@@ -108,7 +220,19 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
       return;
     }
     addCredits(amount, `Carga manual +${amount}`);
-    setCustomAmount('');
+  };
+
+  const handleRemove = () => {
+    const amount = parseInt(removeAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: 'Cantidad inválida',
+        description: 'Ingresa un número positivo',
+        variant: 'destructive',
+      });
+      return;
+    }
+    removeCredits(amount);
   };
 
   return (
@@ -141,64 +265,188 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
         </div>
       </div>
 
-      {/* Bonus Buttons */}
-      <div>
-        <Label className="text-xs text-muted-foreground mb-2 block">Bonos de Sesiones</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {BONUS_OPTIONS.map((bonus) => (
-            <button
-              key={bonus.amount}
-              onClick={() => handleBonusClick(bonus.amount)}
-              disabled={loading}
-              className={cn(
-                "relative overflow-hidden p-3 rounded-xl border border-white/10 transition-all duration-300",
-                "hover:scale-105 hover:border-white/30 active:scale-95",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                `bg-gradient-to-br ${bonus.color}`
-              )}
-            >
-              <div className="relative z-10 flex flex-col items-center gap-1">
-                <Package className="w-4 h-4 text-white" />
-                <span className="text-white font-orbitron font-bold">+{bonus.amount}</span>
-                <span className="text-white/80 text-[10px]">{bonus.label}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+          <TabsTrigger value="add" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+            <Plus className="w-3 h-3 mr-1" />
+            Añadir
+          </TabsTrigger>
+          <TabsTrigger value="remove" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">
+            <Minus className="w-3 h-3 mr-1" />
+            Quitar
+          </TabsTrigger>
+          <TabsTrigger value="set" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
+            <Edit3 className="w-3 h-3 mr-1" />
+            Modificar
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Custom Amount */}
-      <div>
-        <Label className="text-xs text-muted-foreground mb-2 block">Carga Manual</Label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="number"
-              min="1"
-              value={customAmount}
-              onChange={(e) => setCustomAmount(e.target.value)}
-              placeholder="Cantidad"
-              className="pl-9 bg-muted/50 border-neon-cyan/30"
-              disabled={loading}
-            />
+        {/* Add Credits Tab */}
+        <TabsContent value="add" className="space-y-4 mt-4">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Bonos de Sesiones</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {BONUS_OPTIONS.map((bonus) => (
+                <button
+                  key={bonus.amount}
+                  onClick={() => handleBonusClick(bonus.amount)}
+                  disabled={loading}
+                  className={cn(
+                    "relative overflow-hidden p-3 rounded-xl border border-white/10 transition-all duration-300",
+                    "hover:scale-105 hover:border-white/30 active:scale-95",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    `bg-gradient-to-br ${bonus.color}`
+                  )}
+                >
+                  <div className="relative z-10 flex flex-col items-center gap-1">
+                    <Package className="w-4 h-4 text-white" />
+                    <span className="text-white font-orbitron font-bold">+{bonus.amount}</span>
+                    <span className="text-white/80 text-[10px]">{bonus.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-          <NeonButton
-            variant="gradient"
-            onClick={handleCustomAdd}
-            disabled={loading || !customAmount}
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-1" />
-                Cargar
-              </>
-            )}
-          </NeonButton>
-        </div>
-      </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Carga Manual</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-400" />
+                <Input
+                  type="number"
+                  min="1"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  placeholder="Cantidad a añadir"
+                  className="pl-9 bg-muted/50 border-green-500/30"
+                  disabled={loading}
+                />
+              </div>
+              <NeonButton
+                variant="gradient"
+                onClick={handleCustomAdd}
+                disabled={loading || !customAmount}
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Añadir
+                  </>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Remove Credits Tab */}
+        <TabsContent value="remove" className="space-y-4 mt-4">
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+            <p className="text-sm text-red-400">
+              ⚠️ Esta acción quitará créditos del saldo del usuario.
+            </p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Cantidad a Quitar</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Minus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400" />
+                <Input
+                  type="number"
+                  min="1"
+                  max={currentBalance}
+                  value={removeAmount}
+                  onChange={(e) => setRemoveAmount(e.target.value)}
+                  placeholder="Cantidad a quitar"
+                  className="pl-9 bg-muted/50 border-red-500/30"
+                  disabled={loading}
+                />
+              </div>
+              <NeonButton
+                variant="outline"
+                onClick={handleRemove}
+                disabled={loading || !removeAmount}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Minus className="w-4 h-4 mr-1" />
+                    Quitar
+                  </>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 5].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => removeCredits(amount)}
+                disabled={loading || currentBalance < amount}
+                className={cn(
+                  "p-2 rounded-lg border border-red-500/30 bg-red-500/10 transition-all",
+                  "hover:bg-red-500/20 hover:border-red-500/50",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <span className="text-red-400 font-orbitron font-bold">-{amount}</span>
+              </button>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Set Credits Tab */}
+        <TabsContent value="set" className="space-y-4 mt-4">
+          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+            <p className="text-sm text-blue-400">
+              📝 Establece un saldo específico directamente.
+            </p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Nuevo Saldo</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                <Input
+                  type="number"
+                  min="0"
+                  value={directBalance}
+                  onChange={(e) => setDirectBalance(e.target.value)}
+                  placeholder="Nuevo saldo"
+                  className="pl-9 bg-muted/50 border-blue-500/30"
+                  disabled={loading}
+                />
+              </div>
+              <NeonButton
+                variant="cyan"
+                onClick={setDirectCredits}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1" />
+                    Guardar
+                  </>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <span className="text-sm text-muted-foreground">Saldo actual:</span>
+            <span className="font-orbitron font-bold text-neon-cyan">{currentBalance}</span>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* History Button */}
       <NeonButton
