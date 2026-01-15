@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Input } from '@/components/ui/input';
+import { NeonButton } from '@/components/ui/NeonButton';
 import { 
   Table, 
   TableBody, 
@@ -19,7 +20,8 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Search, User, Mail, Phone, CreditCard, AlertCircle, CheckCircle, TrendingDown } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Search, User, Mail, Phone, CreditCard, AlertCircle, TrendingDown, Footprints, MapPin, Calendar, Bell, BellRing } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -45,6 +47,8 @@ const PlayerCreditsView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [creditFilter, setCreditFilter] = useState<string>('all');
+  const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const { data: players = [], isLoading } = useQuery({
     queryKey: ['players-credits-directory'],
@@ -85,12 +89,42 @@ const PlayerCreditsView: React.FC = () => {
     }
   });
 
+  // Auto-notify on load for players with low/zero credits
+  useEffect(() => {
+    if (players.length === 0) return;
+
+    const playersNeedingAttention = players.filter(p => p.credits <= 5);
+    const newNotifications: string[] = [];
+
+    playersNeedingAttention.forEach(player => {
+      if (!notifiedIds.has(player.id)) {
+        newNotifications.push(player.id);
+      }
+    });
+
+    if (newNotifications.length > 0) {
+      const zeroCount = playersNeedingAttention.filter(p => p.credits === 0).length;
+      const lowCount = playersNeedingAttention.filter(p => p.credits > 0 && p.credits <= 5).length;
+
+      if (zeroCount > 0 || lowCount > 0) {
+        toast({
+          title: '🔔 Alerta de Créditos',
+          description: `${zeroCount} jugadores sin créditos, ${lowCount} con créditos bajos`,
+          variant: zeroCount > 0 ? 'destructive' : 'default',
+        });
+      }
+
+      setNotifiedIds(prev => new Set([...prev, ...newNotifications]));
+    }
+  }, [players, notifiedIds, toast]);
+
   const filteredPlayers = useMemo(() => {
     return players.filter(player => {
       const matchesSearch = !search || 
         player.name.toLowerCase().includes(search.toLowerCase()) ||
         player.parent?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        player.parent?.email.toLowerCase().includes(search.toLowerCase());
+        player.parent?.email.toLowerCase().includes(search.toLowerCase()) ||
+        player.position?.toLowerCase().includes(search.toLowerCase());
       
       const matchesCategory = categoryFilter === 'all' || player.category === categoryFilter;
       
@@ -120,6 +154,15 @@ const PlayerCreditsView: React.FC = () => {
     return differenceInYears(new Date(), new Date(birthDate));
   };
 
+  const getLegLabel = (leg: string | null) => {
+    switch (leg) {
+      case 'right': return 'Derecha';
+      case 'left': return 'Izquierda';
+      case 'both': return 'Ambidiestro';
+      default: return '-';
+    }
+  };
+
   const getCreditsBadge = (credits: number) => {
     if (credits === 0) {
       return <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">0 créditos</Badge>;
@@ -127,6 +170,25 @@ const PlayerCreditsView: React.FC = () => {
       return <Badge variant="outline" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{credits} créditos</Badge>;
     }
     return <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">{credits} créditos</Badge>;
+  };
+
+  const handleNotifyLowCredits = () => {
+    const lowCreditPlayers = players.filter(p => p.credits <= 5);
+    
+    lowCreditPlayers.forEach(player => {
+      if (player.credits === 0) {
+        toast({
+          title: `⚠️ ${player.name} - SIN CRÉDITOS`,
+          description: `Padre: ${player.parent?.full_name || 'N/A'} - Email: ${player.parent?.email || 'N/A'}`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: `⚡ ${player.name} - Créditos bajos`,
+          description: `Solo ${player.credits} créditos. Padre: ${player.parent?.full_name || 'N/A'}`,
+        });
+      }
+    });
   };
 
   if (isLoading) {
@@ -149,6 +211,14 @@ const PlayerCreditsView: React.FC = () => {
             Control de créditos disponibles por jugador
           </p>
         </div>
+        <NeonButton 
+          variant="outline" 
+          onClick={handleNotifyLowCredits}
+          className="flex items-center gap-2"
+        >
+          <BellRing className="w-4 h-4" />
+          Ver alertas de créditos
+        </NeonButton>
       </div>
 
       {/* Stats Cards */}
@@ -208,7 +278,7 @@ const PlayerCreditsView: React.FC = () => {
           <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre de jugador o padre..."
+              placeholder="Buscar por nombre, padre, email o posición..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 bg-background border-neon-cyan/30"
@@ -253,7 +323,8 @@ const PlayerCreditsView: React.FC = () => {
                 <TableHead className="font-orbitron">Jugador</TableHead>
                 <TableHead className="font-orbitron">Edad</TableHead>
                 <TableHead className="font-orbitron">Categoría</TableHead>
-                <TableHead className="font-orbitron">Club</TableHead>
+                <TableHead className="font-orbitron">Posición</TableHead>
+                <TableHead className="font-orbitron">Pierna</TableHead>
                 <TableHead className="font-orbitron">Padre/Tutor</TableHead>
                 <TableHead className="font-orbitron">Contacto</TableHead>
                 <TableHead className="font-orbitron text-center">Créditos</TableHead>
@@ -261,31 +332,47 @@ const PlayerCreditsView: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredPlayers.map((player) => (
-                <TableRow key={player.id} className="border-neon-cyan/10 hover:bg-muted/30">
+                <TableRow 
+                  key={player.id} 
+                  className={`border-neon-cyan/10 hover:bg-muted/30 ${
+                    player.credits === 0 ? 'bg-red-500/5' : player.credits <= 5 ? 'bg-yellow-500/5' : ''
+                  }`}
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-neon-cyan/20 flex items-center justify-center">
-                        <User className="w-4 h-4 text-neon-cyan" />
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        player.credits === 0 ? 'bg-red-500/20' : player.credits <= 5 ? 'bg-yellow-500/20' : 'bg-neon-cyan/20'
+                      }`}>
+                        <User className={`w-4 h-4 ${
+                          player.credits === 0 ? 'text-red-400' : player.credits <= 5 ? 'text-yellow-400' : 'text-neon-cyan'
+                        }`} />
                       </div>
-                      <div>
-                        <span className="font-rajdhani font-medium">{player.name}</span>
-                        {player.position && (
-                          <p className="text-xs text-muted-foreground">{player.position}</p>
-                        )}
-                      </div>
+                      <span className="font-rajdhani font-medium">{player.name}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{calculateAge(player.birth_date)} años</span>
+                    <div className="flex items-center gap-1 text-sm">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                      {calculateAge(player.birth_date)} años
+                    </div>
                   </TableCell>
                   <TableCell>
                     <StatusBadge variant="info">{player.category}</StatusBadge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-neon-purple">{player.current_club || '-'}</span>
+                    <div className="flex items-center gap-1 text-sm">
+                      <MapPin className="w-3 h-3 text-muted-foreground" />
+                      {player.position || '-'}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <span className="font-rajdhani">
+                    <div className="flex items-center gap-1 text-sm">
+                      <Footprints className="w-3 h-3 text-muted-foreground" />
+                      {getLegLabel(player.dominant_leg)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-rajdhani font-medium">
                       {player.parent?.full_name || 'Sin asignar'}
                     </span>
                   </TableCell>
