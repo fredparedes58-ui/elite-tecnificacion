@@ -101,6 +101,7 @@ interface WeeklyScheduleViewProps {
     user_id?: string;
     status?: ReservationStatus;
   }) => Promise<any>;
+  deleteReservation?: (id: string) => Promise<boolean>;
   refetch: () => void;
 }
 
@@ -256,6 +257,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
   players,
   updateReservation,
   createReservation,
+  deleteReservation,
   refetch
 }) => {
   const { toast } = useToast();
@@ -273,6 +275,12 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationWithTrainer | null>(null);
   const [lowCreditsNotified, setLowCreditsNotified] = useState<Set<string>>(new Set());
+  
+  // States for editing reservation in detail modal
+  const [editingPlayer, setEditingPlayer] = useState<string>('');
+  const [editingTrainer, setEditingTrainer] = useState<string>('');
+  const [editingStatus, setEditingStatus] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Fetch players with full info including credits and parent name
   const { data: playersWithFullInfo = [] } = useQuery({
@@ -525,7 +533,107 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 
   const openReservationDetail = (reservation: ReservationWithTrainer) => {
     setSelectedReservation(reservation);
+    setEditingPlayer(reservation.player_id || '');
+    setEditingTrainer(reservation.trainer_id || '');
+    setEditingStatus(reservation.status || 'pending');
     setDetailModalOpen(true);
+  };
+
+  const handleUpdateReservation = async () => {
+    if (!selectedReservation) return;
+    
+    setIsUpdating(true);
+    try {
+      const updates: {
+        player_id?: string | null;
+        trainer_id?: string | null;
+        status?: ReservationStatus;
+      } = {};
+
+      if (editingPlayer !== (selectedReservation.player_id || '')) {
+        updates.player_id = editingPlayer || null;
+      }
+      if (editingTrainer !== (selectedReservation.trainer_id || '')) {
+        updates.trainer_id = editingTrainer || null;
+      }
+      if (editingStatus !== (selectedReservation.status || 'pending')) {
+        updates.status = editingStatus as ReservationStatus;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast({
+          title: 'Sin cambios',
+          description: 'No hay cambios que guardar.',
+        });
+        setIsUpdating(false);
+        return;
+      }
+
+      const success = await updateReservation(selectedReservation.id, updates);
+      
+      if (success) {
+        toast({
+          title: '✅ Sesión actualizada',
+          description: 'Los cambios han sido guardados.',
+        });
+        setDetailModalOpen(false);
+        refetch();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'No se pudo actualizar la sesión.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRemovePlayer = async () => {
+    if (!selectedReservation) return;
+    
+    setIsUpdating(true);
+    try {
+      const success = await updateReservation(selectedReservation.id, { player_id: null });
+      
+      if (success) {
+        toast({
+          title: 'Jugador removido',
+          description: 'El jugador ha sido quitado de la sesión.',
+        });
+        setEditingPlayer('');
+        refetch();
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    if (!selectedReservation || !deleteReservation) return;
+    
+    setIsUpdating(true);
+    try {
+      const success = await deleteReservation(selectedReservation.id);
+      
+      if (success) {
+        toast({
+          title: 'Sesión eliminada',
+          description: 'La sesión ha sido eliminada correctamente.',
+        });
+        setDetailModalOpen(false);
+        refetch();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'No se pudo eliminar la sesión.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -818,38 +926,169 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Reservation Detail Modal */}
+      {/* Reservation Detail Modal - Full Player Management */}
       <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
-        <DialogContent className="bg-card border-neon-cyan/30">
+        <DialogContent className="bg-card border-neon-cyan/30 max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-orbitron gradient-text">
-              Detalle de Sesión
+            <DialogTitle className="font-orbitron gradient-text flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Gestionar Sesión
             </DialogTitle>
           </DialogHeader>
           
           {selectedReservation && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Título:</span>
-                  <span className="font-rajdhani">{selectedReservation.title}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Jugador:</span>
-                  <span className="font-rajdhani text-neon-cyan">{selectedReservation.player?.name || 'Sin asignar'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Hora:</span>
-                  <span className="font-orbitron">
-                    {format(parseISO(selectedReservation.start_time), 'HH:mm')} - {format(parseISO(selectedReservation.end_time), 'HH:mm')}
+            <div className="space-y-5">
+              {/* Session Info */}
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-rajdhani font-bold">{selectedReservation.title}</span>
+                  <span className="font-orbitron text-sm text-neon-cyan">
+                    {format(parseISO(selectedReservation.start_time), 'EEEE dd/MM', { locale: es })}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Estado:</span>
-                  <StatusBadge variant={selectedReservation.status === 'approved' ? 'info' : 'warning'}>
-                    {selectedReservation.status}
-                  </StatusBadge>
+                <div className="text-sm text-muted-foreground">
+                  {format(parseISO(selectedReservation.start_time), 'HH:mm')} - {format(parseISO(selectedReservation.end_time), 'HH:mm')}
                 </div>
+              </div>
+
+              {/* Player Selection */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-neon-cyan" />
+                  Jugador Asignado
+                </Label>
+                <div className="flex gap-2">
+                  <Select value={editingPlayer} onValueChange={setEditingPlayer}>
+                    <SelectTrigger className="bg-background border-neon-cyan/30 flex-1">
+                      <SelectValue placeholder="Seleccionar jugador..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="">Sin jugador asignado</SelectItem>
+                      {playersWithFullInfo.map(player => (
+                        <SelectItem key={player.id} value={player.id}>
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <span>{player.name}</span>
+                            <span className={`text-xs ${player.credits === 0 ? 'text-red-400' : player.credits <= 5 ? 'text-yellow-400' : 'text-muted-foreground'}`}>
+                              {player.category} • {player.credits}c
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {editingPlayer && (
+                    <NeonButton 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleRemovePlayer}
+                      disabled={isUpdating}
+                      className="shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </NeonButton>
+                  )}
+                </div>
+              </div>
+
+              {/* Trainer Selection */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-neon-purple" />
+                  Entrenador Asignado
+                </Label>
+                <Select value={editingTrainer} onValueChange={setEditingTrainer}>
+                  <SelectTrigger className="bg-background border-neon-purple/30">
+                    <SelectValue placeholder="Seleccionar entrenador..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin entrenador asignado</SelectItem>
+                    {trainers.map(trainer => (
+                      <SelectItem key={trainer.id} value={trainer.id}>
+                        {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Selection */}
+              <div className="space-y-2">
+                <Label>Estado de la Sesión</Label>
+                <Select value={editingStatus} onValueChange={setEditingStatus}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                        Pendiente
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="approved">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-neon-cyan" />
+                        Aprobada
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="completed">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                        Completada
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="no_show">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-orange-500" />
+                        No Asistió
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="rejected">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        Rechazada
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Warning for 0 credit player */}
+              {editingPlayer && playersWithFullInfo.find(p => p.id === editingPlayer)?.credits === 0 && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <p className="text-xs text-red-400">Este jugador no tiene créditos disponibles</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <NeonButton 
+                  variant="cyan" 
+                  className="flex-1"
+                  onClick={handleUpdateReservation}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Guardar Cambios
+                    </>
+                  )}
+                </NeonButton>
+                
+                {deleteReservation && (
+                  <NeonButton 
+                    variant="outline"
+                    onClick={handleDeleteSession}
+                    disabled={isUpdating}
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  >
+                    <X className="w-4 h-4" />
+                  </NeonButton>
+                )}
               </div>
             </div>
           )}

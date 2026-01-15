@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -10,7 +10,8 @@ import AttendanceReports from '@/components/admin/AttendanceReports';
 import PlayerDirectory from '@/components/admin/PlayerDirectory';
 import PlayerCreditsView from '@/components/admin/PlayerCreditsView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Users, BarChart3, UserCircle, CalendarDays, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, List, Users, BarChart3, UserCircle, CalendarDays, CreditCard, Wifi } from 'lucide-react';
 import { useAllReservations } from '@/hooks/useReservations';
 import { useTrainers } from '@/hooks/useTrainers';
 import { usePlayers } from '@/hooks/usePlayers';
@@ -18,14 +19,34 @@ import { usePlayers } from '@/hooks/usePlayers';
 const AdminReservations: React.FC = () => {
   const { isAdmin, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('weekly');
+  const [realtimeFlash, setRealtimeFlash] = useState(false);
 
   // Centralized data fetching - data is cached and shared across all tabs
-  const { reservations, loading: reservationsLoading, updateReservation, updateReservationStatus, createReservation, refetch: refetchReservations } = useAllReservations();
+  const { 
+    reservations, 
+    loading: reservationsLoading, 
+    updateReservation, 
+    updateReservationStatus, 
+    createReservation, 
+    deleteReservation,
+    refetch: refetchReservations,
+    isRealtimeConnected,
+    lastRealtimeUpdate,
+  } = useAllReservations();
   const { trainers, loading: trainersLoading } = useTrainers();
   const { players, isLoading: playersLoading, refetch: refetchPlayers } = usePlayers();
 
   // Combined loading state for initial load only
   const initialLoading = reservationsLoading && trainersLoading && playersLoading;
+
+  // Flash effect when realtime updates occur
+  useEffect(() => {
+    if (lastRealtimeUpdate) {
+      setRealtimeFlash(true);
+      const timeout = setTimeout(() => setRealtimeFlash(false), 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [lastRealtimeUpdate]);
 
   if (isLoading) {
     return (
@@ -42,13 +63,32 @@ const AdminReservations: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="font-orbitron font-bold text-3xl gradient-text mb-2">
-            Gestión de Reservas
-          </h1>
-          <p className="text-muted-foreground font-rajdhani">
-            Administra sesiones, entrenadores y horarios
-          </p>
+        <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="font-orbitron font-bold text-3xl gradient-text mb-2">
+              Gestión de Reservas
+            </h1>
+            <p className="text-muted-foreground font-rajdhani">
+              Administra sesiones, entrenadores y horarios
+            </p>
+          </div>
+          
+          {/* Real-time connection indicator */}
+          <Badge 
+            variant="outline" 
+            className={`flex items-center gap-2 transition-all duration-300 ${
+              isRealtimeConnected 
+                ? realtimeFlash 
+                  ? 'bg-green-500/30 border-green-400 text-green-300 animate-pulse' 
+                  : 'bg-green-500/10 border-green-500/30 text-green-400'
+                : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+            }`}
+          >
+            <Wifi className={`w-3.5 h-3.5 ${isRealtimeConnected ? '' : 'opacity-50'}`} />
+            <span className="text-xs font-medium">
+              {isRealtimeConnected ? 'Tiempo Real' : 'Conectando...'}
+            </span>
+          </Badge>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -92,6 +132,7 @@ const AdminReservations: React.FC = () => {
               players={players}
               updateReservation={updateReservation}
               createReservation={createReservation}
+              deleteReservation={deleteReservation}
               refetch={refetchReservations}
             />
           </TabsContent>

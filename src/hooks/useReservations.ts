@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 type ReservationStatus = Database['public']['Enums']['reservation_status'];
 
@@ -114,6 +114,8 @@ export const useReservations = () => {
 export const useAllReservations = () => {
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const [lastRealtimeUpdate, setLastRealtimeUpdate] = useState<Date | null>(null);
 
   const { data: reservations = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['all-reservations'],
@@ -166,16 +168,44 @@ export const useAllReservations = () => {
         },
         (payload) => {
           console.log('🔄 Realtime reservation update:', payload.eventType);
+          setLastRealtimeUpdate(new Date());
           // Invalidate and refetch to get complete data with JOINs
           queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsRealtimeConnected(status === 'SUBSCRIBED');
+        console.log('📡 Realtime reservations status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
+      setIsRealtimeConnected(false);
     };
   }, [isAdmin, queryClient]);
+
+  // Delete reservation
+  const deleteReservation = useCallback(async (id: string) => {
+    try {
+      // Optimistic update - remove from cache
+      queryClient.setQueryData<Reservation[]>(['all-reservations'], (old) =>
+        old?.filter(r => r.id !== id)
+      );
+
+      const { error } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error('Error deleting reservation:', err);
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ['all-reservations'] });
+      return false;
+    }
+  }, [queryClient]);
 
   const createReservation = async (reservation: {
     title: string;
@@ -291,5 +321,15 @@ export const useAllReservations = () => {
     }
   };
 
-  return { reservations, loading, updateReservationStatus, updateReservation, createReservation, refetch };
+  return { 
+    reservations, 
+    loading, 
+    updateReservationStatus, 
+    updateReservation, 
+    createReservation, 
+    deleteReservation,
+    refetch,
+    isRealtimeConnected,
+    lastRealtimeUpdate,
+  };
 };
