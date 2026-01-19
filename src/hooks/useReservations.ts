@@ -279,8 +279,11 @@ export const useAllReservations = () => {
     start_time?: string;
     end_time?: string;
     status?: ReservationStatus;
-  }, sendEmail: boolean = false) => {
+  }, sendEmail: boolean = true) => {
     try {
+      // Get current reservation for comparison
+      const currentReservation = reservations.find(r => r.id === id);
+      
       // Optimistic update
       queryClient.setQueryData<Reservation[]>(['all-reservations'], (old) =>
         old?.map(r => r.id === id ? { ...r, ...updates, updated_at: new Date().toISOString() } : r)
@@ -293,14 +296,39 @@ export const useAllReservations = () => {
 
       if (error) throw error;
       
-      // Send email notification for important updates
-      if (sendEmail) {
+      // Determine email type based on changes and send email
+      if (sendEmail && currentReservation) {
         try {
-          const emailType = updates.status === 'approved' ? 'approved' 
-            : updates.status === 'rejected' ? 'rejected' 
-            : 'updated';
+          let emailType = 'updated';
+          let oldStartTime: string | undefined;
+          let oldTrainerName: string | undefined;
+          
+          // Determine the most specific email type based on what changed
+          if (updates.start_time || updates.end_time) {
+            emailType = 'moved';
+            oldStartTime = currentReservation.start_time;
+          } else if (updates.trainer_id !== undefined && updates.trainer_id !== currentReservation.trainer_id) {
+            emailType = 'trainer_changed';
+            // We'd need to look up old trainer name - for now just send the type
+          } else if (updates.player_id !== undefined) {
+            if (updates.player_id && !currentReservation.player_id) {
+              emailType = 'player_assigned';
+            } else if (!updates.player_id && currentReservation.player_id) {
+              emailType = 'player_removed';
+            }
+          } else if (updates.status) {
+            emailType = updates.status === 'approved' ? 'approved' 
+              : updates.status === 'rejected' ? 'rejected' 
+              : 'updated';
+          }
+          
           await supabase.functions.invoke('send-reservation-email', {
-            body: { reservation_id: id, type: emailType },
+            body: { 
+              reservation_id: id, 
+              type: emailType,
+              old_start_time: oldStartTime,
+              old_trainer_name: oldTrainerName,
+            },
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);

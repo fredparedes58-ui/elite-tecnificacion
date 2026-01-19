@@ -187,11 +187,12 @@ const DraggablePlayer: React.FC<{
   );
 };
 
-// Draggable reservation card
+// Draggable reservation card - supports both click and double-click
 const DraggableReservation: React.FC<{
   reservation: ReservationWithTrainer;
   onClick: () => void;
-}> = ({ reservation, onClick }) => {
+  onDoubleClick: () => void;
+}> = ({ reservation, onClick, onDoubleClick }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: reservation.id,
     data: { type: 'reservation', reservation },
@@ -208,15 +209,16 @@ const DraggableReservation: React.FC<{
   return (
     <div
       ref={setNodeRef}
-      className={`w-full p-1.5 rounded text-left transition-all cursor-grab active:cursor-grabbing text-xs ${
+      onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
+      className={`w-full p-1.5 rounded text-left transition-all cursor-grab active:cursor-grabbing text-xs border ${
         isDragging ? 'opacity-50' : ''
       } ${statusColors[reservation.status || 'pending']}`}
       {...listeners}
       {...attributes}
     >
-      <button 
+      <div 
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="w-full text-left hover:underline"
+        className="hover:underline cursor-pointer"
       >
         <div className="font-rajdhani font-medium truncate">
           {reservation.player?.name || reservation.title}
@@ -224,7 +226,7 @@ const DraggableReservation: React.FC<{
         <div className="text-muted-foreground truncate">
           {format(parseISO(reservation.start_time), 'HH:mm')}
         </div>
-      </button>
+      </div>
     </div>
   );
 };
@@ -788,6 +790,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                             key={reservation.id}
                             reservation={reservation}
                             onClick={() => openReservationDetail(reservation)}
+                            onDoubleClick={() => openReservationDetail(reservation)}
                           />
                         ))}
                         {cellReservations.length === 0 && (
