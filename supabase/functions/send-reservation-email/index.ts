@@ -8,11 +8,13 @@ const corsHeaders = {
 
 interface EmailRequest {
   reservation_id: string;
-  type: "approved" | "rejected" | "updated" | "reminder";
+  type: "approved" | "rejected" | "updated" | "reminder" | "moved" | "trainer_changed" | "player_assigned" | "player_removed";
+  old_start_time?: string;
+  old_trainer_name?: string;
 }
 
-const getEmailContent = (type: string, reservation: any, playerName: string, trainerName: string) => {
-  const startTime = new Date(reservation.start_time).toLocaleString("es-ES", {
+const formatDateTime = (dateStr: string) => {
+  return new Date(dateStr).toLocaleString("es-ES", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -20,6 +22,11 @@ const getEmailContent = (type: string, reservation: any, playerName: string, tra
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const getEmailContent = (type: string, reservation: any, playerName: string, trainerName: string, oldStartTime?: string, oldTrainerName?: string) => {
+  const startTime = formatDateTime(reservation.start_time);
+  const oldTime = oldStartTime ? formatDateTime(oldStartTime) : null;
 
   switch (type) {
     case "approved":
@@ -64,6 +71,92 @@ const getEmailContent = (type: string, reservation: any, playerName: string, tra
         `,
       };
 
+    case "moved":
+      return {
+        subject: "📅 Tu sesión ha sido reprogramada",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 30px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Sesión Reprogramada 📅</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #111827; margin-top: 0;">${reservation.title}</h2>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                ${oldTime ? `<p style="margin: 10px 0; color: #9ca3af; text-decoration: line-through;"><strong>📅 Fecha anterior:</strong> ${oldTime}</p>` : ""}
+                <p style="margin: 10px 0; color: #059669;"><strong>📅 Nueva fecha:</strong> ${startTime}</p>
+                ${playerName ? `<p style="margin: 10px 0;"><strong>⚽ Jugador:</strong> ${playerName}</p>` : ""}
+                ${trainerName ? `<p style="margin: 10px 0;"><strong>👨‍🏫 Entrenador:</strong> ${trainerName}</p>` : ""}
+              </div>
+              <p style="color: #6b7280;">Tu sesión ha sido movida a un nuevo horario. Revisa los detalles arriba.</p>
+            </div>
+          </div>
+        `,
+      };
+
+    case "trainer_changed":
+      return {
+        subject: "👨‍🏫 Cambio de entrenador en tu sesión",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 30px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Cambio de Entrenador 👨‍🏫</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #111827; margin-top: 0;">${reservation.title}</h2>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 10px 0;"><strong>📅 Fecha:</strong> ${startTime}</p>
+                ${playerName ? `<p style="margin: 10px 0;"><strong>⚽ Jugador:</strong> ${playerName}</p>` : ""}
+                ${oldTrainerName ? `<p style="margin: 10px 0; color: #9ca3af; text-decoration: line-through;"><strong>👨‍🏫 Entrenador anterior:</strong> ${oldTrainerName}</p>` : ""}
+                <p style="margin: 10px 0; color: #7c3aed;"><strong>👨‍🏫 Nuevo entrenador:</strong> ${trainerName || "Por asignar"}</p>
+              </div>
+              <p style="color: #6b7280;">El entrenador de tu sesión ha sido actualizado.</p>
+            </div>
+          </div>
+        `,
+      };
+
+    case "player_assigned":
+      return {
+        subject: "➕ Nueva sesión asignada",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #06b6d4, #0891b2); padding: 30px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Nueva Sesión Asignada ➕</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #111827; margin-top: 0;">${reservation.title}</h2>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 10px 0;"><strong>📅 Fecha:</strong> ${startTime}</p>
+                ${playerName ? `<p style="margin: 10px 0;"><strong>⚽ Jugador:</strong> ${playerName}</p>` : ""}
+                ${trainerName ? `<p style="margin: 10px 0;"><strong>👨‍🏫 Entrenador:</strong> ${trainerName}</p>` : ""}
+                <p style="margin: 10px 0;"><strong>💳 Créditos:</strong> ${reservation.credit_cost || 1}</p>
+              </div>
+              <p style="color: #6b7280;">¡Se ha asignado una nueva sesión de entrenamiento!</p>
+            </div>
+          </div>
+        `,
+      };
+
+    case "player_removed":
+      return {
+        subject: "🔄 Cambio en tu sesión",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #6b7280, #4b5563); padding: 30px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Sesión Modificada 🔄</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #111827; margin-top: 0;">${reservation.title}</h2>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 10px 0;"><strong>📅 Fecha:</strong> ${startTime}</p>
+                ${playerName ? `<p style="margin: 10px 0;"><strong>⚽ Jugador removido:</strong> ${playerName}</p>` : ""}
+              </div>
+              <p style="color: #6b7280;">El jugador ha sido removido de esta sesión. Si tienes dudas, contacta con nosotros.</p>
+            </div>
+          </div>
+        `,
+      };
+
     case "updated":
       return {
         subject: "🔄 Tu reserva ha sido actualizada",
@@ -75,7 +168,7 @@ const getEmailContent = (type: string, reservation: any, playerName: string, tra
             <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
               <h2 style="color: #111827; margin-top: 0;">${reservation.title}</h2>
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 10px 0;"><strong>📅 Nueva fecha:</strong> ${startTime}</p>
+                <p style="margin: 10px 0;"><strong>📅 Fecha:</strong> ${startTime}</p>
                 ${playerName ? `<p style="margin: 10px 0;"><strong>⚽ Jugador:</strong> ${playerName}</p>` : ""}
                 ${trainerName ? `<p style="margin: 10px 0;"><strong>👨‍🏫 Entrenador:</strong> ${trainerName}</p>` : ""}
               </div>
@@ -154,7 +247,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { reservation_id, type }: EmailRequest = await req.json();
+    const { reservation_id, type, old_start_time, old_trainer_name }: EmailRequest = await req.json();
     console.log(`Processing ${type} email for reservation ${reservation_id}`);
 
     // Fetch reservation details
@@ -203,7 +296,7 @@ const handler = async (req: Request): Promise<Response> => {
       trainerName = trainer?.name || "";
     }
 
-    const { subject, html } = getEmailContent(type, reservation, playerName, trainerName);
+    const { subject, html } = getEmailContent(type, reservation, playerName, trainerName, old_start_time, old_trainer_name);
 
     console.log(`Sending email to ${profile.email}`);
     const emailResponse = await sendEmailWithResend(profile.email, subject, html, resendApiKey);
