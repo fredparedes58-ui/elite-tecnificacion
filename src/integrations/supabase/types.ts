@@ -377,6 +377,47 @@ export type Database = {
           },
         ]
       }
+      session_changes_history: {
+        Row: {
+          change_type: string
+          changed_by: string
+          created_at: string
+          description: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          reservation_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reservation_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_changes_history_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainers: {
         Row: {
           bio: string | null
