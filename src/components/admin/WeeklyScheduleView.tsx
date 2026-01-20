@@ -22,7 +22,8 @@ import {
   Footprints,
   MapPin,
   AlertTriangle,
-  CalendarPlus
+  CalendarPlus,
+  History
 } from 'lucide-react';
 import {
   Dialog,
@@ -41,9 +42,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { MoveConfirmationModal } from './MoveConfirmationModal';
+import { SessionHistoryPanel } from './SessionHistoryPanel';
 import type { Database } from '@/integrations/supabase/types';
 
 type ReservationStatus = Database['public']['Enums']['reservation_status'];
@@ -283,6 +287,17 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
   const [editingTrainer, setEditingTrainer] = useState<string>('');
   const [editingStatus, setEditingStatus] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Move confirmation modal state
+  const [moveConfirmModalOpen, setMoveConfirmModalOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{
+    reservation: ReservationWithTrainer;
+    targetDate: Date;
+    targetHour: number;
+    playerName: string;
+    trainerName?: string;
+    conflictWarning?: string;
+  } | null>(null);
 
   // Fetch players with full info including credits and parent name
   const { data: playersWithFullInfo = [] } = useQuery({
@@ -397,6 +412,26 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     return grid;
   }, [reservations, weekDays, trainers]);
 
+  // Check for schedule conflicts - if the player already has a session at the target time
+  const checkConflicts = useCallback((playerId: string, targetDate: Date, targetHour: number, excludeReservationId?: string): string | undefined => {
+    const dayKey = format(targetDate, 'yyyy-MM-dd');
+    
+    // Check all reservations for this day and hour
+    const existingSessionsAtTime = scheduleGrid[dayKey]?.[targetHour] || [];
+    
+    // Also check adjacent hours for overlapping sessions
+    const conflictingSession = existingSessionsAtTime.find(r => 
+      r.player_id === playerId && r.id !== excludeReservationId
+    );
+    
+    if (conflictingSession) {
+      const playerName = playersWithFullInfo.find(p => p.id === playerId)?.name || 'El jugador';
+      return `${playerName} ya tiene una sesión programada a las ${targetHour}:00 este día.`;
+    }
+    
+    return undefined;
+  }, [scheduleGrid, playersWithFullInfo]);
+
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -414,6 +449,17 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     if (activeData?.type === 'player') {
       const player = activeData.player as PlayerWithFullInfo;
       const existingReservations = scheduleGrid[dayKey]?.[targetHour] || [];
+      
+      // Check for conflicts first
+      const conflict = checkConflicts(player.id, targetDate, targetHour);
+      if (conflict) {
+        toast({
+          title: '⚠️ Conflicto de Horario',
+          description: conflict,
+          variant: 'destructive',
+        });
+        return;
+      }
       
       if (existingReservations.length === 0) {
         // Create new session with this player
@@ -457,6 +503,46 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
       const reservation = activeData.reservation as ReservationWithTrainer;
       
       const originalStart = parseISO(reservation.start_time);
+      
+      // If moving to the same cell, ignore
+      if (format(originalStart, 'yyyy-MM-dd') === dayKey && originalStart.getHours() === targetHour) {
+        return;
+      }
+      
+      // Check for conflicts if there's a player assigned
+      let conflict: string | undefined;
+      if (reservation.player_id) {
+        conflict = checkConflicts(reservation.player_id, targetDate, targetHour, reservation.id);
+      }
+      
+      // Get player and trainer names for the modal
+      const playerName = reservation.player_id 
+        ? playersWithFullInfo.find(p => p.id === reservation.player_id)?.name || 'Sin jugador'
+        : 'Sin jugador';
+      const trainerName = reservation.trainer?.name;
+      
+      // Show confirmation modal
+      setPendingMove({
+        reservation,
+        targetDate,
+        targetHour,
+        playerName,
+        trainerName,
+        conflictWarning: conflict,
+      });
+      setMoveConfirmModalOpen(true);
+    }
+  }, [scheduleGrid, updateReservation, createReservation, toast, refetch, user, checkConflicts, playersWithFullInfo]);
+
+  // Handle confirmed move
+  const handleConfirmMove = useCallback(async () => {
+    if (!pendingMove) return;
+    
+    setIsUpdating(true);
+    try {
+      const { reservation, targetDate, targetHour } = pendingMove;
+      
+      const originalStart = parseISO(reservation.start_time);
       const originalEnd = parseISO(reservation.end_time);
       const duration = originalEnd.getTime() - originalStart.getTime();
       
@@ -470,12 +556,17 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 
       if (success) {
         toast({
-          title: 'Sesión movida',
-          description: 'La sesión ha sido reasignada.',
+          title: '✅ Sesión movida',
+          description: 'La sesión ha sido reprogramada exitosamente.',
         });
+        refetch();
       }
+    } finally {
+      setIsUpdating(false);
+      setMoveConfirmModalOpen(false);
+      setPendingMove(null);
     }
-  }, [scheduleGrid, updateReservation, createReservation, toast, refetch, user]);
+  }, [pendingMove, updateReservation, toast, refetch]);
 
   const handleCellClick = (day: Date, hour: number) => {
     setSelectedCell({ day, hour });
@@ -929,7 +1020,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Reservation Detail Modal - Full Player Management */}
+      {/* Reservation Detail Modal - Full Player Management with History */}
       <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-lg">
           <DialogHeader>
@@ -940,163 +1031,197 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
           </DialogHeader>
           
           {selectedReservation && (
-            <div className="space-y-5">
-              {/* Session Info */}
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-rajdhani font-bold">{selectedReservation.title}</span>
-                  <span className="font-orbitron text-sm text-neon-cyan">
-                    {format(parseISO(selectedReservation.start_time), 'EEEE dd/MM', { locale: es })}
-                  </span>
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Detalles</TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-1">
+                  <History className="w-3 h-3" />
+                  Historial
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-5 mt-4">
+                {/* Session Info */}
+                <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-rajdhani font-bold">{selectedReservation.title}</span>
+                    <span className="font-orbitron text-sm text-neon-cyan">
+                      {format(parseISO(selectedReservation.start_time), 'EEEE dd/MM', { locale: es })}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {format(parseISO(selectedReservation.start_time), 'HH:mm')} - {format(parseISO(selectedReservation.end_time), 'HH:mm')}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {format(parseISO(selectedReservation.start_time), 'HH:mm')} - {format(parseISO(selectedReservation.end_time), 'HH:mm')}
-                </div>
-              </div>
 
-              {/* Player Selection */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-neon-cyan" />
-                  Jugador Asignado
-                </Label>
-                <div className="flex gap-2">
-                  <Select value={editingPlayer} onValueChange={setEditingPlayer}>
-                    <SelectTrigger className="bg-background border-neon-cyan/30 flex-1">
-                      <SelectValue placeholder="Seleccionar jugador..." />
+                {/* Player Selection */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-neon-cyan" />
+                    Jugador Asignado
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select value={editingPlayer} onValueChange={setEditingPlayer}>
+                      <SelectTrigger className="bg-background border-neon-cyan/30 flex-1">
+                        <SelectValue placeholder="Seleccionar jugador..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="">Sin jugador asignado</SelectItem>
+                        {playersWithFullInfo.map(player => (
+                          <SelectItem key={player.id} value={player.id}>
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <span>{player.name}</span>
+                              <span className={`text-xs ${player.credits === 0 ? 'text-destructive' : player.credits <= 5 ? 'text-warning' : 'text-muted-foreground'}`}>
+                                {player.category} • {player.credits}c
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {editingPlayer && (
+                      <NeonButton 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleRemovePlayer}
+                        disabled={isUpdating}
+                        className="shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </NeonButton>
+                    )}
+                  </div>
+                </div>
+
+                {/* Trainer Selection */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-neon-purple" />
+                    Entrenador Asignado
+                  </Label>
+                  <Select value={editingTrainer} onValueChange={setEditingTrainer}>
+                    <SelectTrigger className="bg-background border-neon-purple/30">
+                      <SelectValue placeholder="Seleccionar entrenador..." />
                     </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="">Sin jugador asignado</SelectItem>
-                      {playersWithFullInfo.map(player => (
-                        <SelectItem key={player.id} value={player.id}>
-                          <div className="flex items-center justify-between w-full gap-2">
-                            <span>{player.name}</span>
-                            <span className={`text-xs ${player.credits === 0 ? 'text-red-400' : player.credits <= 5 ? 'text-yellow-400' : 'text-muted-foreground'}`}>
-                              {player.category} • {player.credits}c
-                            </span>
-                          </div>
+                    <SelectContent>
+                      <SelectItem value="">Sin entrenador asignado</SelectItem>
+                      {trainers.map(trainer => (
+                        <SelectItem key={trainer.id} value={trainer.id}>
+                          {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {editingPlayer && (
+                </div>
+
+                {/* Status Selection */}
+                <div className="space-y-2">
+                  <Label>Estado de la Sesión</Label>
+                  <Select value={editingStatus} onValueChange={setEditingStatus}>
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-warning" />
+                          Pendiente
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="approved">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-neon-cyan" />
+                          Aprobada
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-success" />
+                          Completada
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="no_show">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-warning" />
+                          No Asistió
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="rejected">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-destructive" />
+                          Rechazada
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Warning for 0 credit player */}
+                {editingPlayer && playersWithFullInfo.find(p => p.id === editingPlayer)?.credits === 0 && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-destructive" />
+                    <p className="text-xs text-destructive">Este jugador no tiene créditos disponibles</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <NeonButton 
+                    variant="cyan" 
+                    className="flex-1"
+                    onClick={handleUpdateReservation}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Guardar Cambios
+                      </>
+                    )}
+                  </NeonButton>
+                  
+                  {deleteReservation && (
                     <NeonButton 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleRemovePlayer}
+                      variant="outline"
+                      onClick={handleDeleteSession}
                       disabled={isUpdating}
-                      className="shrink-0"
+                      className="border-destructive/30 text-destructive hover:bg-destructive/10"
                     >
                       <X className="w-4 h-4" />
                     </NeonButton>
                   )}
                 </div>
-              </div>
-
-              {/* Trainer Selection */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-neon-purple" />
-                  Entrenador Asignado
-                </Label>
-                <Select value={editingTrainer} onValueChange={setEditingTrainer}>
-                  <SelectTrigger className="bg-background border-neon-purple/30">
-                    <SelectValue placeholder="Seleccionar entrenador..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin entrenador asignado</SelectItem>
-                    {trainers.map(trainer => (
-                      <SelectItem key={trainer.id} value={trainer.id}>
-                        {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Status Selection */}
-              <div className="space-y-2">
-                <Label>Estado de la Sesión</Label>
-                <Select value={editingStatus} onValueChange={setEditingStatus}>
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                        Pendiente
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="approved">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-neon-cyan" />
-                        Aprobada
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="completed">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500" />
-                        Completada
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="no_show">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-orange-500" />
-                        No Asistió
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="rejected">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-red-500" />
-                        Rechazada
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Warning for 0 credit player */}
-              {editingPlayer && playersWithFullInfo.find(p => p.id === editingPlayer)?.credits === 0 && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-400" />
-                  <p className="text-xs text-red-400">Este jugador no tiene créditos disponibles</p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <NeonButton 
-                  variant="cyan" 
-                  className="flex-1"
-                  onClick={handleUpdateReservation}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Guardar Cambios
-                    </>
-                  )}
-                </NeonButton>
-                
-                {deleteReservation && (
-                  <NeonButton 
-                    variant="outline"
-                    onClick={handleDeleteSession}
-                    disabled={isUpdating}
-                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                  >
-                    <X className="w-4 h-4" />
-                  </NeonButton>
-                )}
-              </div>
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="history" className="mt-4">
+                <SessionHistoryPanel reservationId={selectedReservation.id} />
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Move Confirmation Modal */}
+      <MoveConfirmationModal
+        isOpen={moveConfirmModalOpen}
+        onClose={() => {
+          setMoveConfirmModalOpen(false);
+          setPendingMove(null);
+        }}
+        onConfirm={handleConfirmMove}
+        isLoading={isUpdating}
+        moveDetails={pendingMove ? {
+          playerName: pendingMove.playerName,
+          oldDate: parseISO(pendingMove.reservation.start_time),
+          oldHour: parseISO(pendingMove.reservation.start_time).getHours(),
+          newDate: pendingMove.targetDate,
+          newHour: pendingMove.targetHour,
+          trainerName: pendingMove.trainerName,
+          conflictWarning: pendingMove.conflictWarning,
+        } : null}
+      />
     </DndContext>
   );
 };
