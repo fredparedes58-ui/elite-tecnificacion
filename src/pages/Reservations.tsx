@@ -9,8 +9,9 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import ReservationForm from '@/components/dashboard/ReservationForm';
+import CancelReservationModal from '@/components/reservations/CancelReservationModal';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   Dialog,
@@ -19,17 +20,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Clock, Plus, Coins, User, Users } from 'lucide-react';
+import { Calendar, Clock, Plus, Coins, User, Users, X } from 'lucide-react';
 
 const Reservations: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
   const { credits } = useCredits();
   const { players } = useMyPlayers();
-  const { reservations, createReservation } = useReservations();
+  const { reservations, createReservation, cancelReservation } = useReservations();
   const { toast } = useToast();
   
   const [reservationDialogOpen, setReservationDialogOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = React.useState(false);
+  const [reservationToCancel, setReservationToCancel] = React.useState<typeof reservations[0] | null>(null);
+  const [cancelling, setCancelling] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -64,6 +68,44 @@ const Reservations: React.FC = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleCancelClick = (reservation: typeof reservations[0]) => {
+    setReservationToCancel(reservation);
+    setCancelModalOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!reservationToCancel) return;
+    
+    setCancelling(true);
+    const result = await cancelReservation(reservationToCancel.id);
+    setCancelling(false);
+    
+    if (result) {
+      toast({
+        title: '✅ Reserva cancelada',
+        description: reservationToCancel.status === 'approved' 
+          ? 'Se te han reembolsado los créditos'
+          : 'La reserva ha sido cancelada',
+      });
+      setCancelModalOpen(false);
+      setReservationToCancel(null);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudo cancelar la reserva',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const canCancelReservation = (reservation: typeof reservations[0]) => {
+    // Can only cancel pending or approved reservations
+    if (!['pending', 'approved'].includes(reservation.status || '')) return false;
+    // Can't cancel past reservations
+    if (new Date(reservation.start_time) <= new Date()) return false;
+    return true;
   };
 
   const getStatusVariant = (status: string) => {
@@ -279,11 +321,36 @@ const Reservations: React.FC = () => {
                       <span>{reservation.credit_cost} crédito{reservation.credit_cost !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
+
+                  {/* Cancel Button */}
+                  {canCancelReservation(reservation) && (
+                    <NeonButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelClick(reservation)}
+                      className="w-full mt-4 border-destructive/50 text-destructive hover:bg-destructive/10"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Cancelar Reserva
+                    </NeonButton>
+                  )}
                 </EliteCard>
               ))}
             </div>
           </div>
         )}
+
+        {/* Cancel Modal */}
+        <CancelReservationModal
+          isOpen={cancelModalOpen}
+          onClose={() => {
+            setCancelModalOpen(false);
+            setReservationToCancel(null);
+          }}
+          onConfirm={handleConfirmCancel}
+          loading={cancelling}
+          reservation={reservationToCancel}
+        />
       </div>
     </Layout>
   );

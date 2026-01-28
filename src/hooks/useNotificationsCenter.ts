@@ -27,7 +27,7 @@ export const useNotificationsCenter = () => {
 
     try {
       const { data, error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -52,8 +52,8 @@ export const useNotificationsCenter = () => {
 
     try {
       const { error } = await supabase
-        .from('notifications' as any)
-        .update({ is_read: true } as any)
+        .from('notifications')
+        .update({ is_read: true })
         .eq('id', notificationId)
         .eq('user_id', user.id);
 
@@ -74,8 +74,8 @@ export const useNotificationsCenter = () => {
 
     try {
       const { error } = await supabase
-        .from('notifications' as any)
-        .update({ is_read: true } as any)
+        .from('notifications')
+        .update({ is_read: true })
         .eq('user_id', user.id)
         .eq('is_read', false);
 
@@ -100,7 +100,7 @@ export const useNotificationsCenter = () => {
       const notification = notifications.find(n => n.id === notificationId);
       
       const { error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .delete()
         .eq('id', notificationId)
         .eq('user_id', user.id);
@@ -122,7 +122,7 @@ export const useNotificationsCenter = () => {
 
     try {
       const { error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .delete()
         .eq('user_id', user.id);
 
