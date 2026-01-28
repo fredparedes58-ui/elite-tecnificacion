@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NeonButton } from '@/components/ui/NeonButton';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
-  RefreshCw, 
-  Settings,
   Calendar,
-  FileText
+  FileText,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ interface Transaction {
 interface CreditTransactionHistoryProps {
   transactions: Transaction[];
   loading?: boolean;
+  userName?: string;
 }
 
 const getTransactionIcon = (type: string, amount: number) => {
@@ -54,7 +56,36 @@ const getTransactionBadge = (type: string) => {
 const CreditTransactionHistory: React.FC<CreditTransactionHistoryProps> = ({
   transactions,
   loading,
+  userName,
 }) => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const csvContent = [
+        ['Fecha', 'Tipo', 'Descripción', 'Cantidad'].join(','),
+        ...transactions.map(t => [
+          format(new Date(t.created_at), 'dd/MM/yyyy HH:mm'),
+          t.transaction_type,
+          `"${(t.description || 'Movimiento').replace(/"/g, '""')}"`,
+          t.amount.toString(),
+        ].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Creditos_${userName || 'historial'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -73,55 +104,74 @@ const CreditTransactionHistory: React.FC<CreditTransactionHistoryProps> = ({
   }
 
   return (
-    <ScrollArea className="h-[400px] pr-4">
-      <div className="space-y-3">
-        {transactions.map((transaction) => (
-          <EliteCard 
-            key={transaction.id} 
-            className={cn(
-              "p-4 transition-all hover:border-neon-cyan/30",
-              transaction.amount > 0 ? 'border-l-2 border-l-green-500' : 'border-l-2 border-l-red-500'
-            )}
-          >
-            <div className="flex items-start gap-3">
-              {/* Icon */}
-              <div className={cn(
-                "p-2 rounded-lg shrink-0",
-                transaction.amount > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
-              )}>
-                {getTransactionIcon(transaction.transaction_type, transaction.amount)}
-              </div>
+    <div className="space-y-3">
+      {/* Export Button */}
+      <div className="flex justify-end">
+        <NeonButton
+          variant="outline"
+          size="sm"
+          onClick={handleExportCSV}
+          disabled={exporting || transactions.length === 0}
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+          ) : (
+            <Download className="w-4 h-4 mr-1" />
+          )}
+          Exportar CSV
+        </NeonButton>
+      </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-rajdhani font-medium text-sm truncate">
-                      {transaction.description || 'Movimiento de créditos'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {getTransactionBadge(transaction.transaction_type)}
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {format(new Date(transaction.created_at), "d MMM yyyy, HH:mm", { locale: es })}
-                      </span>
+      <ScrollArea className="h-[400px] pr-4">
+        <div className="space-y-3">
+          {transactions.map((transaction) => (
+            <EliteCard 
+              key={transaction.id} 
+              className={cn(
+                "p-4 transition-all hover:border-neon-cyan/30",
+                transaction.amount > 0 ? 'border-l-2 border-l-green-500' : 'border-l-2 border-l-red-500'
+              )}
+            >
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div className={cn(
+                  "p-2 rounded-lg shrink-0",
+                  transaction.amount > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+                )}>
+                  {getTransactionIcon(transaction.transaction_type, transaction.amount)}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-rajdhani font-medium text-sm truncate">
+                        {transaction.description || 'Movimiento de créditos'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getTransactionBadge(transaction.transaction_type)}
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(transaction.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Amount */}
-                  <div className={cn(
-                    "font-orbitron font-bold text-lg shrink-0",
-                    transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
-                  )}>
-                    {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                    {/* Amount */}
+                    <div className={cn(
+                      "font-orbitron font-bold text-lg shrink-0",
+                      transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
+                    )}>
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </EliteCard>
-        ))}
-      </div>
-    </ScrollArea>
+            </EliteCard>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 

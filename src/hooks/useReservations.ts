@@ -107,7 +107,41 @@ export const useReservations = () => {
     }
   };
 
-  return { reservations, loading, createReservation, refetch };
+  const cancelReservation = async (id: string) => {
+    if (!user) return false;
+
+    try {
+      const reservation = reservations.find(r => r.id === id);
+      if (!reservation) return false;
+
+      // Only allow cancelling pending or approved reservations
+      if (!['pending', 'approved'].includes(reservation.status || '')) {
+        console.error('Cannot cancel reservation with status:', reservation.status);
+        return false;
+      }
+
+      // Update status to rejected (cancelled)
+      // The database trigger will handle refunding credits if it was approved
+      const { error } = await supabase
+        .from('reservations')
+        .update({ 
+          status: 'rejected',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      refetch();
+      return true;
+    } catch (err) {
+      console.error('Error cancelling reservation:', err);
+      return false;
+    }
+  };
+
+  return { reservations, loading, createReservation, cancelReservation, refetch };
 };
 
 // Hook for admin - all reservations with real-time updates

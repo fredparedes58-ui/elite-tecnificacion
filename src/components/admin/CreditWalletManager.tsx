@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useCreditPackages } from '@/hooks/useCreditPackages';
 import { 
   CreditCard, 
   Plus, 
@@ -26,10 +27,20 @@ interface CreditWalletManagerProps {
   onViewHistory: () => void;
 }
 
-const BONUS_OPTIONS = [
-  { amount: 4, label: 'Bono 4', color: 'from-blue-500 to-cyan-500' },
-  { amount: 8, label: 'Bono 8', color: 'from-purple-500 to-pink-500' },
-  { amount: 12, label: 'Bono 12', color: 'from-amber-500 to-orange-500' },
+// Fallback if no packages exist
+const FALLBACK_BONUS_OPTIONS = [
+  { id: 'fallback-4', credits: 4, name: 'Bono 4', price: 0 },
+  { id: 'fallback-8', credits: 8, name: 'Bono 8', price: 0 },
+  { id: 'fallback-12', credits: 12, name: 'Bono 12', price: 0 },
+];
+
+const GRADIENT_COLORS = [
+  'from-blue-500 to-cyan-500',
+  'from-purple-500 to-pink-500',
+  'from-amber-500 to-orange-500',
+  'from-green-500 to-emerald-500',
+  'from-red-500 to-rose-500',
+  'from-indigo-500 to-violet-500',
 ];
 
 const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
@@ -39,6 +50,7 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
   onBalanceUpdated,
   onViewHistory,
 }) => {
+  const { activePackages, loading: packagesLoading } = useCreditPackages();
   const [customAmount, setCustomAmount] = useState<string>('');
   const [removeAmount, setRemoveAmount] = useState<string>('');
   const [directBalance, setDirectBalance] = useState<string>(currentBalance.toString());
@@ -46,7 +58,15 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
   const [activeTab, setActiveTab] = useState('add');
   const { toast } = useToast();
 
-  const addCredits = async (amount: number, description: string) => {
+  // Use active packages or fallback
+  const bonusOptions = activePackages.length > 0 ? activePackages : FALLBACK_BONUS_OPTIONS;
+
+  // Update direct balance when prop changes
+  useEffect(() => {
+    setDirectBalance(currentBalance.toString());
+  }, [currentBalance]);
+
+  const addCredits = async (amount: number, description: string, packageId?: string) => {
     if (amount <= 0) return;
     
     setLoading(true);
@@ -68,6 +88,7 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
           amount: amount,
           transaction_type: 'credit',
           description: description,
+          package_id: packageId || null,
         });
 
       if (logError) throw logError;
@@ -205,8 +226,9 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
     }
   };
 
-  const handleBonusClick = (amount: number) => {
-    addCredits(amount, `Bono +${amount} sesiones`);
+  const handleBonusClick = (pkg: typeof bonusOptions[0]) => {
+    const packageId = pkg.id.startsWith('fallback') ? undefined : pkg.id;
+    addCredits(pkg.credits, `${pkg.name} +${pkg.credits} sesiones`, packageId);
   };
 
   const handleCustomAdd = () => {
@@ -284,24 +306,26 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
         {/* Add Credits Tab */}
         <TabsContent value="add" className="space-y-4 mt-4">
           <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Bonos de Sesiones</Label>
+            <Label className="text-xs text-muted-foreground mb-2 block">
+              Paquetes de Créditos {packagesLoading && <span className="text-neon-cyan">(cargando...)</span>}
+            </Label>
             <div className="grid grid-cols-3 gap-2">
-              {BONUS_OPTIONS.map((bonus) => (
+              {bonusOptions.map((pkg, index) => (
                 <button
-                  key={bonus.amount}
-                  onClick={() => handleBonusClick(bonus.amount)}
-                  disabled={loading}
+                  key={pkg.id}
+                  onClick={() => handleBonusClick(pkg)}
+                  disabled={loading || packagesLoading}
                   className={cn(
                     "relative overflow-hidden p-3 rounded-xl border border-white/10 transition-all duration-300",
                     "hover:scale-105 hover:border-white/30 active:scale-95",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    `bg-gradient-to-br ${bonus.color}`
+                    `bg-gradient-to-br ${GRADIENT_COLORS[index % GRADIENT_COLORS.length]}`
                   )}
                 >
                   <div className="relative z-10 flex flex-col items-center gap-1">
                     <Package className="w-4 h-4 text-white" />
-                    <span className="text-white font-orbitron font-bold">+{bonus.amount}</span>
-                    <span className="text-white/80 text-[10px]">{bonus.label}</span>
+                    <span className="text-white font-orbitron font-bold">+{pkg.credits}</span>
+                    <span className="text-white/80 text-[10px]">{pkg.name}</span>
                   </div>
                 </button>
               ))}

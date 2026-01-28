@@ -12,6 +12,7 @@ import Players from "./pages/Players";
 import Reservations from "./pages/Reservations";
 import Chat from "./pages/Chat";
 import MyCredits from "./pages/MyCredits";
+import Profile from "./pages/Profile";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReservations from "./pages/AdminReservations";
 import AdminChat from "./pages/AdminChat";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/reservations" element={<Reservations />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/my-credits" element={<MyCredits />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/admin/users" element={<AdminUsers />} />

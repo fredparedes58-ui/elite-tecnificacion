@@ -17,8 +17,9 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { ChevronLeft, ChevronRight, Users, User, Calendar, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, User, Calendar, TrendingUp, Download, Loader2 } from 'lucide-react';
 import { NeonButton } from '@/components/ui/NeonButton';
+import * as XLSX from 'xlsx';
 
 interface PlayerWithStats {
   id: string;
@@ -41,6 +42,7 @@ const AttendanceReports: React.FC<AttendanceReportsProps> = ({
   players
 }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [exporting, setExporting] = useState(false);
 
   // Navigate months
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -148,6 +150,76 @@ const AttendanceReports: React.FC<AttendanceReportsProps> = ({
     return { total, completed, noShow, rate };
   }, [monthReservations]);
 
+  // Export to Excel
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      // Prepare data sheets
+      const summaryData = [{
+        'Mes': format(selectedMonth, 'MMMM yyyy', { locale: es }),
+        'Total Sesiones': overallStats.total,
+        'Completadas': overallStats.completed,
+        'No Asistió': overallStats.noShow,
+        'Tasa Asistencia': `${overallStats.rate}%`,
+      }];
+
+      const trainerData = trainerStats.map(t => ({
+        'Entrenador': t.name,
+        'Total Sesiones': t.total,
+        'Completadas': t.completed,
+        'No Asistió': t.no_show,
+      }));
+
+      const playerData = playerStats.map(p => ({
+        'Jugador': p.name,
+        'Total Sesiones': p.total,
+        'Completadas': p.completed,
+        'No Asistió': p.no_show,
+        'Tasa Asistencia': `${p.rate}%`,
+      }));
+
+      const sessionsData = monthReservations.map(r => ({
+        'Fecha': format(parseISO(r.start_time), 'dd/MM/yyyy'),
+        'Hora': format(parseISO(r.start_time), 'HH:mm'),
+        'Título': r.title,
+        'Jugador': r.player?.name || 'Sin asignar',
+        'Estado': r.status || 'pending',
+        'Créditos': r.credit_cost,
+      }));
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
+      
+      if (trainerData.length > 0) {
+        const wsTrainers = XLSX.utils.json_to_sheet(trainerData);
+        XLSX.utils.book_append_sheet(wb, wsTrainers, 'Por Entrenador');
+      }
+      
+      if (playerData.length > 0) {
+        const wsPlayers = XLSX.utils.json_to_sheet(playerData);
+        XLSX.utils.book_append_sheet(wb, wsPlayers, 'Por Jugador');
+      }
+      
+      if (sessionsData.length > 0) {
+        const wsSessions = XLSX.utils.json_to_sheet(sessionsData);
+        XLSX.utils.book_append_sheet(wb, wsSessions, 'Detalle Sesiones');
+      }
+
+      // Generate filename
+      const filename = `Asistencia_${format(selectedMonth, 'yyyy-MM')}.xlsx`;
+      
+      // Download
+      XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error('Error exporting:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (reservationsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -171,6 +243,19 @@ const AttendanceReports: React.FC<AttendanceReportsProps> = ({
 
         {/* Month Navigation */}
         <div className="flex items-center gap-4">
+          <NeonButton 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportExcel}
+            disabled={exporting || monthReservations.length === 0}
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-1" />
+            ) : (
+              <Download className="w-4 h-4 mr-1" />
+            )}
+            Excel
+          </NeonButton>
           <NeonButton variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
             <ChevronLeft className="w-4 h-4" />
           </NeonButton>
