@@ -46,6 +46,7 @@ const Navbar: React.FC = () => {
         { href: '/dashboard', label: 'Mi Panel', icon: LayoutDashboard },
         { href: '/players', label: 'Jugadores', icon: Users },
         { href: '/reservations', label: 'Reservas', icon: Calendar },
+        { href: '/my-credits', label: 'Créditos', icon: Shield },
         { href: '/chat', label: 'Chat', icon: MessageSquare },
       );
     }

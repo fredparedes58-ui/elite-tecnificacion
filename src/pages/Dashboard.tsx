@@ -11,6 +11,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import MyPlayerCard from '@/components/dashboard/MyPlayerCard';
 import PlayerOnboardingWizard from '@/components/onboarding/PlayerOnboardingWizard';
 import ReservationForm from '@/components/dashboard/ReservationForm';
+import EditPlayerModal from '@/components/players/EditPlayerModal';
+import DeletePlayerModal from '@/components/players/DeletePlayerModal';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -29,21 +31,29 @@ import {
   MessageSquare,
   Clock,
   AlertTriangle,
-  UserPlus
+  UserPlus,
+  User,
+  Bell,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Player } from '@/hooks/useMyPlayers';
 
 const Dashboard: React.FC = () => {
-  const { user, isApproved, isAdmin, isLoading } = useAuth();
+  const { user, profile, isApproved, isAdmin, isLoading } = useAuth();
   const { credits, loading: creditsLoading } = useCredits();
-  const { players, createPlayer, uploadPlayerPhoto } = useMyPlayers();
+  const { players, createPlayer, updatePlayer, deletePlayer, uploadPlayerPhoto } = useMyPlayers();
   const { reservations, createReservation } = useReservations();
   const { toast } = useToast();
   
   const [playerDialogOpen, setPlayerDialogOpen] = React.useState(false);
   const [reservationDialogOpen, setReservationDialogOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [selectedPlayer, setSelectedPlayer] = React.useState<Player | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -137,6 +147,60 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleEditClick = (player: Player) => {
+    setSelectedPlayer(player);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (player: Player) => {
+    setSelectedPlayer(player);
+    setDeleteModalOpen(true);
+  };
+
+  const handleSavePlayer = async (id: string, data: Partial<Omit<Player, 'stats'>>) => {
+    setSubmitting(true);
+    const result = await updatePlayer(id, data);
+    setSubmitting(false);
+    
+    if (result) {
+      toast({
+        title: '✅ Jugador actualizado',
+        description: 'Los datos del jugador han sido guardados.',
+      });
+      return true;
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudieron guardar los cambios.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedPlayer) return;
+    
+    setDeleting(true);
+    const result = await deletePlayer(selectedPlayer.id);
+    setDeleting(false);
+    
+    if (result) {
+      toast({
+        title: '🗑️ Jugador eliminado',
+        description: `${selectedPlayer.name} ha sido eliminado del plantel.`,
+      });
+      setDeleteModalOpen(false);
+      setSelectedPlayer(null);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el jugador.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'approved':
@@ -166,32 +230,51 @@ const Dashboard: React.FC = () => {
   const hasNoCredits = credits === 0;
   const hasLowCredits = credits > 0 && credits <= 3;
 
+  // Get pending reservations count
+  const pendingReservations = reservations.filter(r => r.status === 'pending').length;
+  const approvedReservations = reservations.filter(r => 
+    r.status === 'approved' && new Date(r.start_time) > new Date()
+  ).length;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-2">
-            Mi Panel
-          </h1>
-          <p className="text-muted-foreground font-rajdhani">
-            Gestiona tus jugadores y reservas
-          </p>
+        {/* Welcome Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+          <div>
+            <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-1">
+              ¡Hola, {profile?.full_name?.split(' ')[0] || 'Deportista'}!
+            </h1>
+            <p className="text-muted-foreground font-rajdhani">
+              Bienvenido a tu panel de gestión Elite 380
+            </p>
+          </div>
+          <Link to="/profile">
+            <NeonButton variant="outline" size="sm">
+              <User className="w-4 h-4 mr-2" />
+              Mi Perfil
+            </NeonButton>
+          </Link>
         </div>
 
         {/* Credits Alert Banner */}
         {hasNoCredits && (
-          <EliteCard className="p-4 border-red-500/50 bg-red-500/10">
+          <EliteCard className="p-4 border-destructive/50 bg-destructive/10">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
+              <div className="p-2 rounded-lg bg-destructive/20">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
               </div>
               <div className="flex-1">
-                <p className="font-orbitron font-bold text-red-400">Sin Créditos Disponibles</p>
+                <p className="font-orbitron font-bold text-destructive">Sin Créditos Disponibles</p>
                 <p className="text-sm text-muted-foreground">
                   No puedes hacer nuevas reservas. Contacta a la academia para recargar.
                 </p>
               </div>
+              <Link to="/chat">
+                <NeonButton variant="outline" size="sm">
+                  Contactar
+                </NeonButton>
+              </Link>
             </div>
           </EliteCard>
         )}
@@ -212,79 +295,103 @@ const Dashboard: React.FC = () => {
           </EliteCard>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-4">
-          {/* Dynamic Credits Card */}
-          <EliteCard className={cn(
-            "p-5 transition-all",
-            hasNoCredits 
-              ? "border-red-500/50 bg-gradient-to-br from-red-500/10 to-red-500/5" 
-              : hasLowCredits
-                ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5"
-                : ""
-          )}>
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center",
-                hasNoCredits
-                  ? "bg-red-500/20 border border-red-500/30"
-                  : hasLowCredits
-                    ? "bg-yellow-500/20 border border-yellow-500/30"
-                    : "bg-gradient-to-br from-neon-cyan/20 to-neon-cyan/5 border border-neon-cyan/30"
-              )}>
-                <Coins className={cn(
-                  "w-6 h-6",
-                  hasNoCredits ? "text-red-400" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
-                )} />
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-rajdhani">Créditos</p>
-                <p className={cn(
-                  "font-orbitron font-bold text-2xl",
-                  hasNoCredits ? "text-red-400" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
+        {/* Quick Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Credits Card */}
+          <Link to="/my-credits" className="contents">
+            <EliteCard className={cn(
+              "p-5 transition-all hover:border-neon-cyan/50 cursor-pointer",
+              hasNoCredits 
+                ? "border-destructive/50 bg-gradient-to-br from-destructive/10 to-destructive/5" 
+                : hasLowCredits
+                  ? "border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5"
+                  : ""
+            )}>
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center",
+                  hasNoCredits
+                    ? "bg-destructive/20 border border-destructive/30"
+                    : hasLowCredits
+                      ? "bg-yellow-500/20 border border-yellow-500/30"
+                      : "bg-gradient-to-br from-neon-cyan/20 to-neon-cyan/5 border border-neon-cyan/30"
                 )}>
-                  {creditsLoading ? '...' : credits}
-                </p>
-                {hasNoCredits && (
-                  <p className="text-xs text-red-400 mt-0.5">Sin créditos</p>
-                )}
+                  <Coins className={cn(
+                    "w-6 h-6",
+                    hasNoCredits ? "text-destructive" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
+                  )} />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-rajdhani">Créditos</p>
+                  <p className={cn(
+                    "font-orbitron font-bold text-2xl",
+                    hasNoCredits ? "text-destructive" : hasLowCredits ? "text-yellow-400" : "text-neon-cyan"
+                  )}>
+                    {creditsLoading ? '...' : credits}
+                  </p>
+                </div>
               </div>
-            </div>
-          </EliteCard>
+            </EliteCard>
+          </Link>
 
-          <EliteCard className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-purple/20 to-neon-purple/5 border border-neon-purple/30 flex items-center justify-center">
-                <Users className="w-6 h-6 text-neon-purple" />
+          {/* Players Card */}
+          <Link to="/players" className="contents">
+            <EliteCard className="p-5 hover:border-neon-purple/50 cursor-pointer transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-purple/20 to-neon-purple/5 border border-neon-purple/30 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-neon-purple" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-rajdhani">Jugadores</p>
+                  <p className="font-orbitron font-bold text-2xl">{players.length}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-rajdhani">Jugadores</p>
-                <p className="font-orbitron font-bold text-2xl">{players.length}</p>
-              </div>
-            </div>
-          </EliteCard>
+            </EliteCard>
+          </Link>
 
-          <EliteCard className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-neon-cyan" />
+          {/* Reservations Card */}
+          <Link to="/reservations" className="contents">
+            <EliteCard className="p-5 hover:border-neon-cyan/50 cursor-pointer transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-neon-cyan" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-rajdhani">Reservas</p>
+                  <p className="font-orbitron font-bold text-2xl">{reservations.length}</p>
+                  {approvedReservations > 0 && (
+                    <p className="text-xs text-green-400">{approvedReservations} próximas</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-rajdhani">Reservas</p>
-                <p className="font-orbitron font-bold text-2xl">{reservations.length}</p>
-              </div>
-            </div>
-          </EliteCard>
+            </EliteCard>
+          </Link>
 
-          <Link to="/chat">
-            <EliteCard className="p-5 h-full hover:border-neon-purple/50 transition-colors">
+          {/* Chat Card */}
+          <Link to="/chat" className="contents">
+            <EliteCard className="p-5 hover:border-neon-purple/50 transition-colors cursor-pointer">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-purple/20 to-neon-purple/5 border border-neon-purple/30 flex items-center justify-center">
                   <MessageSquare className="w-6 h-6 text-neon-purple" />
                 </div>
                 <div>
                   <p className="text-muted-foreground text-sm font-rajdhani">Chat</p>
-                  <p className="font-orbitron font-semibold text-sm">Ir al Chat</p>
+                  <p className="font-orbitron font-semibold text-sm">Hablar con Pedro</p>
+                </div>
+              </div>
+            </EliteCard>
+          </Link>
+
+          {/* Notifications Card */}
+          <Link to="/notifications" className="contents">
+            <EliteCard className="p-5 hover:border-neon-cyan/50 transition-colors cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center">
+                  <Bell className="w-6 h-6 text-neon-cyan" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-rajdhani">Notificaciones</p>
+                  <p className="font-orbitron font-semibold text-sm">Ver todas</p>
                 </div>
               </div>
             </EliteCard>
@@ -295,26 +402,34 @@ const Dashboard: React.FC = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-orbitron font-bold text-xl">Mis Jugadores</h2>
-            <Dialog open={playerDialogOpen} onOpenChange={setPlayerDialogOpen}>
-              <DialogTrigger asChild>
-                <NeonButton variant="cyan" size="sm">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Fichar Jugador
+            <div className="flex items-center gap-2">
+              <Link to="/players">
+                <NeonButton variant="outline" size="sm">
+                  Ver todos
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </NeonButton>
-              </DialogTrigger>
-              <DialogContent className="bg-background border-neon-cyan/30 max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="font-orbitron gradient-text text-xl">
-                    ⚽ Fichaje Pro
-                  </DialogTitle>
-                </DialogHeader>
-                <PlayerOnboardingWizard
-                  onSubmit={handleCreatePlayer}
-                  onCancel={() => setPlayerDialogOpen(false)}
-                  loading={submitting}
-                />
-              </DialogContent>
-            </Dialog>
+              </Link>
+              <Dialog open={playerDialogOpen} onOpenChange={setPlayerDialogOpen}>
+                <DialogTrigger asChild>
+                  <NeonButton variant="cyan" size="sm">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Fichar
+                  </NeonButton>
+                </DialogTrigger>
+                <DialogContent className="bg-background border-neon-cyan/30 max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="font-orbitron gradient-text text-xl">
+                      ⚽ Fichaje Pro
+                    </DialogTitle>
+                  </DialogHeader>
+                  <PlayerOnboardingWizard
+                    onSubmit={handleCreatePlayer}
+                    onCancel={() => setPlayerDialogOpen(false)}
+                    loading={submitting}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {players.length === 0 ? (
@@ -328,14 +443,25 @@ const Dashboard: React.FC = () => {
             </EliteCard>
           ) : (
             <div className="space-y-4">
-              {players.map((player) => (
+              {players.slice(0, 2).map((player) => (
                 <MyPlayerCard
                   key={player.id}
                   player={player}
                   onUploadPhoto={handleUploadPhoto}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
                   uploading={uploading}
                 />
               ))}
+              {players.length > 2 && (
+                <Link to="/players" className="block">
+                  <EliteCard className="p-4 text-center hover:border-neon-cyan/50 transition-colors cursor-pointer">
+                    <p className="text-muted-foreground">
+                      Ver {players.length - 2} jugador{players.length - 2 > 1 ? 'es' : ''} más
+                    </p>
+                  </EliteCard>
+                </Link>
+              )}
             </div>
           )}
         </section>
@@ -343,46 +469,65 @@ const Dashboard: React.FC = () => {
         {/* Reservations Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-orbitron font-bold text-xl">Mis Reservas</h2>
-            <Dialog open={reservationDialogOpen} onOpenChange={setReservationDialogOpen}>
-              <DialogTrigger asChild>
-                <NeonButton 
-                  variant="purple" 
-                  size="sm"
-                  disabled={hasNoCredits}
-                  className={hasNoCredits ? 'opacity-50 cursor-not-allowed' : ''}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Reserva
+            <div className="flex items-center gap-3">
+              <h2 className="font-orbitron font-bold text-xl">Mis Reservas</h2>
+              {pendingReservations > 0 && (
+                <StatusBadge variant="warning">{pendingReservations} pendientes</StatusBadge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/reservations">
+                <NeonButton variant="outline" size="sm">
+                  Ver todas
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </NeonButton>
-              </DialogTrigger>
-              <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="font-orbitron gradient-text">
-                    Nueva Reserva
-                  </DialogTitle>
-                </DialogHeader>
-                <ReservationForm
-                  players={players}
-                  credits={credits}
-                  onSubmit={handleCreateReservation}
-                  onCancel={() => setReservationDialogOpen(false)}
-                  loading={submitting}
-                />
-              </DialogContent>
-            </Dialog>
+              </Link>
+              <Dialog open={reservationDialogOpen} onOpenChange={setReservationDialogOpen}>
+                <DialogTrigger asChild>
+                  <NeonButton 
+                    variant="purple" 
+                    size="sm"
+                    disabled={hasNoCredits}
+                    className={hasNoCredits ? 'opacity-50 cursor-not-allowed' : ''}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nueva
+                  </NeonButton>
+                </DialogTrigger>
+                <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-orbitron gradient-text">
+                      Nueva Reserva
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ReservationForm
+                    players={players}
+                    credits={credits}
+                    onSubmit={handleCreateReservation}
+                    onCancel={() => setReservationDialogOpen(false)}
+                    loading={submitting}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Block message when no credits */}
           {hasNoCredits && (
-            <EliteCard className="p-6 text-center border-red-500/30 bg-red-500/5">
-              <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-              <p className="font-rajdhani font-bold text-red-400 mb-2">
+            <EliteCard className="p-6 text-center border-destructive/30 bg-destructive/5">
+              <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
+              <p className="font-rajdhani font-bold text-destructive mb-2">
                 Acceso al Calendario Bloqueado
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Necesitas créditos para hacer reservas. Contacta a Elite 380 para recargar tu cartera.
               </p>
+              <Link to="/chat">
+                <NeonButton variant="outline" size="sm">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Contactar a Pedro
+                </NeonButton>
+              </Link>
             </EliteCard>
           )}
 
@@ -428,6 +573,30 @@ const Dashboard: React.FC = () => {
           )}
         </section>
       </div>
+
+      {/* Edit Modal */}
+      <EditPlayerModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedPlayer(null);
+        }}
+        player={selectedPlayer}
+        onSave={handleSavePlayer}
+        loading={submitting}
+      />
+
+      {/* Delete Modal */}
+      <DeletePlayerModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedPlayer(null);
+        }}
+        player={selectedPlayer}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+      />
     </Layout>
   );
 };

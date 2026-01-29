@@ -1,6 +1,7 @@
 import React from 'react';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { NeonButton } from '@/components/ui/NeonButton';
 import PhotoUpload from './PhotoUpload';
 import RadarChart from '@/components/players/RadarChart';
 import type { Player } from '@/hooks/useMyPlayers';
@@ -11,16 +12,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Edit, User, Footprints, Building2, Activity } from 'lucide-react';
+import { Calendar, Edit, User, Footprints, Building2, Activity, Trash2 } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 
 interface MyPlayerCardProps {
   player: Player;
   onUploadPhoto: (playerId: string, file: File) => Promise<void>;
+  onEdit?: (player: Player) => void;
+  onDelete?: (player: Player) => void;
   uploading?: boolean;
 }
 
-const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uploading }) => {
+const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ 
+  player, 
+  onUploadPhoto, 
+  onEdit,
+  onDelete,
+  uploading 
+}) => {
   const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false);
 
   const handleUpload = async (file: File) => {
@@ -41,6 +50,16 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
     }
   };
 
+  const getLevelLabel = (level: string) => {
+    switch (level) {
+      case 'elite': return 'Élite';
+      case 'advanced': return 'Avanzado';
+      case 'intermediate': return 'Intermedio';
+      case 'beginner': return 'Principiante';
+      default: return level;
+    }
+  };
+
   // Calculate age from birth date
   const getAge = (birthDate: string | null) => {
     if (!birthDate) return null;
@@ -58,6 +77,7 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
       default: return null;
     }
   };
+
   return (
     <EliteCard className="p-6">
       <div className="flex flex-col md:flex-row gap-6">
@@ -111,7 +131,7 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
             <div className="flex gap-2">
               <StatusBadge variant="info">{player.category}</StatusBadge>
               <StatusBadge variant={getLevelVariant(player.level)}>
-                {player.level}
+                {getLevelLabel(player.level)}
               </StatusBadge>
             </div>
           </div>
@@ -149,6 +169,33 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({ player, onUploadPhoto, uplo
           {player.notes && (
             <div className="p-3 rounded-lg bg-muted/30 border border-neon-cyan/10">
               <p className="text-xs text-muted-foreground italic">{player.notes}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {(onEdit || onDelete) && (
+            <div className="flex gap-2 pt-2">
+              {onEdit && (
+                <NeonButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(player)}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Editar
+                </NeonButton>
+              )}
+              {onDelete && (
+                <NeonButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDelete(player)}
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Eliminar
+                </NeonButton>
+              )}
             </div>
           )}
         </div>
