@@ -7,6 +7,8 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import MyPlayerCard from '@/components/dashboard/MyPlayerCard';
 import PlayerOnboardingWizard from '@/components/onboarding/PlayerOnboardingWizard';
+import EditPlayerModal from '@/components/players/EditPlayerModal';
+import DeletePlayerModal from '@/components/players/DeletePlayerModal';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog,
@@ -15,16 +17,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Users, Plus, UserPlus } from 'lucide-react';
+import { Users, UserPlus } from 'lucide-react';
+import type { Player } from '@/hooks/useMyPlayers';
 
 const Players: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
-  const { players, createPlayer, uploadPlayerPhoto } = useMyPlayers();
+  const { players, createPlayer, updatePlayer, deletePlayer, uploadPlayerPhoto } = useMyPlayers();
   const { toast } = useToast();
   
   const [playerDialogOpen, setPlayerDialogOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [selectedPlayer, setSelectedPlayer] = React.useState<Player | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -100,6 +107,60 @@ const Players: React.FC = () => {
     }
   };
 
+  const handleEditClick = (player: Player) => {
+    setSelectedPlayer(player);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (player: Player) => {
+    setSelectedPlayer(player);
+    setDeleteModalOpen(true);
+  };
+
+  const handleSavePlayer = async (id: string, data: Partial<Omit<Player, 'stats'>>) => {
+    setSubmitting(true);
+    const result = await updatePlayer(id, data);
+    setSubmitting(false);
+    
+    if (result) {
+      toast({
+        title: '✅ Jugador actualizado',
+        description: 'Los datos del jugador han sido guardados.',
+      });
+      return true;
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudieron guardar los cambios.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedPlayer) return;
+    
+    setDeleting(true);
+    const result = await deletePlayer(selectedPlayer.id);
+    setDeleting(false);
+    
+    if (result) {
+      toast({
+        title: '🗑️ Jugador eliminado',
+        description: `${selectedPlayer.name} ha sido eliminado del plantel.`,
+      });
+      setDeleteModalOpen(false);
+      setSelectedPlayer(null);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el jugador.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -157,12 +218,38 @@ const Players: React.FC = () => {
                 key={player.id}
                 player={player}
                 onUploadPhoto={handleUploadPhoto}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
                 uploading={uploading}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <EditPlayerModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedPlayer(null);
+        }}
+        player={selectedPlayer}
+        onSave={handleSavePlayer}
+        loading={submitting}
+      />
+
+      {/* Delete Modal */}
+      <DeletePlayerModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedPlayer(null);
+        }}
+        player={selectedPlayer}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+      />
     </Layout>
   );
 };
