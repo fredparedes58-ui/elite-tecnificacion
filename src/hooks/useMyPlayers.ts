@@ -108,9 +108,15 @@ export const useMyPlayers = () => {
     try {
       const { stats, ...otherUpdates } = updates;
       const updateData: Record<string, unknown> = {
-        ...otherUpdates,
         updated_at: new Date().toISOString(),
       };
+      
+      // Only include non-empty values and convert empty strings to null
+      for (const [key, value] of Object.entries(otherUpdates)) {
+        if (value !== undefined) {
+          updateData[key] = value === '' ? null : value;
+        }
+      }
       
       if (stats) {
         updateData.stats = stats;
