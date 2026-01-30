@@ -18,6 +18,7 @@ import AdminReservations from "./pages/AdminReservations";
 import AdminChat from "./pages/AdminChat";
 import Notifications from "./pages/Notifications";
 import AdminNotifications from "./pages/AdminNotifications";
+import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/admin/reservations" element={<AdminReservations />} />
             <Route path="/admin/chat" element={<AdminChat />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
