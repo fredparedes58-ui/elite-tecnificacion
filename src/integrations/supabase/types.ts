@@ -352,6 +352,10 @@ export type Database = {
           end_time: string
           id: string
           player_id: string | null
+          proposal_message: string | null
+          proposed_by: string | null
+          proposed_end_time: string | null
+          proposed_start_time: string | null
           start_time: string
           status: Database["public"]["Enums"]["reservation_status"] | null
           title: string
@@ -366,6 +370,10 @@ export type Database = {
           end_time: string
           id?: string
           player_id?: string | null
+          proposal_message?: string | null
+          proposed_by?: string | null
+          proposed_end_time?: string | null
+          proposed_start_time?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title: string
@@ -380,6 +388,10 @@ export type Database = {
           end_time?: string
           id?: string
           player_id?: string | null
+          proposal_message?: string | null
+          proposed_by?: string | null
+          proposed_end_time?: string | null
+          proposed_start_time?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title?: string
@@ -685,6 +697,8 @@ export type Database = {
         | "rejected"
         | "completed"
         | "no_show"
+        | "counter_proposal"
+        | "parent_review"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -821,6 +835,8 @@ export const Constants = {
         "rejected",
         "completed",
         "no_show",
+        "counter_proposal",
+        "parent_review",
       ],
     },
   },

@@ -154,6 +154,7 @@ const AdminReservations: React.FC = () => {
               reservations={reservations}
               loading={reservationsLoading}
               updateReservationStatus={updateReservationStatus}
+              refetch={refetchReservations}
             />
           </TabsContent>
 

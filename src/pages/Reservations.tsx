@@ -8,10 +8,11 @@ import Layout from '@/components/layout/Layout';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import ReservationForm from '@/components/dashboard/ReservationForm';
+import NewReservationWithCalendar from '@/components/reservations/NewReservationWithCalendar';
+import ReservationNegotiationCard from '@/components/reservations/ReservationNegotiationCard';
 import CancelReservationModal from '@/components/reservations/CancelReservationModal';
 import { useToast } from '@/hooks/use-toast';
-import { format, differenceInHours } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   Dialog,
@@ -20,13 +21,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Clock, Plus, Coins, User, Users, X } from 'lucide-react';
+import { Calendar, Clock, Plus, Coins, User, Users, X, MessageSquare } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Reservations: React.FC = () => {
   const { user, isApproved, isAdmin, isLoading } = useAuth();
   const { credits } = useCredits();
   const { players } = useMyPlayers();
-  const { reservations, createReservation, cancelReservation } = useReservations();
+  const { reservations, createReservation, cancelReservation, refetch } = useReservations();
   const { toast } = useToast();
   
   const [reservationDialogOpen, setReservationDialogOpen] = React.useState(false);
@@ -51,14 +53,21 @@ const Reservations: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  const handleCreateReservation = async (data: any) => {
+  const handleCreateReservation = async (data: {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    player_id?: string;
+    trainer_id?: string;
+  }) => {
     setSubmitting(true);
     const result = await createReservation(data);
     setSubmitting(false);
     if (result) {
       toast({
-        title: 'Reserva solicitada',
-        description: 'Tu reserva está pendiente de aprobación.',
+        title: '📩 Solicitud enviada',
+        description: 'Pedro recibirá tu solicitud y te responderá pronto.',
       });
       setReservationDialogOpen(false);
     } else {
@@ -68,6 +77,102 @@ const Reservations: React.FC = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleAcceptProposal = async (reservationId: string) => {
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({ 
+          status: 'approved',
+          proposal_message: null,
+          proposed_start_time: null,
+          proposed_end_time: null,
+          proposed_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reservationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Reserva confirmada',
+        description: 'Tu sesión ha sido programada.',
+      });
+      refetch();
+    } catch (err) {
+      console.error('Error accepting proposal:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo aceptar la propuesta.',
+        variant: 'destructive',
+      });
+    }
+    setSubmitting(false);
+  };
+
+  const handleRejectProposal = async (reservationId: string) => {
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({ 
+          status: 'rejected',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reservationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '❌ Propuesta rechazada',
+        description: 'La reserva ha sido cancelada.',
+      });
+      refetch();
+    } catch (err) {
+      console.error('Error rejecting proposal:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo rechazar la propuesta.',
+        variant: 'destructive',
+      });
+    }
+    setSubmitting(false);
+  };
+
+  const handleCounterPropose = async (reservationId: string, message: string) => {
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({ 
+          status: 'pending',
+          proposal_message: message,
+          proposed_by: user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reservationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '📨 Mensaje enviado',
+        description: 'Pedro recibirá tu respuesta.',
+      });
+      refetch();
+    } catch (err) {
+      console.error('Error sending counter proposal:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo enviar el mensaje.',
+        variant: 'destructive',
+      });
+    }
+    setSubmitting(false);
   };
 
   const handleCancelClick = (reservation: typeof reservations[0]) => {
@@ -100,80 +205,33 @@ const Reservations: React.FC = () => {
     }
   };
 
-  const canCancelReservation = (reservation: typeof reservations[0]) => {
-    // Can only cancel pending or approved reservations
-    if (!['pending', 'approved'].includes(reservation.status || '')) return false;
-    // Can't cancel past reservations
-    if (new Date(reservation.start_time) <= new Date()) return false;
-    return true;
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'rejected':
-      case 'cancelled':
-        return 'error';
-      case 'completed':
-        return 'info';
-      case 'no_show':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return '✅ Aprobada';
-      case 'pending':
-        return '⏳ Pendiente';
-      case 'rejected':
-        return '❌ Rechazada';
-      case 'cancelled':
-        return '🚫 Cancelada';
-      case 'completed':
-        return '✔️ Completada';
-      case 'no_show':
-        return '⚠️ No Asistió';
-      default:
-        return status;
-    }
-  };
-
-  // Get player name by ID
   const getPlayerName = (playerId: string | null) => {
     if (!playerId) return null;
     const player = players.find(p => p.id === playerId);
     return player?.name || null;
   };
 
-  // Sort reservations: upcoming first, then by date
-  const sortedReservations = [...reservations].sort((a, b) => {
-    const dateA = new Date(a.start_time).getTime();
-    const dateB = new Date(b.start_time).getTime();
-    const now = Date.now();
-    
-    // Upcoming reservations first
-    const aIsUpcoming = dateA > now && (a.status === 'approved' || a.status === 'pending');
-    const bIsUpcoming = dateB > now && (b.status === 'approved' || b.status === 'pending');
-    
-    if (aIsUpcoming && !bIsUpcoming) return -1;
-    if (!aIsUpcoming && bIsUpcoming) return 1;
-    
-    return dateB - dateA;
-  });
-
-  // Get next upcoming session
-  const nextSession = sortedReservations.find(r => 
-    new Date(r.start_time) > new Date() && r.status === 'approved'
+  // Separate reservations by type
+  const pendingNegotiations = reservations.filter(r => 
+    r.status === 'pending' || r.status === 'parent_review' || r.status === 'counter_proposal'
+  );
+  
+  const confirmedReservations = reservations.filter(r => 
+    r.status === 'approved' && new Date(r.start_time) > new Date()
   );
 
-  // Calculate days until next session
+  const pastReservations = reservations.filter(r => 
+    r.status === 'approved' && new Date(r.start_time) <= new Date() ||
+    r.status === 'completed' || r.status === 'rejected' || r.status === 'no_show'
+  );
+
+  // Get next upcoming session
+  const nextSession = confirmedReservations.length > 0 
+    ? confirmedReservations.sort((a, b) => 
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      )[0]
+    : null;
+
   const getDaysUntil = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -194,7 +252,7 @@ const Reservations: React.FC = () => {
               Mis Reservas
             </h1>
             <p className="text-muted-foreground font-rajdhani">
-              Gestiona tus entrenamientos y sesiones
+              Gestiona tus entrenamientos con Pedro
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -210,13 +268,13 @@ const Reservations: React.FC = () => {
                   Nueva Reserva
                 </NeonButton>
               </DialogTrigger>
-              <DialogContent className="bg-background border-neon-cyan/30 max-w-md">
+              <DialogContent className="bg-background border-neon-cyan/30 max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="font-orbitron gradient-text">
                     Nueva Reserva
                   </DialogTitle>
                 </DialogHeader>
-                <ReservationForm
+                <NewReservationWithCalendar
                   players={players}
                   credits={credits}
                   onSubmit={handleCreateReservation}
@@ -258,48 +316,51 @@ const Reservations: React.FC = () => {
           </EliteCard>
         )}
 
-        {/* Reservations List */}
-        {sortedReservations.length === 0 ? (
-          <EliteCard className="p-12 text-center">
-            <Calendar className="w-16 h-16 text-neon-purple/30 mx-auto mb-4" />
-            <h3 className="font-orbitron font-semibold text-lg mb-2">
-              No tienes reservas
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Crea una reserva para agendar entrenamientos y sesiones
-            </p>
-            <NeonButton variant="gradient" onClick={() => setReservationDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Crear tu primera reserva
-            </NeonButton>
-          </EliteCard>
-        ) : (
+        {/* Pending Negotiations */}
+        {pendingNegotiations.length > 0 && (
           <div className="space-y-4">
-            <h3 className="font-orbitron font-semibold text-lg">Historial de Reservas</h3>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-neon-cyan" />
+              <h3 className="font-orbitron font-semibold text-lg">En Negociación</h3>
+              <StatusBadge variant="warning">{pendingNegotiations.length}</StatusBadge>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {pendingNegotiations.map((reservation) => (
+                <ReservationNegotiationCard
+                  key={reservation.id}
+                  reservation={reservation as any}
+                  currentUserId={user.id}
+                  isAdmin={false}
+                  playerName={getPlayerName(reservation.player_id)}
+                  onAccept={() => handleAcceptProposal(reservation.id)}
+                  onReject={() => handleRejectProposal(reservation.id)}
+                  onCounterPropose={(msg) => handleCounterPropose(reservation.id, msg)}
+                  loading={submitting}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Confirmed Reservations */}
+        {confirmedReservations.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-orbitron font-semibold text-lg">Sesiones Confirmadas</h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sortedReservations.map((reservation) => (
+              {confirmedReservations.map((reservation) => (
                 <EliteCard key={reservation.id} className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-orbitron font-semibold truncate pr-2">
                       {reservation.title}
                     </h3>
-                    <StatusBadge variant={getStatusVariant(reservation.status || 'pending')}>
-                      {getStatusLabel(reservation.status || 'pending')}
-                    </StatusBadge>
+                    <StatusBadge variant="success">✅ Confirmada</StatusBadge>
                   </div>
 
-                  {/* Player Info */}
                   {getPlayerName(reservation.player_id) && (
                     <div className="flex items-center gap-2 text-sm text-neon-purple mb-2">
                       <Users className="w-4 h-4" />
                       <span className="font-medium">{getPlayerName(reservation.player_id)}</span>
                     </div>
-                  )}
-
-                  {reservation.description && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {reservation.description}
-                    </p>
                   )}
 
                   <div className="space-y-2 text-sm">
@@ -316,24 +377,61 @@ const Reservations: React.FC = () => {
                         {format(new Date(reservation.end_time), 'HH:mm')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Coins className="w-4 h-4 text-neon-cyan" />
-                      <span>{reservation.credit_cost} crédito{reservation.credit_cost !== 1 ? 's' : ''}</span>
-                    </div>
                   </div>
 
-                  {/* Cancel Button */}
-                  {canCancelReservation(reservation) && (
-                    <NeonButton
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCancelClick(reservation)}
-                      className="w-full mt-4 border-destructive/50 text-destructive hover:bg-destructive/10"
+                  <NeonButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCancelClick(reservation)}
+                    className="w-full mt-4 border-destructive/50 text-destructive hover:bg-destructive/10"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancelar
+                  </NeonButton>
+                </EliteCard>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {reservations.length === 0 && (
+          <EliteCard className="p-12 text-center">
+            <Calendar className="w-16 h-16 text-neon-purple/30 mx-auto mb-4" />
+            <h3 className="font-orbitron font-semibold text-lg mb-2">
+              No tienes reservas
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Selecciona un horario disponible para solicitar una sesión con Pedro
+            </p>
+            <NeonButton variant="gradient" onClick={() => setReservationDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Crear tu primera reserva
+            </NeonButton>
+          </EliteCard>
+        )}
+
+        {/* Past Reservations */}
+        {pastReservations.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-orbitron font-semibold text-lg text-muted-foreground">Historial</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
+              {pastReservations.slice(0, 6).map((reservation) => (
+                <EliteCard key={reservation.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-semibold truncate pr-2 text-sm">{reservation.title}</h4>
+                    <StatusBadge 
+                      variant={reservation.status === 'completed' ? 'success' : 
+                               reservation.status === 'rejected' ? 'error' : 'warning'}
                     >
-                      <X className="w-4 h-4 mr-2" />
-                      Cancelar Reserva
-                    </NeonButton>
-                  )}
+                      {reservation.status === 'completed' ? '✔️' :
+                       reservation.status === 'rejected' ? '❌' : 
+                       reservation.status === 'no_show' ? '⚠️' : reservation.status}
+                    </StatusBadge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(reservation.start_time), "dd MMM yyyy - HH:mm", { locale: es })}
+                  </p>
                 </EliteCard>
               ))}
             </div>
