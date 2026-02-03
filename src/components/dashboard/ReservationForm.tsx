@@ -67,8 +67,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       date: '',
       start_time: '',
       end_time: '',
-      player_id: '',
-      trainer_id: '',
+      player_id: '_none',
+      trainer_id: '_none',
     },
   });
 
