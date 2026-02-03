@@ -643,11 +643,14 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
         status?: ReservationStatus;
       } = {};
 
-      if (editingPlayer !== (selectedReservation.player_id || '')) {
-        updates.player_id = editingPlayer || null;
+      const normalizedEditingPlayer = editingPlayer === '_none' ? '' : editingPlayer;
+      const normalizedEditingTrainer = editingTrainer === '_none' ? '' : editingTrainer;
+      
+      if (normalizedEditingPlayer !== (selectedReservation.player_id || '')) {
+        updates.player_id = normalizedEditingPlayer || null;
       }
-      if (editingTrainer !== (selectedReservation.trainer_id || '')) {
-        updates.trainer_id = editingTrainer || null;
+      if (normalizedEditingTrainer !== (selectedReservation.trainer_id || '')) {
+        updates.trainer_id = normalizedEditingTrainer || null;
       }
       if (editingStatus !== (selectedReservation.status || 'pending')) {
         updates.status = editingStatus as ReservationStatus;
@@ -1066,7 +1069,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                         <SelectValue placeholder="Seleccionar jugador..." />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        <SelectItem value="">Sin jugador asignado</SelectItem>
+                        <SelectItem value="_none">Sin jugador asignado</SelectItem>
                         {playersWithFullInfo.map(player => (
                           <SelectItem key={player.id} value={player.id}>
                             <div className="flex items-center justify-between w-full gap-2">
@@ -1079,7 +1082,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                    {editingPlayer && (
+                    {editingPlayer && editingPlayer !== '_none' && (
                       <NeonButton 
                         variant="outline" 
                         size="sm"
@@ -1104,7 +1107,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                       <SelectValue placeholder="Seleccionar entrenador..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin entrenador asignado</SelectItem>
+                      <SelectItem value="_none">Sin entrenador asignado</SelectItem>
                       {trainers.map(trainer => (
                         <SelectItem key={trainer.id} value={trainer.id}>
                           {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
@@ -1157,7 +1160,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                 </div>
 
                 {/* Warning for 0 credit player */}
-                {editingPlayer && playersWithFullInfo.find(p => p.id === editingPlayer)?.credits === 0 && (
+                {editingPlayer && editingPlayer !== '_none' && playersWithFullInfo.find(p => p.id === editingPlayer)?.credits === 0 && (
                   <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-destructive" />
                     <p className="text-xs text-destructive">Este jugador no tiene créditos disponibles</p>
