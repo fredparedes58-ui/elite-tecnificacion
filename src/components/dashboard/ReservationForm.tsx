@@ -81,8 +81,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
       description: data.description,
       start_time: startDateTime,
       end_time: endDateTime,
-      player_id: data.player_id || undefined,
-      trainer_id: data.trainer_id || undefined,
+      player_id: data.player_id === '_none' ? undefined : data.player_id || undefined,
+      trainer_id: data.trainer_id === '_none' ? undefined : data.trainer_id || undefined,
     });
 
     form.reset();
@@ -128,7 +128,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Sin jugador específico</SelectItem>
+                  <SelectItem value="_none">Sin jugador específico</SelectItem>
                   {players.map((player) => (
                     <SelectItem key={player.id} value={player.id}>
                       {player.name} - {player.category}
@@ -154,7 +154,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Sin preferencia</SelectItem>
+                  <SelectItem value="_none">Sin preferencia</SelectItem>
                   {trainers.map((trainer) => (
                     <SelectItem key={trainer.id} value={trainer.id}>
                       {trainer.name} {trainer.specialty ? `- ${trainer.specialty}` : ''}
