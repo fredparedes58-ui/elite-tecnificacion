@@ -67,8 +67,8 @@ const NewReservationWithCalendar: React.FC<NewReservationWithCalendarProps> = ({
     defaultValues: {
       title: '',
       description: '',
-      player_id: '',
-      trainer_id: '',
+      player_id: '_none',
+      trainer_id: '_none',
     },
   });
 
