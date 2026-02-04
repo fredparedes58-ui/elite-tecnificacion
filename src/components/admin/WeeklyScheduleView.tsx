@@ -23,7 +23,8 @@ import {
   MapPin,
   AlertTriangle,
   CalendarPlus,
-  History
+  History,
+  CheckCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -48,6 +49,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { MoveConfirmationModal } from './MoveConfirmationModal';
 import { SessionHistoryPanel } from './SessionHistoryPanel';
+import CompleteSessionModal from './CompleteSessionModal';
 import type { Database } from '@/integrations/supabase/types';
 
 type ReservationStatus = Database['public']['Enums']['reservation_status'];
@@ -297,6 +299,23 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     playerName: string;
     trainerName?: string;
     conflictWarning?: string;
+  } | null>(null);
+
+  // Complete session modal state
+  const [completeSessionModalOpen, setCompleteSessionModalOpen] = useState(false);
+  const [reservationToComplete, setReservationToComplete] = useState<{
+    id: string;
+    title: string;
+    player_id: string | null;
+    player_name?: string;
+    start_time: string;
+    current_stats?: {
+      speed: number;
+      technique: number;
+      physical: number;
+      mental: number;
+      tactical: number;
+    };
   } | null>(null);
 
   // Fetch players with full info including credits and parent name
@@ -730,6 +749,30 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleOpenCompleteSession = () => {
+    if (!selectedReservation) return;
+    
+    const player = playersWithFullInfo.find(p => p.id === selectedReservation.player_id);
+    const playerFromList = players.find(p => p.id === selectedReservation.player_id);
+    
+    setReservationToComplete({
+      id: selectedReservation.id,
+      title: selectedReservation.title,
+      player_id: selectedReservation.player_id || null,
+      player_name: selectedReservation.player?.name || player?.name,
+      start_time: selectedReservation.start_time,
+      current_stats: playerFromList ? {
+        speed: 50,
+        technique: 50,
+        physical: 50,
+        mental: 50,
+        tactical: 50,
+      } : undefined,
+    });
+    setCompleteSessionModalOpen(true);
+    setDetailModalOpen(false);
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -1168,33 +1211,47 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <NeonButton 
-                    variant="cyan" 
-                    className="flex-1"
-                    onClick={handleUpdateReservation}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Guardar Cambios
-                      </>
-                    )}
-                  </NeonButton>
-                  
-                  {deleteReservation && (
-                    <NeonButton 
-                      variant="outline"
-                      onClick={handleDeleteSession}
-                      disabled={isUpdating}
-                      className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                <div className="flex flex-col gap-3 pt-2">
+                  {/* Complete Session Button - only for approved sessions */}
+                  {selectedReservation.status === 'approved' && (
+                    <NeonButton
+                      variant="gradient"
+                      className="w-full"
+                      onClick={handleOpenCompleteSession}
                     >
-                      <X className="w-4 h-4" />
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Finalizar Sesión
                     </NeonButton>
                   )}
+
+                  <div className="flex gap-3">
+                    <NeonButton 
+                      variant="cyan" 
+                      className="flex-1"
+                      onClick={handleUpdateReservation}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Guardar Cambios
+                        </>
+                      )}
+                    </NeonButton>
+                    
+                    {deleteReservation && (
+                      <NeonButton 
+                        variant="outline"
+                        onClick={handleDeleteSession}
+                        disabled={isUpdating}
+                        className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="w-4 h-4" />
+                      </NeonButton>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
               
@@ -1224,6 +1281,17 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
           trainerName: pendingMove.trainerName,
           conflictWarning: pendingMove.conflictWarning,
         } : null}
+      />
+
+      {/* Complete Session Modal */}
+      <CompleteSessionModal
+        open={completeSessionModalOpen}
+        onOpenChange={setCompleteSessionModalOpen}
+        reservation={reservationToComplete}
+        onComplete={() => {
+          setReservationToComplete(null);
+          refetch();
+        }}
       />
     </DndContext>
   );

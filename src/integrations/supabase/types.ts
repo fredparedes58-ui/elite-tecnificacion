@@ -245,6 +245,54 @@ export type Database = {
           },
         ]
       }
+      player_stats_history: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          player_id: string
+          recorded_at: string
+          recorded_by: string
+          reservation_id: string | null
+          stats: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          player_id: string
+          recorded_at?: string
+          recorded_by: string
+          reservation_id?: string | null
+          stats?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          player_id?: string
+          recorded_at?: string
+          recorded_by?: string
+          reservation_id?: string | null
+          stats?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_stats_history_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_stats_history_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           birth_date: string | null
@@ -359,6 +407,7 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["reservation_status"] | null
           title: string
+          trainer_comments: string | null
           trainer_id: string | null
           updated_at: string | null
           user_id: string
@@ -377,6 +426,7 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title: string
+          trainer_comments?: string | null
           trainer_id?: string | null
           updated_at?: string | null
           user_id: string
@@ -395,6 +445,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["reservation_status"] | null
           title?: string
+          trainer_comments?: string | null
           trainer_id?: string | null
           updated_at?: string | null
           user_id?: string
