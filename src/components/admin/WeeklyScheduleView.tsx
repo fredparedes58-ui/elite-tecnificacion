@@ -212,6 +212,8 @@ const DraggableReservation: React.FC<{
     no_show: 'bg-orange-500/20 border-orange-500/30',
   };
 
+  const trainerColor = reservation.trainer?.color || null;
+
   return (
     <div
       ref={setNodeRef}
@@ -219,6 +221,11 @@ const DraggableReservation: React.FC<{
       className={`w-full p-1.5 rounded text-left transition-all cursor-grab active:cursor-grabbing text-xs border ${
         isDragging ? 'opacity-50' : ''
       } ${statusColors[reservation.status || 'pending']}`}
+      style={trainerColor ? { 
+        borderLeftWidth: '3px', 
+        borderLeftColor: trainerColor,
+        backgroundColor: `${trainerColor}15`,
+      } : undefined}
       {...listeners}
       {...attributes}
     >
@@ -229,8 +236,15 @@ const DraggableReservation: React.FC<{
         <div className="font-rajdhani font-medium truncate">
           {reservation.player?.name || reservation.title}
         </div>
-        <div className="text-muted-foreground truncate">
+        <div className="text-muted-foreground truncate flex items-center gap-1">
           {format(parseISO(reservation.start_time), 'HH:mm')}
+          {reservation.trainer && (
+            <span 
+              className="inline-block w-2 h-2 rounded-full ml-auto shrink-0"
+              style={{ backgroundColor: trainerColor || '#888' }}
+              title={reservation.trainer.name}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -871,7 +885,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
         {/* Main Schedule Grid */}
         <div className="flex-1 min-w-0">
           {/* Week Navigation */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <NeonButton variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
               <ChevronLeft className="w-4 h-4" />
             </NeonButton>
@@ -882,6 +896,22 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
               <ChevronRight className="w-4 h-4" />
             </NeonButton>
           </div>
+
+          {/* Trainer Legend */}
+          {trainers.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 mb-4 px-1">
+              <span className="text-xs text-muted-foreground">Entrenadores:</span>
+              {trainers.map(trainer => (
+                <div key={trainer.id} className="flex items-center gap-1.5">
+                  <span 
+                    className="w-3 h-3 rounded-full border border-white/20"
+                    style={{ backgroundColor: trainer.color || '#06b6d4' }}
+                  />
+                  <span className="text-xs text-muted-foreground">{trainer.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <EliteCard className="overflow-x-auto">
             <div className="min-w-[800px]">

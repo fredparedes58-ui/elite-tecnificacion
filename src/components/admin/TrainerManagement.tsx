@@ -40,7 +40,13 @@ interface TrainerFormData {
   phone: string;
   specialty: string;
   bio: string;
+  color: string;
 }
+
+const TRAINER_COLOR_OPTIONS = [
+  '#06b6d4', '#a855f7', '#f59e0b', '#10b981', '#ef4444', 
+  '#3b82f6', '#ec4899', '#f97316', '#14b8a6', '#8b5cf6',
+];
 
 const emptyForm: TrainerFormData = {
   name: '',
@@ -48,6 +54,7 @@ const emptyForm: TrainerFormData = {
   phone: '',
   specialty: '',
   bio: '',
+  color: '#06b6d4',
 };
 
 const TrainerManagement: React.FC = () => {
@@ -74,6 +81,7 @@ const TrainerManagement: React.FC = () => {
       phone: trainer.phone || '',
       specialty: trainer.specialty || '',
       bio: trainer.bio || '',
+      color: trainer.color || '#06b6d4',
     });
     setIsModalOpen(true);
   };
@@ -106,6 +114,7 @@ const TrainerManagement: React.FC = () => {
           phone: formData.phone || null,
           specialty: formData.specialty || null,
           bio: formData.bio || null,
+          color: formData.color || '#06b6d4',
         });
         
         if (success) {
@@ -123,6 +132,7 @@ const TrainerManagement: React.FC = () => {
           phone: formData.phone || null,
           specialty: formData.specialty || null,
           bio: formData.bio || null,
+          color: formData.color || '#06b6d4',
           photo_url: null,
           is_active: true,
         });
@@ -215,7 +225,7 @@ const TrainerManagement: React.FC = () => {
             <EliteCard key={trainer.id} className="p-5">
               <div className="flex items-start gap-4">
                 {/* Avatar */}
-                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center shrink-0 relative overflow-hidden">
                   {trainer.photo_url ? (
                     <img 
                       src={trainer.photo_url} 
@@ -225,6 +235,11 @@ const TrainerManagement: React.FC = () => {
                   ) : (
                     <User className="w-7 h-7 text-neon-cyan" />
                   )}
+                  {/* Color indicator */}
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 h-1.5"
+                    style={{ backgroundColor: trainer.color || '#06b6d4' }}
+                  />
                 </div>
 
                 {/* Info */}
@@ -347,6 +362,25 @@ const TrainerManagement: React.FC = () => {
                 className="mt-1"
                 rows={3}
               />
+            </div>
+
+            <div>
+              <Label>Color de identificación</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {TRAINER_COLOR_OPTIONS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, color })}
+                    className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                      formData.color === color 
+                        ? 'border-white scale-110 shadow-lg' 
+                        : 'border-transparent hover:border-white/30'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
