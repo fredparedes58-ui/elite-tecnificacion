@@ -10,6 +10,7 @@ export interface Trainer {
   photo_url: string | null;
   specialty: string | null;
   bio: string | null;
+  color: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -22,6 +23,7 @@ export interface TrainerPublic {
   photo_url: string | null;
   specialty: string | null;
   bio: string | null;
+  color: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

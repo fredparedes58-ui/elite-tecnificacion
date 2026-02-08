@@ -3,9 +3,11 @@ import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreditPackages } from '@/hooks/useCreditPackages';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   CreditCard, 
   Plus, 
@@ -14,10 +16,19 @@ import {
   History,
   Loader2,
   Edit3,
-  Save
+  Save,
+  Receipt,
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CreditWalletManagerProps {
   userId: string;
@@ -51,12 +62,18 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
   onViewHistory,
 }) => {
   const { activePackages, loading: packagesLoading } = useCreditPackages();
+  const { user } = useAuth();
   const [customAmount, setCustomAmount] = useState<string>('');
   const [removeAmount, setRemoveAmount] = useState<string>('');
   const [directBalance, setDirectBalance] = useState<string>(currentBalance.toString());
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('add');
   const { toast } = useToast();
+
+  // Payment fields
+  const [paymentMethod, setPaymentMethod] = useState<string>('efectivo');
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [paymentNotes, setPaymentNotes] = useState<string>('');
 
   // Use active packages or fallback
   const bonusOptions = activePackages.length > 0 ? activePackages : FALLBACK_BONUS_OPTIONS;
@@ -66,22 +83,90 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
     setDirectBalance(currentBalance.toString());
   }, [currentBalance]);
 
-  const addCredits = async (amount: number, description: string, packageId?: string) => {
+  // Send receipt email
+  const sendReceipt = async (params: {
+    credits_added: number;
+    new_balance: number;
+    payment_method?: string;
+    cash_amount?: number;
+    package_name?: string;
+    description?: string;
+  }) => {
+    try {
+      // Get parent email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', userId)
+        .single();
+
+      if (!profile?.email) return;
+
+      // Get player names for this parent
+      const { data: playersList } = await supabase
+        .from('players')
+        .select('name')
+        .eq('parent_id', userId)
+        .limit(5);
+
+      const playerNames = playersList?.map(p => p.name).join(', ') || userName;
+
+      await supabase.functions.invoke('send-credit-receipt', {
+        body: {
+          parent_email: profile.email,
+          parent_name: profile.full_name || userName,
+          player_name: playerNames,
+          credits_added: params.credits_added,
+          new_balance: params.new_balance,
+          payment_method: params.payment_method,
+          cash_amount: params.cash_amount,
+          package_name: params.package_name,
+          description: params.description,
+        },
+      });
+    } catch (err) {
+      console.error('Error sending receipt:', err);
+      // Don't block the flow if receipt fails
+    }
+  };
+
+  // Record cash payment
+  const recordCashPayment = async (transactionId: string) => {
+    const amount = parseFloat(cashAmount);
+    if (!cashAmount || isNaN(amount) || amount <= 0) return;
+
+    try {
+      await supabase.from('cash_payments').insert({
+        user_id: userId,
+        transaction_id: transactionId,
+        cash_amount: amount,
+        payment_method: paymentMethod,
+        notes: paymentNotes || null,
+        received_by: user?.id || null,
+      });
+    } catch (err) {
+      console.error('Error recording cash payment:', err);
+    }
+  };
+
+  const addCredits = async (amount: number, description: string, packageId?: string, packageName?: string) => {
     if (amount <= 0) return;
     
     setLoading(true);
     try {
+      const newBalance = currentBalance + amount;
+
       const { error: updateError } = await supabase
         .from('user_credits')
         .update({ 
-          balance: currentBalance + amount,
+          balance: newBalance,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId);
 
       if (updateError) throw updateError;
 
-      const { error: logError } = await supabase
+      const { data: txData, error: logError } = await supabase
         .from('credit_transactions')
         .insert({
           user_id: userId,
@@ -89,17 +174,37 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
           transaction_type: 'credit',
           description: description,
           package_id: packageId || null,
-        });
+        })
+        .select('id')
+        .single();
 
       if (logError) throw logError;
 
+      // Record cash payment if amount provided
+      if (txData?.id) {
+        await recordCashPayment(txData.id);
+      }
+
+      // Send receipt email
+      const cashAmountNum = parseFloat(cashAmount);
+      await sendReceipt({
+        credits_added: amount,
+        new_balance: newBalance,
+        payment_method: paymentMethod,
+        cash_amount: !isNaN(cashAmountNum) && cashAmountNum > 0 ? cashAmountNum : undefined,
+        package_name: packageName,
+        description,
+      });
+
       toast({
         title: '✅ Créditos añadidos',
-        description: `+${amount} créditos para ${userName}`,
+        description: `+${amount} créditos para ${userName}. Recibo enviado.`,
       });
 
       onBalanceUpdated();
       setCustomAmount('');
+      setCashAmount('');
+      setPaymentNotes('');
     } catch (error) {
       console.error('Error adding credits:', error);
       toast({
@@ -228,7 +333,7 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
 
   const handleBonusClick = (pkg: typeof bonusOptions[0]) => {
     const packageId = pkg.id.startsWith('fallback') ? undefined : pkg.id;
-    addCredits(pkg.credits, `${pkg.name} +${pkg.credits} sesiones`, packageId);
+    addCredits(pkg.credits, `${pkg.name} +${pkg.credits} sesiones`, packageId, pkg.name);
   };
 
   const handleCustomAdd = () => {
@@ -361,6 +466,60 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
                   </>
                 )}
               </NeonButton>
+            </div>
+          </div>
+
+          {/* Payment Info Section */}
+          <div className="p-3 rounded-lg bg-muted/20 border border-border space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Banknote className="w-4 h-4 text-green-400" />
+              <Label className="text-xs text-muted-foreground">Registro de Pago (opcional)</Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Método de pago</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="bg-background border-border mt-1 h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="efectivo">💵 Efectivo</SelectItem>
+                    <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
+                    <SelectItem value="bizum">📱 Bizum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Monto recibido (€)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={cashAmount}
+                  onChange={(e) => setCashAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-background border-border mt-1 h-9 text-sm"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[11px] text-muted-foreground">Notas (opcional)</Label>
+              <Textarea
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+                placeholder="Notas adicionales del pago..."
+                className="bg-background border-border mt-1 text-sm min-h-[40px]"
+                rows={2}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Receipt className="w-3 h-3" />
+              Se enviará un recibo por email al padre automáticamente
             </div>
           </div>
         </TabsContent>

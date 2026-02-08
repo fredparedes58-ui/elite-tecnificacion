@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_payments: {
+        Row: {
+          cash_amount: number
+          created_at: string | null
+          id: string
+          notes: string | null
+          payment_method: string
+          received_by: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cash_amount?: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          received_by?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cash_amount?: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          received_by?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "credit_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string | null
@@ -559,6 +600,7 @@ export type Database = {
       trainers: {
         Row: {
           bio: string | null
+          color: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -571,6 +613,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          color?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -583,6 +626,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          color?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
