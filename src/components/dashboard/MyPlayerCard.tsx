@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { NeonButton } from '@/components/ui/NeonButton';
 import PhotoUpload from './PhotoUpload';
 import RadarChart from '@/components/players/RadarChart';
+import PlayerEvolutionPanel from '@/components/players/PlayerEvolutionPanel';
 import type { Player } from '@/hooks/useMyPlayers';
 import { 
   Dialog,
@@ -204,6 +205,11 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({
         <div className="w-full md:w-48 h-48">
           <RadarChart stats={player.stats} size={150} />
         </div>
+      </div>
+
+      {/* Evolution Panel */}
+      <div className="mt-4 border-t border-muted/30 pt-4">
+        <PlayerEvolutionPanel player={player} />
       </div>
     </EliteCard>
   );

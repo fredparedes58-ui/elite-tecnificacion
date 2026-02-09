@@ -8,7 +8,8 @@ import BlockedScreen from './BlockedScreen';
 import ViewModeToggle from '@/components/admin/ViewModeToggle';
 import CreditsReportDashboard from '@/components/admin/CreditsReportDashboard';
 import { ViewModeProvider, useViewMode } from '@/contexts/ViewModeContext';
-import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard } from 'lucide-react';
+import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity } from 'lucide-react';
+import AdminKPIDashboard from '@/components/admin/AdminKPIDashboard';
 
 const Index: React.FC = () => {
   const { user, isAdmin, isApproved, isLoading } = useAuth();
@@ -111,7 +112,7 @@ const Index: React.FC = () => {
 // Admin Dashboard Content with View Mode
 const AdminDashboardContent: React.FC = () => {
   const { isParentView } = useViewMode();
-  const [showReports, setShowReports] = useState(false);
+  const [showReports, setShowReports] = useState<'kpis' | 'credits' | null>(null);
 
   if (isParentView) {
     // Simulated parent view
@@ -176,15 +177,28 @@ const AdminDashboardContent: React.FC = () => {
         {/* Toggle Reports */}
         <div className="flex items-center gap-4 mb-6">
           <NeonButton
-            variant={showReports ? 'cyan' : 'outline'}
-            onClick={() => setShowReports(!showReports)}
+            variant={showReports === 'kpis' ? 'cyan' : 'outline'}
+            onClick={() => setShowReports(showReports === 'kpis' ? null : 'kpis')}
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            KPIs
+          </NeonButton>
+          <NeonButton
+            variant={showReports === 'credits' ? 'cyan' : 'outline'}
+            onClick={() => setShowReports(showReports === 'credits' ? null : 'credits')}
           >
             <BarChart3 className="w-4 h-4 mr-2" />
-            {showReports ? 'Ocultar Reportes' : 'Ver Reportes de Créditos'}
+            Reportes Créditos
           </NeonButton>
         </div>
 
-        {showReports && (
+        {showReports === 'kpis' && (
+          <div className="mb-8">
+            <AdminKPIDashboard />
+          </div>
+        )}
+
+        {showReports === 'credits' && (
           <div className="mb-8">
             <CreditsReportDashboard />
           </div>
