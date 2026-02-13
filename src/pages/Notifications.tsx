@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '@/components/layout/BackButton';
 import { Navigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,6 +83,7 @@ const Notifications: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Header */}
+        <BackButton className="mb-4" />
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center">

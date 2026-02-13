@@ -33,7 +33,6 @@ import {
   AlertTriangle,
   UserPlus,
   User,
-  Bell,
   ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -238,23 +237,40 @@ const Dashboard: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-          <div>
-            <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-1">
-              ¡Hola, {profile?.full_name?.split(' ')[0] || 'Deportista'}!
-            </h1>
-            <p className="text-muted-foreground font-rajdhani">
-              Bienvenido a tu panel de gestión Elite 380
-            </p>
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Welcome Header - Hero style */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-neon-cyan/10 via-background to-neon-purple/10 border border-neon-cyan/20 p-6 md:p-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-neon-cyan/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-neon-purple/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="text-neon-cyan font-rajdhani font-semibold text-sm uppercase tracking-wider mb-1">
+                Elite 380 Academy
+              </p>
+              <h1 className="font-orbitron font-bold text-3xl md:text-4xl text-foreground mb-1">
+                ¡Hola, {profile?.full_name?.split(' ')[0] || 'Deportista'}!
+              </h1>
+              <p className="text-muted-foreground font-rajdhani">
+                {approvedReservations > 0
+                  ? `Tienes ${approvedReservations} sesión${approvedReservations > 1 ? 'es' : ''} próxima${approvedReservations > 1 ? 's' : ''}`
+                  : 'No tienes sesiones programadas'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link to="/chat">
+                <NeonButton variant="outline" size="sm">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Chat
+                </NeonButton>
+              </Link>
+              <Link to="/settings">
+                <NeonButton variant="outline" size="sm">
+                  <User className="w-4 h-4 mr-2" />
+                  Ajustes
+                </NeonButton>
+              </Link>
+            </div>
           </div>
-          <Link to="/profile">
-            <NeonButton variant="outline" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Mi Perfil
-            </NeonButton>
-          </Link>
         </div>
 
         {/* Credits Alert Banner */}
@@ -296,7 +312,7 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Quick Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Credits Card */}
           <Link to="/my-credits" className="contents">
             <EliteCard className={cn(
@@ -367,35 +383,6 @@ const Dashboard: React.FC = () => {
             </EliteCard>
           </Link>
 
-          {/* Chat Card */}
-          <Link to="/chat" className="contents">
-            <EliteCard className="p-5 hover:border-neon-purple/50 transition-colors cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-purple/20 to-neon-purple/5 border border-neon-purple/30 flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-neon-purple" />
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm font-rajdhani">Chat</p>
-                  <p className="font-orbitron font-semibold text-sm">Hablar con Pedro</p>
-                </div>
-              </div>
-            </EliteCard>
-          </Link>
-
-          {/* Notifications Card */}
-          <Link to="/notifications" className="contents">
-            <EliteCard className="p-5 hover:border-neon-cyan/50 transition-colors cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center">
-                  <Bell className="w-6 h-6 text-neon-cyan" />
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm font-rajdhani">Notificaciones</p>
-                  <p className="font-orbitron font-semibold text-sm">Ver todas</p>
-                </div>
-              </div>
-            </EliteCard>
-          </Link>
         </div>
 
         {/* My Players Section */}

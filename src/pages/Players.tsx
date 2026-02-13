@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '@/components/layout/BackButton';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyPlayers } from '@/hooks/useMyPlayers';
@@ -166,7 +167,8 @@ const Players: React.FC = () => {
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+           <div>
+            <BackButton />
             <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-2">
               Mis Jugadores
             </h1>
