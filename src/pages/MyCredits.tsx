@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '@/components/layout/BackButton';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
@@ -37,6 +38,7 @@ const MyCredits: React.FC = () => {
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <div>
+          <BackButton />
           <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-2">
             Mis Créditos
           </h1>

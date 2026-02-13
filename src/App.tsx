@@ -19,6 +19,7 @@ import AdminChat from "./pages/AdminChat";
 import Notifications from "./pages/Notifications";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/my-credits" element={<MyCredits />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/reservations" element={<AdminReservations />} />

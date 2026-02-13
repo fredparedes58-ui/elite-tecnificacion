@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '@/components/layout/BackButton';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -31,6 +32,7 @@ const Chat: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
+          <BackButton className="mb-4 justify-center" />
           <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-2">
             Chat con Elite 380
           </h1>

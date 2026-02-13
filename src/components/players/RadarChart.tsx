@@ -16,8 +16,9 @@ interface RadarChartProps {
 
 const RadarChart: React.FC<RadarChartProps> = ({ stats, size = 200, showLabels = true }) => {
   const center = size / 2;
-  const radius = size * 0.4;
-  const labels = ['Velocidad', 'Técnica', 'Físico', 'Mental', 'Táctico'];
+  const radius = size * 0.35;
+  const labels = ['PAC', 'TEC', 'PHY', 'MEN', 'TAC'];
+  const fullLabels = ['Velocidad', 'Técnica', 'Físico', 'Mental', 'Táctico'];
   const statKeys = ['speed', 'technique', 'physical', 'mental', 'tactical'] as const;
   const angleStep = (2 * Math.PI) / 5;
 
@@ -51,10 +52,10 @@ const RadarChart: React.FC<RadarChartProps> = ({ stats, size = 200, showLabels =
       .join(' ');
   };
 
-  // Get label position
+  // Get label position with safe padding
   const getLabelPosition = (index: number) => {
     const angle = angleStep * index - Math.PI / 2;
-    const r = radius + 25;
+    const r = radius + (size * 0.13);
     return {
       x: center + r * Math.cos(angle),
       y: center + r * Math.sin(angle),
@@ -134,17 +135,30 @@ const RadarChart: React.FC<RadarChartProps> = ({ stats, size = 200, showLabels =
       {/* Labels */}
       {showLabels && labels.map((label, i) => {
         const pos = getLabelPosition(i);
+        const value = stats[statKeys[i]];
         return (
-          <text
-            key={label}
-            x={pos.x}
-            y={pos.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-muted-foreground text-[10px] font-rajdhani uppercase"
-          >
-            {label}
-          </text>
+          <g key={label}>
+            <text
+              x={pos.x}
+              y={pos.y - 6}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-foreground font-orbitron font-bold"
+              style={{ fontSize: Math.max(size * 0.055, 8) }}
+            >
+              {label}
+            </text>
+            <text
+              x={pos.x}
+              y={pos.y + 8}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-neon-cyan font-orbitron font-bold"
+              style={{ fontSize: Math.max(size * 0.05, 7) }}
+            >
+              {value}
+            </text>
+          </g>
         );
       })}
     </svg>

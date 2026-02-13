@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '@/components/layout/BackButton';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
@@ -248,6 +249,7 @@ const Reservations: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
+            <BackButton />
             <h1 className="font-orbitron font-bold text-3xl md:text-4xl gradient-text mb-2">
               Mis Reservas
             </h1>
