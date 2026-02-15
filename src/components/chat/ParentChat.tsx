@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useConversations, useMessages } from '@/hooks/useConversations';
+import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { useAuth } from '@/contexts/AuthContext';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { NeonButton } from '@/components/ui/NeonButton';
@@ -13,6 +14,7 @@ import { MessageSquare, Send, Plus, User } from 'lucide-react';
 const ParentChat: React.FC = () => {
   const { user } = useAuth();
   const { conversations, loading, createConversation } = useConversations();
+  const { markAsRead, getUnreadForConversation } = useUnreadCounts();
   const [selectedConversationId, setSelectedConversationId] = React.useState<string | null>(null);
   const { messages, sendMessage } = useMessages(selectedConversationId);
   const [newMessage, setNewMessage] = React.useState('');
@@ -28,9 +30,16 @@ const ParentChat: React.FC = () => {
 
   useEffect(() => {
     if (conversations.length > 0 && !selectedConversationId) {
-      setSelectedConversationId(conversations[0].id);
+      const firstConv = conversations[0];
+      setSelectedConversationId(firstConv.id);
+      markAsRead(firstConv.id);
     }
   }, [conversations, selectedConversationId]);
+
+  const handleSelectConversation = (convId: string) => {
+    setSelectedConversationId(convId);
+    markAsRead(convId);
+  };
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
@@ -60,7 +69,7 @@ const ParentChat: React.FC = () => {
     );
   }
 
-  const selectedConversation = conversations.find((c) => c.id === selectedConversationId);
+  const hasMultipleConversations = conversations.length > 1;
 
   return (
     <div className="h-[600px]">
@@ -72,7 +81,6 @@ const ParentChat: React.FC = () => {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
                 <User className="w-6 h-6 text-background" />
               </div>
-              {/* Online indicator */}
               <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
             </div>
             <div>
@@ -89,6 +97,34 @@ const ParentChat: React.FC = () => {
             Nueva
           </NeonButton>
         </div>
+
+        {/* Conversation tabs if multiple */}
+        {hasMultipleConversations && (
+          <div className="flex gap-1 p-2 border-b border-neon-cyan/10 overflow-x-auto">
+            {conversations.map((conv) => {
+              const unread = getUnreadForConversation(conv.id);
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => handleSelectConversation(conv.id)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-rajdhani font-medium whitespace-nowrap transition-all relative',
+                    selectedConversationId === conv.id
+                      ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                  )}
+                >
+                  {conv.subject || 'Chat'}
+                  {unread > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
+                      {unread}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {conversations.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -120,6 +156,7 @@ const ParentChat: React.FC = () => {
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.sender_id === user?.id;
+                    const isOptimistic = msg.id.startsWith('temp-');
                     return (
                       <div
                         key={msg.id}
@@ -130,10 +167,11 @@ const ParentChat: React.FC = () => {
                       >
                         <div
                           className={cn(
-                            'max-w-[80%] rounded-2xl px-4 py-2',
+                            'max-w-[80%] rounded-2xl px-4 py-2 transition-opacity',
                             isMe
                               ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-background'
-                              : 'bg-muted/50 border border-neon-cyan/20'
+                              : 'bg-muted/50 border border-neon-cyan/20',
+                            isOptimistic && 'opacity-70'
                           )}
                         >
                           {!isMe && (
@@ -148,7 +186,7 @@ const ParentChat: React.FC = () => {
                               isMe ? 'text-background/70' : 'text-muted-foreground'
                             )}
                           >
-                            {format(new Date(msg.created_at), 'HH:mm', { locale: es })}
+                            {isOptimistic ? 'Enviando...' : format(new Date(msg.created_at), 'HH:mm', { locale: es })}
                           </p>
                         </div>
                       </div>
