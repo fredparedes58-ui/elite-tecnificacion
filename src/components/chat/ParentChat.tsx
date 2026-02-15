@@ -15,6 +15,7 @@ const ParentChat: React.FC = () => {
   const { user } = useAuth();
   const { conversations, loading, createConversation } = useConversations();
   const { markAsRead, getUnreadForConversation } = useUnreadCounts();
+  const hasAutoSelected = useRef(false);
   const [selectedConversationId, setSelectedConversationId] = React.useState<string | null>(null);
   const { messages, sendMessage } = useMessages(selectedConversationId);
   const [newMessage, setNewMessage] = React.useState('');
@@ -29,12 +30,13 @@ const ParentChat: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (conversations.length > 0 && !selectedConversationId) {
+    if (!hasAutoSelected.current && conversations.length > 0 && !selectedConversationId) {
+      hasAutoSelected.current = true;
       const firstConv = conversations[0];
       setSelectedConversationId(firstConv.id);
       markAsRead(firstConv.id);
     }
-  }, [conversations, selectedConversationId]);
+  }, [conversations]);
 
   const handleSelectConversation = (convId: string) => {
     setSelectedConversationId(convId);

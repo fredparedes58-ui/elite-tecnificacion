@@ -45,15 +45,18 @@ const ChatConsole: React.FC = () => {
   useEffect(() => {
     if (!hasAutoSelected.current && conversations.length > 0 && !selectedConversation) {
       hasAutoSelected.current = true;
-      const conv = conversations[0]; // Already sorted by updated_at (most recent first)
+      const conv = conversations[0];
       setSelectedConversation(conv);
       markAsRead(conv.id);
+      setTimeout(() => scrollToBottom(), 200);
     }
   }, [conversations]);
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
     markAsRead(conv.id);
+    // Scroll to bottom after selecting
+    setTimeout(() => scrollToBottom(), 100);
   };
 
   const handleSend = async () => {
