@@ -47,20 +47,27 @@ export const useConversations = () => {
       }
 
       const { data: convos, error: convosError } = await query;
-
       if (convosError) throw convosError;
 
-      // Fetch participant profiles for admin
+      // Fetch unread counts from conversation_state
+      const { data: unreadData } = await supabase
+        .from('conversation_state')
+        .select('conversation_id, unread_count')
+        .eq('user_id', user.id);
+
+      const unreadMap = new Map<string, number>();
+      (unreadData || []).forEach((item: any) => {
+        unreadMap.set(item.conversation_id, item.unread_count || 0);
+      });
+
       const conversationsWithDetails = await Promise.all(
         (convos || []).map(async (conv) => {
-          // Get participant profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, email')
             .eq('id', conv.participant_id)
             .single();
 
-          // Get last message
           const { data: lastMsg } = await supabase
             .from('messages')
             .select('*')
@@ -69,22 +76,23 @@ export const useConversations = () => {
             .limit(1)
             .single();
 
-          // Get unread count
-          const { count } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conv.id)
-            .eq('is_read', false)
-            .neq('sender_id', user.id);
-
           return {
             ...conv,
             participant: profile || undefined,
             lastMessage: lastMsg || undefined,
-            unreadCount: count || 0,
+            unreadCount: unreadMap.get(conv.id) || 0,
           };
         })
       );
+
+      // Sort: unread first, then by updated_at
+      conversationsWithDetails.sort((a, b) => {
+        const aUnread = a.unreadCount || 0;
+        const bUnread = b.unreadCount || 0;
+        if (aUnread > 0 && bUnread === 0) return -1;
+        if (aUnread === 0 && bUnread > 0) return 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
 
       setConversations(conversationsWithDetails);
     } catch (err) {
@@ -122,22 +130,21 @@ export const useConversations = () => {
     fetchConversations();
   }, [user, isAdmin]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates on both conversations and conversation_state
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel('conversations-changes')
+      .channel('conversations-and-state')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          fetchConversations();
-        }
+        { event: '*', schema: 'public', table: 'conversations' },
+        () => fetchConversations()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversation_state', filter: `user_id=eq.${user.id}` },
+        () => fetchConversations()
       )
       .subscribe();
 
@@ -178,13 +185,13 @@ export const useMessages = (conversationId: string | null) => {
       if (error) throw error;
       setMessages(data || []);
 
-      // Mark messages as read
+      // Mark as read via conversation_state
       if (user) {
         await supabase
-          .from('messages')
-          .update({ is_read: true })
+          .from('conversation_state')
+          .update({ unread_count: 0, last_read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
           .eq('conversation_id', conversationId)
-          .neq('sender_id', user.id);
+          .eq('user_id', user.id);
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -195,6 +202,17 @@ export const useMessages = (conversationId: string | null) => {
 
   const sendMessage = async (content: string) => {
     if (!conversationId || !user || !content.trim()) return null;
+
+    // Optimistic update
+    const optimisticMsg: Message = {
+      id: `temp-${Date.now()}`,
+      conversation_id: conversationId,
+      sender_id: user.id,
+      content: content.trim(),
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
 
     try {
       const { data, error } = await supabase
@@ -209,6 +227,9 @@ export const useMessages = (conversationId: string | null) => {
 
       if (error) throw error;
 
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data : m));
+
       // Update conversation timestamp
       await supabase
         .from('conversations')
@@ -218,6 +239,8 @@ export const useMessages = (conversationId: string | null) => {
       return data;
     } catch (err) {
       console.error('Error sending message:', err);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       return null;
     }
   };
@@ -228,7 +251,7 @@ export const useMessages = (conversationId: string | null) => {
 
   // Subscribe to realtime messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !user) return;
 
     const channel = supabase
       .channel(`messages-${conversationId}`)
@@ -241,7 +264,18 @@ export const useMessages = (conversationId: string | null) => {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const newMsg = payload.new as Message;
+          // Only add if not from current user (we already have optimistic)
+          if (newMsg.sender_id !== user.id) {
+            setMessages(prev => [...prev, newMsg]);
+            // Auto-mark as read since chat is open
+            supabase
+              .from('conversation_state')
+              .update({ unread_count: 0, last_read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .eq('conversation_id', conversationId)
+              .eq('user_id', user.id)
+              .then();
+          }
         }
       )
       .subscribe();
@@ -249,7 +283,7 @@ export const useMessages = (conversationId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, user]);
 
   return {
     messages,

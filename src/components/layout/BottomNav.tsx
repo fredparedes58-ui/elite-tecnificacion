@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { 
   Home, 
   Calendar, 
@@ -21,6 +22,7 @@ interface NavItem {
 
 const BottomNav: React.FC = () => {
   const { user, isAdmin, isApproved } = useAuth();
+  const { totalUnread } = useUnreadCounts();
   const location = useLocation();
 
   const navItems: NavItem[] = React.useMemo(() => {
@@ -58,16 +60,17 @@ const BottomNav: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
+  const isChatPath = (href: string) => href === '/admin/chat' || href === '/chat';
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      {/* Gradient border top */}
       <div className="h-px bg-gradient-to-r from-transparent via-neon-cyan/50 to-transparent" />
       
-      {/* Navigation bar */}
       <div className="bg-background/95 backdrop-blur-xl border-t border-neon-cyan/10">
         <div className="flex items-center justify-around h-16 px-2">
           {navItems.map((item) => {
             const active = isActive(item.href);
+            const showBadge = isChatPath(item.href) && totalUnread > 0;
             
             return (
               <Link
@@ -78,15 +81,13 @@ const BottomNav: React.FC = () => {
                   active ? 'text-neon-cyan' : 'text-muted-foreground'
                 )}
               >
-                {/* Active indicator */}
                 {active && (
                   <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-neon-cyan shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
                 )}
                 
-                {/* Icon container */}
                 <div
                   className={cn(
-                    'p-1.5 rounded-lg transition-all duration-300',
+                    'p-1.5 rounded-lg transition-all duration-300 relative',
                     active
                       ? 'bg-neon-cyan/10 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
                       : 'hover:bg-muted/50'
@@ -98,9 +99,13 @@ const BottomNav: React.FC = () => {
                       active && 'drop-shadow-[0_0_6px_rgba(0,240,255,0.8)]'
                     )}
                   />
+                  {showBadge && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 shadow-lg animate-pulse">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </span>
+                  )}
                 </div>
 
-                {/* Label */}
                 <span
                   className={cn(
                     'text-[10px] font-rajdhani font-medium transition-all',
@@ -114,7 +119,6 @@ const BottomNav: React.FC = () => {
           })}
         </div>
 
-        {/* Safe area for iOS */}
         <div className="h-safe-area-inset-bottom bg-background" />
       </div>
     </nav>

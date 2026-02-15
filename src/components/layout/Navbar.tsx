@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { NeonButton } from '@/components/ui/NeonButton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { 
@@ -14,12 +15,12 @@ import {
   Calendar, 
   Target,
   Shield,
-  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar: React.FC = () => {
   const { user, profile, isAdmin, isApproved, signOut } = useAuth();
+  const { totalUnread } = useUnreadCounts();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -55,6 +56,7 @@ const Navbar: React.FC = () => {
   }, [user, isAdmin, isApproved]);
 
   const isActive = (path: string) => location.pathname === path;
+  const isChatPath = (href: string) => href === '/admin/chat' || href === '/chat';
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-neon-cyan/20">
@@ -81,7 +83,7 @@ const Navbar: React.FC = () => {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg font-rajdhani font-medium transition-all duration-200',
+                  'flex items-center gap-2 px-4 py-2 rounded-lg font-rajdhani font-medium transition-all duration-200 relative',
                   isActive(link.href)
                     ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -89,6 +91,11 @@ const Navbar: React.FC = () => {
               >
                 <link.icon className="w-4 h-4" />
                 <span>{link.label}</span>
+                {isChatPath(link.href) && totalUnread > 0 && (
+                  <span className="min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 animate-pulse">
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -153,6 +160,11 @@ const Navbar: React.FC = () => {
                 >
                   <link.icon className="w-5 h-5" />
                   <span>{link.label}</span>
+                  {isChatPath(link.href) && totalUnread > 0 && (
+                    <span className="ml-auto min-w-[20px] h-[20px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </span>
+                  )}
                 </Link>
               ))}
               
