@@ -17,6 +17,7 @@ const ChatConsole: React.FC = () => {
   const { conversations, loading } = useConversations();
   const { markAsRead, getUnreadForConversation } = useUnreadCounts();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const hasAutoSelected = useRef(false);
   const { messages, sendMessage } = useMessages(selectedConversation?.id || null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +40,16 @@ const ChatConsole: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-select the conversation with the most recent message on first load
+  useEffect(() => {
+    if (!hasAutoSelected.current && conversations.length > 0 && !selectedConversation) {
+      hasAutoSelected.current = true;
+      const conv = conversations[0]; // Already sorted by updated_at (most recent first)
+      setSelectedConversation(conv);
+      markAsRead(conv.id);
+    }
+  }, [conversations]);
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
