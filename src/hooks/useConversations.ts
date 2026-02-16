@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -30,8 +30,9 @@ export const useConversations = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initialFetchDone = useRef(false);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -49,7 +50,6 @@ export const useConversations = () => {
       const { data: convos, error: convosError } = await query;
       if (convosError) throw convosError;
 
-      // Fetch unread counts from conversation_state
       const { data: unreadData } = await supabase
         .from('conversation_state')
         .select('conversation_id, unread_count')
@@ -85,7 +85,6 @@ export const useConversations = () => {
         })
       );
 
-      // Sort: unread first, then by updated_at
       conversationsWithDetails.sort((a, b) => {
         const aUnread = a.unreadCount || 0;
         const bUnread = b.unreadCount || 0;
@@ -101,7 +100,7 @@ export const useConversations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAdmin]);
 
   const createConversation = async (subject?: string) => {
     if (!user) return null;
@@ -126,11 +125,14 @@ export const useConversations = () => {
     }
   };
 
+  // Initial fetch - only once
   useEffect(() => {
+    if (!user || initialFetchDone.current) return;
+    initialFetchDone.current = true;
     fetchConversations();
-  }, [user, isAdmin]);
+  }, [user?.id]);
 
-  // Subscribe to realtime updates on both conversations and conversation_state
+  // Realtime: update state locally instead of full refetch
   useEffect(() => {
     if (!user) return;
 
@@ -138,38 +140,48 @@ export const useConversations = () => {
       .channel('conversations-and-state')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        () => fetchConversations()
+        { event: 'INSERT', schema: 'public', table: 'conversations' },
+        () => fetchConversations() // New conversation needs full data
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'conversations' },
+        (payload) => {
+          const deletedId = (payload.old as any)?.id;
+          if (deletedId) {
+            setConversations(prev => prev.filter(c => c.id !== deletedId));
+          }
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'conversation_state', filter: `user_id=eq.${user.id}` },
-        () => fetchConversations()
+        (payload) => {
+          // Update unread count locally
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            const updated = payload.new as any;
+            setConversations(prev => prev.map(c =>
+              c.id === updated.conversation_id
+                ? { ...c, unreadCount: updated.unread_count || 0 }
+                : c
+            ));
+          }
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, isAdmin]);
+  }, [user?.id, fetchConversations]);
 
   const deleteConversation = async (conversationId: string) => {
     if (!user) return false;
 
     try {
-      // Delete messages first (foreign key constraint)
-      await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', conversationId);
+      await supabase.from('messages').delete().eq('conversation_id', conversationId);
+      await supabase.from('conversation_state').delete().eq('conversation_id', conversationId);
 
-      // Delete conversation_state
-      await supabase
-        .from('conversation_state')
-        .delete()
-        .eq('conversation_id', conversationId);
-
-      // Delete conversation
       const { error } = await supabase
         .from('conversations')
         .delete()
@@ -177,7 +189,8 @@ export const useConversations = () => {
 
       if (error) throw error;
 
-      await fetchConversations();
+      // Optimistic removal (realtime will also fire)
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
       return true;
     } catch (err) {
       console.error('Error deleting conversation:', err);
@@ -198,12 +211,14 @@ export const useConversations = () => {
 export const useMessages = (conversationId: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const hasFetched = useRef<string | null>(null);
+  const userIdRef = useRef(user?.id);
+  userIdRef.current = user?.id;
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!conversationId) {
       setMessages([]);
-      setLoading(false);
       return;
     }
 
@@ -218,29 +233,36 @@ export const useMessages = (conversationId: string | null) => {
       if (error) throw error;
       setMessages(data || []);
 
-      // Mark as read via conversation_state
-      if (user) {
-        await supabase
+      // Mark as read
+      if (userIdRef.current) {
+        supabase
           .from('conversation_state')
           .update({ unread_count: 0, last_read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
           .eq('conversation_id', conversationId)
-          .eq('user_id', user.id);
+          .eq('user_id', userIdRef.current)
+          .then();
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [conversationId]);
 
-  const sendMessage = async (content: string) => {
-    if (!conversationId || !user || !content.trim()) return null;
+  // Fetch only once per conversation change
+  useEffect(() => {
+    if (hasFetched.current === conversationId) return;
+    hasFetched.current = conversationId;
+    fetchMessages();
+  }, [conversationId, fetchMessages]);
 
-    // Optimistic update
+  const sendMessage = useCallback(async (content: string) => {
+    if (!conversationId || !userIdRef.current || !content.trim()) return null;
+
     const optimisticMsg: Message = {
       id: `temp-${Date.now()}`,
       conversation_id: conversationId,
-      sender_id: user.id,
+      sender_id: userIdRef.current,
       content: content.trim(),
       is_read: false,
       created_at: new Date().toISOString(),
@@ -252,7 +274,7 @@ export const useMessages = (conversationId: string | null) => {
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          sender_id: user.id,
+          sender_id: userIdRef.current,
           content: content.trim(),
         })
         .select()
@@ -264,27 +286,23 @@ export const useMessages = (conversationId: string | null) => {
       setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data : m));
 
       // Update conversation timestamp
-      await supabase
+      supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .then();
 
       return data;
     } catch (err) {
       console.error('Error sending message:', err);
-      // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       return null;
     }
-  };
+  }, [conversationId]);
 
+  // Realtime: append only, no refetch
   useEffect(() => {
-    fetchMessages();
-  }, [conversationId, user]);
-
-  // Subscribe to realtime messages
-  useEffect(() => {
-    if (!conversationId || !user) return;
+    if (!conversationId || !userIdRef.current) return;
 
     const channel = supabase
       .channel(`messages-${conversationId}`)
@@ -298,15 +316,19 @@ export const useMessages = (conversationId: string | null) => {
         },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only add if not from current user (we already have optimistic)
-          if (newMsg.sender_id !== user.id) {
-            setMessages(prev => [...prev, newMsg]);
-            // Auto-mark as read since chat is open
+          // Only append if not from current user (already handled optimistically)
+          if (newMsg.sender_id !== userIdRef.current) {
+            setMessages(prev => {
+              // Deduplicate check
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+            // Auto-mark as read
             supabase
               .from('conversation_state')
               .update({ unread_count: 0, last_read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
               .eq('conversation_id', conversationId)
-              .eq('user_id', user.id)
+              .eq('user_id', userIdRef.current!)
               .then();
           }
         }
@@ -316,7 +338,7 @@ export const useMessages = (conversationId: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, user]);
+  }, [conversationId]);
 
   return {
     messages,
