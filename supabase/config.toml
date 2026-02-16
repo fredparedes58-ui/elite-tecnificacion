@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-credit-receipt]
 verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
