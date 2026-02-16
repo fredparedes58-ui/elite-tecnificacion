@@ -102,15 +102,26 @@ export const useConversations = () => {
     }
   }, [user?.id, isAdmin]);
 
-  const createConversation = async (subject?: string) => {
+  const getOrCreateConversation = async () => {
     if (!user) return null;
 
     try {
+      // Check if conversation already exists for this user
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('participant_id', user.id)
+        .limit(1)
+        .single();
+
+      if (existing) return existing;
+
+      // Create new one only if none exists
       const { data, error } = await supabase
         .from('conversations')
         .insert({
           participant_id: user.id,
-          subject: subject || 'Nueva conversación',
+          subject: 'Chat con Pedro',
         })
         .select()
         .single();
@@ -120,7 +131,7 @@ export const useConversations = () => {
       await fetchConversations();
       return data;
     } catch (err) {
-      console.error('Error creating conversation:', err);
+      console.error('Error getting/creating conversation:', err);
       return null;
     }
   };
@@ -202,7 +213,7 @@ export const useConversations = () => {
     conversations,
     loading,
     error,
-    createConversation,
+    getOrCreateConversation,
     deleteConversation,
     refetch: fetchConversations,
   };
