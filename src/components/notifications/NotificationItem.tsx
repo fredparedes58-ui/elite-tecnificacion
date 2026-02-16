@@ -68,6 +68,31 @@ const getNotificationConfig = (type: string) => {
         color: 'text-neon-cyan',
         bgColor: 'bg-neon-cyan/10'
       };
+    case 'player_updated':
+      return { 
+        icon: UserPlus, 
+        color: 'text-yellow-500',
+        bgColor: 'bg-yellow-500/10'
+      };
+    case 'scouting_updated':
+      return { 
+        icon: CheckCircle, 
+        color: 'text-green-500',
+        bgColor: 'bg-green-500/10'
+      };
+    case 'session_updated':
+    case 'session_player_removed':
+      return { 
+        icon: Calendar, 
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/10'
+      };
+    case 'reservation_proposal':
+      return { 
+        icon: MessageSquare, 
+        color: 'text-neon-purple',
+        bgColor: 'bg-neon-purple/10'
+      };
     default:
       return { 
         icon: Circle, 
@@ -92,6 +117,14 @@ const getNavigationPath = (notification: Notification, isAdmin: boolean): string
       return '/admin/users';
     case 'credit_low':
     case 'credit_exhausted':
+      return isAdmin ? '/admin/reservations' : '/reservations';
+    case 'player_updated':
+    case 'scouting_updated':
+      return isAdmin ? '/scouting' : '/players';
+    case 'session_updated':
+    case 'session_player_removed':
+      return isAdmin ? '/admin/reservations' : '/reservations';
+    case 'reservation_proposal':
       return isAdmin ? '/admin/reservations' : '/reservations';
     default:
       return null;
