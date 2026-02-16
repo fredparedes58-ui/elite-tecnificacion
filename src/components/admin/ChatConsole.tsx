@@ -10,13 +10,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageSquare, Send, User, Search, X, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, User, Search, X, Trash2, Paperclip } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useAttachments } from '@/components/chat/attachments/useAttachments';
+import AttachmentPreviewBar from '@/components/chat/attachments/AttachmentPreviewBar';
+import MessageAttachments from '@/components/chat/attachments/MessageAttachments';
+import { ALLOWED_MIME } from '@/components/chat/attachments/types';
 
 const ChatConsole: React.FC = () => {
   const { user } = useAuth();
@@ -29,6 +33,8 @@ const ChatConsole: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { attachments, addFiles, removeAttachment, clearAttachments, uploadAll, uploading } = useAttachments();
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchQuery.trim()) return true;
@@ -53,16 +59,13 @@ const ChatConsole: React.FC = () => {
 
   useEffect(() => {
     if (messages.length > 0) {
-      // Immediate scroll (no animation) to avoid flash, then smooth fallback
       requestAnimationFrame(() => {
         scrollToBottom(false);
-        // Second pass after images/content settle
         setTimeout(() => scrollToBottom(false), 150);
       });
     }
   }, [messages]);
 
-  // Auto-select the conversation with the most recent message on first load
   useEffect(() => {
     if (!hasAutoSelected.current && conversations.length > 0 && !selectedConversation) {
       hasAutoSelected.current = true;
@@ -75,12 +78,24 @@ const ChatConsole: React.FC = () => {
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
     markAsRead(conv.id);
+    clearAttachments();
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    await sendMessage(newMessage);
+    const hasContent = newMessage.trim().length > 0;
+    const hasAttach = attachments.length > 0;
+    if (!hasContent && !hasAttach) return;
+    if (!selectedConversation) return;
+
+    let uploadedMeta = undefined;
+    if (hasAttach) {
+      uploadedMeta = await uploadAll(selectedConversation.id);
+      if (!uploadedMeta || uploadedMeta.length === 0) return;
+    }
+
+    await sendMessage(newMessage, uploadedMeta);
     setNewMessage('');
+    clearAttachments();
   };
 
   const handleDeleteConversation = async () => {
@@ -102,6 +117,11 @@ const ChatConsole: React.FC = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) addFiles(e.target.files);
+    e.target.value = '';
   };
 
   if (loading) {
@@ -180,18 +200,10 @@ const ChatConsole: React.FC = () => {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={cn(
-                              'font-rajdhani text-sm truncate',
-                              unread > 0 ? 'font-bold' : 'font-medium'
-                            )}>
-                              {conv.participant?.full_name || 'Usuario'}
-                            </span>
-                          </div>
-                          <p className={cn(
-                            'text-xs truncate',
-                            unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'
-                          )}>
+                          <span className={cn('font-rajdhani text-sm truncate block', unread > 0 ? 'font-bold' : 'font-medium')}>
+                            {conv.participant?.full_name || 'Usuario'}
+                          </span>
+                          <p className={cn('text-xs truncate', unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground')}>
                             {conv.lastMessage?.content || conv.subject || 'Sin mensajes'}
                           </p>
                         </div>
@@ -234,13 +246,7 @@ const ChatConsole: React.FC = () => {
                   {messages.map((msg) => {
                     const isMe = msg.sender_id === user?.id;
                     return (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          'flex',
-                          isMe ? 'justify-end' : 'justify-start'
-                        )}
-                      >
+                      <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
                         <div
                           className={cn(
                             'max-w-[70%] rounded-2xl px-4 py-2',
@@ -249,13 +255,13 @@ const ChatConsole: React.FC = () => {
                               : 'bg-muted/50 border border-neon-cyan/20'
                           )}
                         >
-                          <p className="font-rajdhani text-sm">{msg.content}</p>
-                          <p
-                            className={cn(
-                              'text-xs mt-1',
-                              isMe ? 'text-background/70' : 'text-muted-foreground'
-                            )}
-                          >
+                          {msg.content && msg.content !== '📎 Adjunto' && (
+                            <p className="font-rajdhani text-sm">{msg.content}</p>
+                          )}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <MessageAttachments attachments={msg.attachments} isMe={isMe} />
+                          )}
+                          <p className={cn('text-xs mt-1', isMe ? 'text-background/70' : 'text-muted-foreground')}>
                             {format(new Date(msg.created_at), 'HH:mm', { locale: es })}
                           </p>
                         </div>
@@ -266,8 +272,30 @@ const ChatConsole: React.FC = () => {
                 </div>
               </ScrollArea>
 
+              {/* Attachment preview */}
+              {attachments.length > 0 && (
+                <div className="px-4 border-t border-neon-cyan/10">
+                  <AttachmentPreviewBar attachments={attachments} onRemove={removeAttachment} />
+                </div>
+              )}
+
               <div className="p-4 border-t border-neon-cyan/20">
-                <div className="flex gap-3">
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept={Object.keys(ALLOWED_MIME).join(',')}
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-neon-cyan transition-colors"
+                    title="Adjuntar archivo"
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </button>
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -275,7 +303,7 @@ const ChatConsole: React.FC = () => {
                     placeholder="Escribe un mensaje..."
                     className="flex-1 bg-muted/50 border-neon-cyan/30"
                   />
-                  <NeonButton variant="gradient" onClick={handleSend}>
+                  <NeonButton variant="gradient" onClick={handleSend} disabled={uploading}>
                     <Send className="w-4 h-4" />
                   </NeonButton>
                 </div>
@@ -303,7 +331,7 @@ const ChatConsole: React.FC = () => {
             <AlertDialogTitle>¿Eliminar conversación?</AlertDialogTitle>
             <AlertDialogDescription>
               Se eliminará permanentemente la conversación con{' '}
-              <strong>{deleteTarget?.participant?.full_name || 'este usuario'}</strong> y todos sus mensajes. Esta acción no se puede deshacer.
+              <strong>{deleteTarget?.participant?.full_name || 'este usuario'}</strong> y todos sus mensajes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { AttachmentMeta } from '@/components/chat/attachments/types';
 
 export interface Message {
   id: string;
@@ -9,7 +10,13 @@ export interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
+  attachments?: AttachmentMeta[] | null;
 }
+
+const toMessage = (row: any): Message => ({
+  ...row,
+  attachments: row.attachments as AttachmentMeta[] | null,
+});
 
 export interface Conversation {
   id: string;
@@ -79,7 +86,7 @@ export const useConversations = () => {
           return {
             ...conv,
             participant: profile || undefined,
-            lastMessage: lastMsg || undefined,
+            lastMessage: lastMsg ? toMessage(lastMsg) : undefined,
             unreadCount: unreadMap.get(conv.id) || 0,
           };
         })
@@ -242,7 +249,7 @@ export const useMessages = (conversationId: string | null) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data || []).map(toMessage));
 
       // Mark as read
       if (userIdRef.current) {
@@ -267,36 +274,41 @@ export const useMessages = (conversationId: string | null) => {
     fetchMessages();
   }, [conversationId, fetchMessages]);
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!conversationId || !userIdRef.current || !content.trim()) return null;
+  const sendMessage = useCallback(async (content: string, attachments?: AttachmentMeta[]) => {
+    if (!conversationId || !userIdRef.current) return null;
+    const hasContent = content.trim().length > 0;
+    const hasAttachments = attachments && attachments.length > 0;
+    if (!hasContent && !hasAttachments) return null;
 
     const optimisticMsg: Message = {
       id: `temp-${Date.now()}`,
       conversation_id: conversationId,
       sender_id: userIdRef.current,
-      content: content.trim(),
+      content: content.trim() || '',
       is_read: false,
       created_at: new Date().toISOString(),
+      attachments: attachments || null,
     };
     setMessages(prev => [...prev, optimisticMsg]);
 
     try {
+      const insertData: any = {
+        conversation_id: conversationId,
+        sender_id: userIdRef.current,
+        content: content.trim() || (hasAttachments ? '📎 Adjunto' : ''),
+      };
+      if (hasAttachments) insertData.attachments = attachments;
+
       const { data, error } = await supabase
         .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: userIdRef.current,
-          content: content.trim(),
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) throw error;
 
-      // Replace optimistic message with real one
-      setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data : m));
+      setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? toMessage(data) : m));
 
-      // Update conversation timestamp
       supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
@@ -326,7 +338,7 @@ export const useMessages = (conversationId: string | null) => {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const newMsg = payload.new as Message;
+          const newMsg = toMessage(payload.new);
           // Only append if not from current user (already handled optimistically)
           if (newMsg.sender_id !== userIdRef.current) {
             setMessages(prev => {
