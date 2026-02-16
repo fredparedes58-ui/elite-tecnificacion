@@ -10,11 +10,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageSquare, Send, User, Search, X } from 'lucide-react';
+import { MessageSquare, Send, User, Search, X, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const ChatConsole: React.FC = () => {
   const { user } = useAuth();
-  const { conversations, loading } = useConversations();
+  const { conversations, loading, deleteConversation } = useConversations();
   const { markAsRead, getUnreadForConversation } = useUnreadCounts();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const hasAutoSelected = useRef(false);
@@ -22,6 +28,7 @@ const ChatConsole: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchQuery.trim()) return true;
@@ -74,6 +81,20 @@ const ChatConsole: React.FC = () => {
     if (!newMessage.trim()) return;
     await sendMessage(newMessage);
     setNewMessage('');
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget) return;
+    const success = await deleteConversation(deleteTarget.id);
+    if (success) {
+      toast.success('Conversación eliminada');
+      if (selectedConversation?.id === deleteTarget.id) {
+        setSelectedConversation(null);
+      }
+    } else {
+      toast.error('Error al eliminar la conversación');
+    }
+    setDeleteTarget(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -141,7 +162,7 @@ const ChatConsole: React.FC = () => {
                       key={conv.id}
                       onClick={() => handleSelectConversation(conv)}
                       className={cn(
-                        'w-full p-3 rounded-lg text-left transition-all duration-200',
+                        'w-full p-3 rounded-lg text-left transition-all duration-200 group',
                         selectedConversation?.id === conv.id
                           ? 'bg-neon-cyan/10 border border-neon-cyan/30'
                           : unread > 0
@@ -174,6 +195,13 @@ const ChatConsole: React.FC = () => {
                             {conv.lastMessage?.content || conv.subject || 'Sin mensajes'}
                           </p>
                         </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(conv); }}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all flex-shrink-0"
+                          title="Eliminar conversación"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </button>
                   );
@@ -268,6 +296,24 @@ const ChatConsole: React.FC = () => {
           )}
         </EliteCard>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar conversación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente la conversación con{' '}
+              <strong>{deleteTarget?.participant?.full_name || 'este usuario'}</strong> y todos sus mensajes. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

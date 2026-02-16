@@ -153,11 +153,44 @@ export const useConversations = () => {
     };
   }, [user, isAdmin]);
 
+  const deleteConversation = async (conversationId: string) => {
+    if (!user) return false;
+
+    try {
+      // Delete messages first (foreign key constraint)
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+
+      // Delete conversation_state
+      await supabase
+        .from('conversation_state')
+        .delete()
+        .eq('conversation_id', conversationId);
+
+      // Delete conversation
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      await fetchConversations();
+      return true;
+    } catch (err) {
+      console.error('Error deleting conversation:', err);
+      return false;
+    }
+  };
+
   return {
     conversations,
     loading,
     error,
     createConversation,
+    deleteConversation,
     refetch: fetchConversations,
   };
 };
