@@ -10,6 +10,7 @@ import CreditsReportDashboard from '@/components/admin/CreditsReportDashboard';
 import { ViewModeProvider, useViewMode } from '@/contexts/ViewModeContext';
 import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity } from 'lucide-react';
 import AdminKPIDashboard from '@/components/admin/AdminKPIDashboard';
+import { usePendingPlayers } from '@/hooks/usePendingPlayers';
 
 const Index: React.FC = () => {
   const { user, isAdmin, isApproved, isLoading } = useAuth();
@@ -113,6 +114,7 @@ const Index: React.FC = () => {
 const AdminDashboardContent: React.FC = () => {
   const { isParentView } = useViewMode();
   const [showReports, setShowReports] = useState<'kpis' | 'credits' | null>(null);
+  const { players: pendingPlayers } = usePendingPlayers();
 
   if (isParentView) {
     // Simulated parent view
@@ -233,12 +235,17 @@ const AdminDashboardContent: React.FC = () => {
               <p className="text-muted-foreground text-sm">Consola de mensajes</p>
             </EliteCard>
           </Link>
-          <Link to="/admin/player-approval">
+          <Link to="/admin/player-approval" className="relative">
             <EliteCard className="p-6 h-full hover:border-yellow-500/50 transition-colors">
               <Shield className="w-10 h-10 text-yellow-400 mb-4" />
               <h3 className="font-orbitron font-semibold text-lg mb-2">Aprobación</h3>
               <p className="text-muted-foreground text-sm">Aprobar jugadores pendientes</p>
             </EliteCard>
+            {pendingPlayers.length > 0 && (
+              <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shadow-lg shadow-destructive/30 animate-pulse">
+                {pendingPlayers.length}
+              </span>
+            )}
           </Link>
           <Link to="/admin/users?tab=credits">
             <EliteCard className="p-6 h-full hover:border-green-500/50 transition-colors">

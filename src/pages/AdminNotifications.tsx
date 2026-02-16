@@ -45,7 +45,7 @@ const AdminNotifications: React.FC = () => {
 
   // Filter notifications by type for admin
   const userNotifications = notifications.filter(n => 
-    n.type === 'new_user'
+    n.type === 'new_user' || n.type === 'new_player_pending'
   );
   const reservationNotifications = notifications.filter(n => 
     n.type === 'new_reservation_request'

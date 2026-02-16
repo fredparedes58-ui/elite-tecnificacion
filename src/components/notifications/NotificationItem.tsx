@@ -99,6 +99,12 @@ const getNotificationConfig = (type: string) => {
         color: 'text-destructive',
         bgColor: 'bg-destructive/10'
       };
+    case 'new_player_pending':
+      return { 
+        icon: UserPlus, 
+        color: 'text-yellow-500',
+        bgColor: 'bg-yellow-500/10'
+      };
     case 'reservation_proposal':
       return { 
         icon: MessageSquare, 
@@ -136,6 +142,8 @@ const getNavigationPath = (notification: Notification, isAdmin: boolean): string
     case 'player_approved':
     case 'player_rejected':
       return '/players';
+    case 'new_player_pending':
+      return '/admin/player-approval';
     case 'session_updated':
     case 'session_player_removed':
       return isAdmin ? '/admin/reservations' : '/reservations';
