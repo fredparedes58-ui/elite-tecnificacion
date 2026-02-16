@@ -33,13 +33,25 @@ const ChatConsole: React.FC = () => {
     );
   });
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    const el = messagesEndRef.current;
+    if (!el) return;
+    const viewport = el.closest('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    } else {
+      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }
   };
 
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => scrollToBottom(), 50);
+      // Immediate scroll (no animation) to avoid flash, then smooth fallback
+      requestAnimationFrame(() => {
+        scrollToBottom(false);
+        // Second pass after images/content settle
+        setTimeout(() => scrollToBottom(false), 150);
+      });
     }
   }, [messages]);
 
@@ -50,15 +62,12 @@ const ChatConsole: React.FC = () => {
       const conv = conversations[0];
       setSelectedConversation(conv);
       markAsRead(conv.id);
-      setTimeout(() => scrollToBottom(), 200);
     }
   }, [conversations]);
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
     markAsRead(conv.id);
-    // Scroll to bottom after selecting
-    setTimeout(() => scrollToBottom(), 100);
   };
 
   const handleSend = async () => {
