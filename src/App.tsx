@@ -19,6 +19,7 @@ import AdminChat from "./pages/AdminChat";
 import Notifications from "./pages/Notifications";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
+import AdminPlayerApproval from "./pages/AdminPlayerApproval";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/admin/chat" element={<AdminChat />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/player-approval" element={<AdminPlayerApproval />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

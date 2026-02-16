@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Calendar, Edit, User, Footprints, Building2, Activity, Trash2 } from 'lucide-react';
+import { Calendar, Edit, User, Footprints, Building2, Activity, Trash2, Clock, XCircle } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 
 interface MyPlayerCardProps {
@@ -160,10 +160,22 @@ const MyPlayerCard: React.FC<MyPlayerCardProps> = ({
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Activity className="w-4 h-4 text-green-400" />
-              <span>Activo</span>
-            </div>
+            {(player as any).approval_status === 'pending' ? (
+              <div className="flex items-center gap-2 text-sm text-yellow-400">
+                <Clock className="w-4 h-4" />
+                <span>Pendiente de aprobación</span>
+              </div>
+            ) : (player as any).approval_status === 'rejected' ? (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <XCircle className="w-4 h-4" />
+                <span>Rechazado{(player as any).rejection_reason ? `: ${(player as any).rejection_reason}` : ''}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Activity className="w-4 h-4 text-green-400" />
+                <span>Activo</span>
+              </div>
+            )}
           </div>
 
           {/* Notes if any */}

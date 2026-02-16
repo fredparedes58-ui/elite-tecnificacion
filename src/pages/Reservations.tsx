@@ -277,7 +277,7 @@ const Reservations: React.FC = () => {
                   </DialogTitle>
                 </DialogHeader>
                 <NewReservationWithCalendar
-                  players={players}
+                  players={players.filter((p: any) => p.approval_status === 'approved' || !p.approval_status)}
                   credits={credits}
                   onSubmit={handleCreateReservation}
                   onCancel={() => setReservationDialogOpen(false)}

@@ -34,7 +34,7 @@ export function usePlayers(filters?: UsePlayersFilters) {
     setError(null);
 
     try {
-      let query = supabase.from('players').select('*');
+      let query = (supabase.from('players').select('*') as any).eq('approval_status', 'approved');
 
       if (filters?.category && filters.category !== 'all') {
         query = query.eq('category', filters.category);
