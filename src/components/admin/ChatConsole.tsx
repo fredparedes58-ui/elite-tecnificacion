@@ -38,7 +38,9 @@ const ChatConsole: React.FC = () => {
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      setTimeout(() => scrollToBottom(), 50);
+    }
   }, [messages]);
 
   // Auto-select the conversation with the most recent message on first load
