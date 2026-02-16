@@ -9,7 +9,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Send, User } from 'lucide-react';
+import { Send, User, Paperclip } from 'lucide-react';
+import { useAttachments } from './attachments/useAttachments';
+import AttachmentPreviewBar from './attachments/AttachmentPreviewBar';
+import MessageAttachments from './attachments/MessageAttachments';
+import { ALLOWED_MIME } from './attachments/types';
 
 const ParentChat: React.FC = () => {
   const { user } = useAuth();
@@ -20,16 +24,29 @@ const ParentChat: React.FC = () => {
   const { messages, sendMessage } = useMessages(conversationId);
   const [newMessage, setNewMessage] = React.useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { attachments, addFiles, removeAttachment, clearAttachments, uploadAll, uploading } = useAttachments();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    const el = messagesEndRef.current;
+    if (!el) return;
+    const viewport = el.closest('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    } else {
+      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      requestAnimationFrame(() => {
+        scrollToBottom(false);
+        setTimeout(() => scrollToBottom(false), 150);
+      });
+    }
   }, [messages]);
 
-  // Auto-select or create the single conversation
   useEffect(() => {
     if (hasAutoSelected.current || loading) return;
     hasAutoSelected.current = true;
@@ -39,19 +56,27 @@ const ParentChat: React.FC = () => {
       setConversationId(conv.id);
       markAsRead(conv.id);
     } else {
-      // Auto-create the single conversation
       getOrCreateConversation().then((conv) => {
-        if (conv) {
-          setConversationId(conv.id);
-        }
+        if (conv) setConversationId(conv.id);
       });
     }
   }, [conversations, loading]);
 
   const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    await sendMessage(newMessage);
+    const hasContent = newMessage.trim().length > 0;
+    const hasAttach = attachments.length > 0;
+    if (!hasContent && !hasAttach) return;
+    if (!conversationId) return;
+
+    let uploadedMeta = undefined;
+    if (hasAttach) {
+      uploadedMeta = await uploadAll(conversationId);
+      if (!uploadedMeta || uploadedMeta.length === 0) return;
+    }
+
+    await sendMessage(newMessage, uploadedMeta);
     setNewMessage('');
+    clearAttachments();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -59,6 +84,11 @@ const ParentChat: React.FC = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) addFiles(e.target.files);
+    e.target.value = '';
   };
 
   if (loading) {
@@ -78,15 +108,11 @@ const ParentChat: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
               <User className="w-6 h-6 text-background" />
             </div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background" />
           </div>
           <div>
             <h3 className="font-orbitron font-semibold">Pedro</h3>
             <p className="text-xs text-muted-foreground">Director de Elite 380</p>
-            <p className="text-xs text-green-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              En línea
-            </p>
           </div>
         </div>
 
@@ -104,10 +130,7 @@ const ParentChat: React.FC = () => {
                 const isMe = msg.sender_id === user?.id;
                 const isOptimistic = msg.id.startsWith('temp-');
                 return (
-                  <div
-                    key={msg.id}
-                    className={cn('flex', isMe ? 'justify-end' : 'justify-start')}
-                  >
+                  <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
                     <div
                       className={cn(
                         'max-w-[80%] rounded-2xl px-4 py-2 transition-opacity',
@@ -117,10 +140,13 @@ const ParentChat: React.FC = () => {
                         isOptimistic && 'opacity-70'
                       )}
                     >
-                      {!isMe && (
-                        <p className="text-xs text-neon-purple font-semibold mb-1">Pedro</p>
+                      {!isMe && <p className="text-xs text-neon-purple font-semibold mb-1">Pedro</p>}
+                      {msg.content && msg.content !== '📎 Adjunto' && (
+                        <p className="font-rajdhani text-sm">{msg.content}</p>
                       )}
-                      <p className="font-rajdhani text-sm">{msg.content}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <MessageAttachments attachments={msg.attachments} isMe={isMe} />
+                      )}
                       <p className={cn('text-xs mt-1', isMe ? 'text-background/70' : 'text-muted-foreground')}>
                         {isOptimistic ? 'Enviando...' : format(new Date(msg.created_at), 'HH:mm', { locale: es })}
                       </p>
@@ -133,9 +159,31 @@ const ParentChat: React.FC = () => {
           </div>
         </ScrollArea>
 
+        {/* Attachment preview */}
+        {attachments.length > 0 && (
+          <div className="px-4 border-t border-neon-cyan/10">
+            <AttachmentPreviewBar attachments={attachments} onRemove={removeAttachment} />
+          </div>
+        )}
+
         {/* Input */}
         <div className="p-4 border-t border-neon-cyan/20">
-          <div className="flex gap-3">
+          <div className="flex gap-2 items-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={Object.keys(ALLOWED_MIME).join(',')}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-neon-cyan transition-colors"
+              title="Adjuntar archivo"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -143,7 +191,7 @@ const ParentChat: React.FC = () => {
               placeholder="Escribe un mensaje..."
               className="flex-1 bg-muted/50 border-neon-cyan/30"
             />
-            <NeonButton variant="gradient" onClick={handleSend}>
+            <NeonButton variant="gradient" onClick={handleSend} disabled={uploading}>
               <Send className="w-4 h-4" />
             </NeonButton>
           </div>
