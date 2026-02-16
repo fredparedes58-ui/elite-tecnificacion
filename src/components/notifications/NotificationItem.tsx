@@ -87,6 +87,18 @@ const getNotificationConfig = (type: string) => {
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10'
       };
+    case 'player_approved':
+      return { 
+        icon: CheckCircle, 
+        color: 'text-green-500',
+        bgColor: 'bg-green-500/10'
+      };
+    case 'player_rejected':
+      return { 
+        icon: XCircle, 
+        color: 'text-destructive',
+        bgColor: 'bg-destructive/10'
+      };
     case 'reservation_proposal':
       return { 
         icon: MessageSquare, 
@@ -121,6 +133,9 @@ const getNavigationPath = (notification: Notification, isAdmin: boolean): string
     case 'player_updated':
     case 'scouting_updated':
       return isAdmin ? '/scouting' : '/players';
+    case 'player_approved':
+    case 'player_rejected':
+      return '/players';
     case 'session_updated':
     case 'session_player_removed':
       return isAdmin ? '/admin/reservations' : '/reservations';

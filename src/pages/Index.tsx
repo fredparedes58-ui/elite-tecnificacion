@@ -233,6 +233,13 @@ const AdminDashboardContent: React.FC = () => {
               <p className="text-muted-foreground text-sm">Consola de mensajes</p>
             </EliteCard>
           </Link>
+          <Link to="/admin/player-approval">
+            <EliteCard className="p-6 h-full hover:border-yellow-500/50 transition-colors">
+              <Shield className="w-10 h-10 text-yellow-400 mb-4" />
+              <h3 className="font-orbitron font-semibold text-lg mb-2">Aprobación</h3>
+              <p className="text-muted-foreground text-sm">Aprobar jugadores pendientes</p>
+            </EliteCard>
+          </Link>
           <Link to="/admin/users?tab=credits">
             <EliteCard className="p-6 h-full hover:border-green-500/50 transition-colors">
               <CreditCard className="w-10 h-10 text-green-400 mb-4" />

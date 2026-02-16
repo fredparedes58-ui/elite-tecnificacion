@@ -96,8 +96,8 @@ const Dashboard: React.FC = () => {
     setSubmitting(false);
     if (result) {
       toast({
-        title: '⚽ ¡Fichaje Completado!',
-        description: `${data.name} ha sido añadido al plantel.`,
+        title: '⚽ ¡Fichaje Enviado!',
+        description: `${data.name} está pendiente de aprobación por el admin.`,
       });
       setPlayerDialogOpen(false);
     } else {
@@ -488,7 +488,7 @@ const Dashboard: React.FC = () => {
                     </DialogTitle>
                   </DialogHeader>
                   <ReservationForm
-                    players={players}
+                    players={players.filter((p: any) => p.approval_status === 'approved' || !p.approval_status)}
                     credits={credits}
                     onSubmit={handleCreateReservation}
                     onCancel={() => setReservationDialogOpen(false)}

@@ -371,6 +371,7 @@ export type Database = {
       }
       players: {
         Row: {
+          approval_status: string
           birth_date: string | null
           category: Database["public"]["Enums"]["player_category"]
           created_at: string | null
@@ -383,10 +384,12 @@ export type Database = {
           parent_id: string
           photo_url: string | null
           position: string | null
+          rejection_reason: string | null
           stats: Json | null
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string
           birth_date?: string | null
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string | null
@@ -399,10 +402,12 @@ export type Database = {
           parent_id: string
           photo_url?: string | null
           position?: string | null
+          rejection_reason?: string | null
           stats?: Json | null
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string
           birth_date?: string | null
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string | null
@@ -415,6 +420,7 @@ export type Database = {
           parent_id?: string
           photo_url?: string | null
           position?: string | null
+          rejection_reason?: string | null
           stats?: Json | null
           updated_at?: string | null
         }
