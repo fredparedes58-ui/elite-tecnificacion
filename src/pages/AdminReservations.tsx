@@ -62,13 +62,13 @@ const AdminReservations: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="font-orbitron font-bold text-3xl gradient-text mb-2">
+      <div className="container mx-auto px-0 md:px-4 py-4 md:py-8 max-w-full">
+        <div className="mb-4 md:mb-6 flex items-start justify-between flex-wrap gap-3">
+          <div className="min-w-0">
+            <h1 className="font-orbitron font-bold text-xl md:text-3xl gradient-text mb-1 md:mb-2">
               Gestión de Reservas
             </h1>
-            <p className="text-muted-foreground font-rajdhani">
+            <p className="text-muted-foreground font-rajdhani text-sm md:text-base">
               Administra sesiones, entrenadores y horarios
             </p>
           </div>
@@ -91,34 +91,34 @@ const AdminReservations: React.FC = () => {
           </Badge>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-card border border-neon-cyan/20 flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="weekly" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
-              <CalendarDays className="w-4 h-4 mr-2" />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <TabsList className="bg-card border border-neon-cyan/20 flex-wrap h-auto gap-1 p-1 w-full justify-start overflow-x-auto max-w-full">
+            <TabsTrigger value="weekly" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+              <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Semanal
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
-              <Calendar className="w-4 h-4 mr-2" />
-              Calendario
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+              <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
+              Cal.
             </TabsTrigger>
-            <TabsTrigger value="list" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan">
-              <List className="w-4 h-4 mr-2" />
+            <TabsTrigger value="list" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+              <List className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Lista
             </TabsTrigger>
-            <TabsTrigger value="players" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple">
-              <UserCircle className="w-4 h-4 mr-2" />
-              Jugadores
+            <TabsTrigger value="players" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple text-xs md:text-sm shrink-0">
+              <UserCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
+              Jug.
             </TabsTrigger>
-            <TabsTrigger value="credits" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Créditos
+            <TabsTrigger value="credits" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-xs md:text-sm shrink-0">
+              <CreditCard className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
+              Créd.
             </TabsTrigger>
-            <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple">
-              <Users className="w-4 h-4 mr-2" />
-              Entrenadores
+            <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple text-xs md:text-sm shrink-0">
+              <Users className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
+              Entren.
             </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
-              <BarChart3 className="w-4 h-4 mr-2" />
+            <TabsTrigger value="reports" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-xs md:text-sm shrink-0">
+              <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Reportes
             </TabsTrigger>
           </TabsList>

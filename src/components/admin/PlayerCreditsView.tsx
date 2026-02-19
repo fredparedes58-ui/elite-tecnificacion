@@ -347,12 +347,12 @@ const PlayerCreditsView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="font-orbitron font-bold text-2xl gradient-text">
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4 items-start lg:items-center justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <h2 className="font-orbitron font-bold text-xl md:text-2xl gradient-text">
               Créditos de Jugadores
             </h2>
             <Badge 
@@ -371,20 +371,21 @@ const PlayerCreditsView: React.FC = () => {
             Control de créditos disponibles por jugador
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <NeonButton 
             variant="outline" 
             onClick={handleNotifyLowCredits}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 md:gap-2 text-sm"
           >
-            <BellRing className="w-4 h-4" />
-            Ver alertas
+            <BellRing className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden md:inline">Ver alertas</span>
+            <span className="md:hidden">Alertas</span>
           </NeonButton>
           <NeonButton 
             variant="gradient" 
             onClick={handleSendEmailAlerts}
             disabled={sendingEmails}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 md:gap-2 text-sm"
           >
             {sendingEmails ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -397,51 +398,51 @@ const PlayerCreditsView: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <EliteCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-neon-cyan/20">
-              <User className="w-5 h-5 text-neon-cyan" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+        <EliteCard className="p-3 md:p-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-lg bg-neon-cyan/20 shrink-0">
+              <User className="w-4 h-4 md:w-5 md:h-5 text-neon-cyan" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Jugadores</p>
-              <p className="font-orbitron text-2xl text-neon-cyan">{stats.totalPlayers}</p>
-            </div>
-          </div>
-        </EliteCard>
-        
-        <EliteCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Sin Créditos</p>
-              <p className="font-orbitron text-2xl text-red-400">{stats.zeroCredits}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Jugadores</p>
+              <p className="font-orbitron text-lg md:text-2xl text-neon-cyan">{stats.totalPlayers}</p>
             </div>
           </div>
         </EliteCard>
         
-        <EliteCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-500/20">
-              <TrendingDown className="w-5 h-5 text-yellow-400" />
+        <EliteCard className="p-3 md:p-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-lg bg-red-500/20 shrink-0">
+              <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Créditos Bajos (≤5)</p>
-              <p className="font-orbitron text-2xl text-yellow-400">{stats.lowCredits}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Sin Créditos</p>
+              <p className="font-orbitron text-lg md:text-2xl text-red-400">{stats.zeroCredits}</p>
             </div>
           </div>
         </EliteCard>
         
-        <EliteCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/20">
-              <CreditCard className="w-5 h-5 text-green-400" />
+        <EliteCard className="p-3 md:p-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-lg bg-yellow-500/20 shrink-0">
+              <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Créditos</p>
-              <p className="font-orbitron text-2xl text-green-400">{stats.totalCredits}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Bajos (≤5)</p>
+              <p className="font-orbitron text-lg md:text-2xl text-yellow-400">{stats.lowCredits}</p>
+            </div>
+          </div>
+        </EliteCard>
+        
+        <EliteCard className="p-3 md:p-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-lg bg-green-500/20 shrink-0">
+              <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Créditos</p>
+              <p className="font-orbitron text-lg md:text-2xl text-green-400">{stats.totalCredits}</p>
             </div>
           </div>
         </EliteCard>

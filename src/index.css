@@ -1,10 +1,10 @@
+/* Elite 380 - Cyber-Electric Design System */
+/* @import must come before @tailwind */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Elite 380 - Cyber-Electric Design System */
-
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -99,11 +99,45 @@
   }
 
   body {
-    @apply bg-background text-foreground font-rajdhani antialiased;
+    @apply bg-background text-foreground font-rajdhani antialiased overflow-x-hidden;
+  }
+
+  /* Safe area for mobile (notch, home indicator) */
+  .h-safe-area-inset-bottom {
+    height: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Toasts / sonner: no quedar bajo el notch en móvil */
+  @media (max-width: 768px) {
+    [data-sonner-toaster] {
+      top: max(0px, env(safe-area-inset-top, 0px)) !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-orbitron;
+  }
+
+  /* Image improvements */
+  img {
+    @apply max-w-full h-auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  img[class*="object-cover"] {
+    object-fit: cover;
+    object-position: center;
+  }
+
+  img[class*="object-contain"] {
+    object-fit: contain;
+    object-position: center;
+  }
+
+  /* Prevent image overflow */
+  img {
+    display: block;
   }
 }
 
@@ -247,6 +281,30 @@
   /* Pulse animation for active elements */
   .pulse-neon {
     animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Image utilities */
+  .img-responsive {
+    @apply w-full h-auto max-w-full;
+  }
+
+  .img-cover {
+    @apply w-full h-full object-cover;
+    object-position: center;
+  }
+
+  .img-contain {
+    @apply w-full h-full object-contain;
+    object-position: center;
+  }
+
+  .img-rounded {
+    @apply rounded-lg overflow-hidden;
+  }
+
+  .img-avatar {
+    @apply rounded-full overflow-hidden;
+    aspect-ratio: 1 / 1;
   }
 }
 

@@ -12,9 +12,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useNotifications();
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
+    <div className="min-h-screen bg-background cyber-grid overflow-x-hidden">
       <Navbar />
-      <main className="pt-16 pb-20 md:pb-0">
+      <main className="pt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:pt-16 pb-20 md:pb-0 max-w-full overflow-x-hidden px-3 md:px-4">
         {children}
       </main>
       <BottomNav />

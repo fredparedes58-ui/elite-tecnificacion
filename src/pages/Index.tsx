@@ -163,13 +163,13 @@ const AdminDashboardContent: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-orbitron font-bold text-4xl md:text-5xl gradient-text mb-2">
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-full">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-8">
+          <div className="min-w-0">
+            <h1 className="font-orbitron font-bold text-2xl md:text-5xl gradient-text mb-1 md:mb-2">
               PANEL ADMINISTRADOR
             </h1>
-            <p className="text-muted-foreground text-lg font-rajdhani">
+            <p className="text-muted-foreground text-sm md:text-lg font-rajdhani">
               Bienvenido, Pedro. Tienes acceso completo al sistema.
             </p>
           </div>
@@ -177,7 +177,7 @@ const AdminDashboardContent: React.FC = () => {
         </div>
 
         {/* Toggle Reports */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4 md:mb-6">
           <NeonButton
             variant={showReports === 'kpis' ? 'cyan' : 'outline'}
             onClick={() => setShowReports(showReports === 'kpis' ? null : 'kpis')}
@@ -206,40 +206,40 @@ const AdminDashboardContent: React.FC = () => {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <Link to="/admin/users">
-            <EliteCard className="p-6 h-full hover:border-neon-cyan/50 transition-colors">
-              <Users className="w-10 h-10 text-neon-cyan mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Usuarios</h3>
-              <p className="text-muted-foreground text-sm">Aprobar y gestionar usuarios</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-cyan/50 transition-colors">
+              <Users className="w-8 h-8 md:w-10 md:h-10 text-neon-cyan mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Usuarios</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Aprobar y gestionar usuarios</p>
             </EliteCard>
           </Link>
           <Link to="/scouting">
-            <EliteCard className="p-6 h-full hover:border-neon-purple/50 transition-colors">
-              <Target className="w-10 h-10 text-neon-purple mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Scouting</h3>
-              <p className="text-muted-foreground text-sm">Ver todos los jugadores</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-purple/50 transition-colors">
+              <Target className="w-8 h-8 md:w-10 md:h-10 text-neon-purple mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Scouting</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Ver todos los jugadores</p>
             </EliteCard>
           </Link>
           <Link to="/admin/reservations">
-            <EliteCard className="p-6 h-full hover:border-neon-cyan/50 transition-colors">
-              <Calendar className="w-10 h-10 text-neon-cyan mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Reservas</h3>
-              <p className="text-muted-foreground text-sm">Aprobar reservas pendientes</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-cyan/50 transition-colors">
+              <Calendar className="w-8 h-8 md:w-10 md:h-10 text-neon-cyan mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Reservas</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Aprobar reservas pendientes</p>
             </EliteCard>
           </Link>
           <Link to="/admin/chat">
-            <EliteCard className="p-6 h-full hover:border-neon-purple/50 transition-colors">
-              <MessageSquare className="w-10 h-10 text-neon-purple mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Chats</h3>
-              <p className="text-muted-foreground text-sm">Consola de mensajes</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-purple/50 transition-colors">
+              <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-neon-purple mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Chats</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Consola de mensajes</p>
             </EliteCard>
           </Link>
           <Link to="/admin/player-approval" className="relative">
-            <EliteCard className="p-6 h-full hover:border-yellow-500/50 transition-colors">
-              <Shield className="w-10 h-10 text-yellow-400 mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Aprobación</h3>
-              <p className="text-muted-foreground text-sm">Aprobar jugadores pendientes</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-yellow-500/50 transition-colors">
+              <Shield className="w-8 h-8 md:w-10 md:h-10 text-yellow-400 mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Aprobación</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Aprobar jugadores pendientes</p>
             </EliteCard>
             {pendingPlayers.length > 0 && (
               <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shadow-lg shadow-destructive/30 animate-pulse">
@@ -248,10 +248,10 @@ const AdminDashboardContent: React.FC = () => {
             )}
           </Link>
           <Link to="/admin/users?tab=credits">
-            <EliteCard className="p-6 h-full hover:border-green-500/50 transition-colors">
-              <CreditCard className="w-10 h-10 text-green-400 mb-4" />
-              <h3 className="font-orbitron font-semibold text-lg mb-2">Créditos</h3>
-              <p className="text-muted-foreground text-sm">Gestión de cartera de jugadores</p>
+            <EliteCard className="p-4 md:p-6 h-full hover:border-green-500/50 transition-colors">
+              <CreditCard className="w-8 h-8 md:w-10 md:h-10 text-green-400 mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Créditos</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Gestión de cartera de jugadores</p>
             </EliteCard>
           </Link>
         </div>

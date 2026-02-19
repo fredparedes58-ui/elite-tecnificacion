@@ -811,9 +811,9 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
       onDragStart={(event) => setActiveId(event.active.id as string)}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Left Sidebar - Players with Full Info */}
-        <EliteCard className="w-80 shrink-0 p-4">
+        <EliteCard className="w-full lg:w-80 shrink-0 p-4">
           <div className="mb-4">
             <h3 className="font-orbitron text-lg gradient-text mb-2">Jugadores</h3>
             <p className="text-xs text-muted-foreground">Arrastra un jugador a una celda</p>
@@ -847,7 +847,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
           </div>
           
           {/* Players List */}
-          <ScrollArea className="h-[450px]">
+          <ScrollArea className="h-[280px] lg:h-[450px]">
             <div className="space-y-2 pr-2">
               {filteredPlayers.map(player => (
                 <DraggablePlayer
