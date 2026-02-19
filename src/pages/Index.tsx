@@ -8,8 +8,9 @@ import BlockedScreen from './BlockedScreen';
 import ViewModeToggle from '@/components/admin/ViewModeToggle';
 import CreditsReportDashboard from '@/components/admin/CreditsReportDashboard';
 import { ViewModeProvider, useViewMode } from '@/contexts/ViewModeContext';
-import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity } from 'lucide-react';
+import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity, GitCompare } from 'lucide-react';
 import AdminKPIDashboard from '@/components/admin/AdminKPIDashboard';
+import PerformanceSummaryCard from '@/components/admin/PerformanceSummaryCard';
 import { usePendingPlayers } from '@/hooks/usePendingPlayers';
 
 const Index: React.FC = () => {
@@ -192,6 +193,17 @@ const AdminDashboardContent: React.FC = () => {
             <BarChart3 className="w-4 h-4 mr-2" />
             Reportes Créditos
           </NeonButton>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
+          <PerformanceSummaryCard />
+          <Link to="/admin/compare-players">
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-purple/50 transition-colors min-h-[180px] flex flex-col justify-center">
+              <GitCompare className="w-10 h-10 text-neon-purple mb-3" />
+              <h3 className="font-orbitron font-semibold text-lg mb-1">Comparativa</h3>
+              <p className="text-muted-foreground text-sm">Compara dos jugadores cara a cara (estilo FIFA)</p>
+            </EliteCard>
+          </Link>
         </div>
 
         {showReports === 'kpis' && (

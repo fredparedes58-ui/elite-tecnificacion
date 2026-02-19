@@ -7,7 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RadarChart from '@/components/players/RadarChart';
 import PlayerProgressChart from '@/components/players/PlayerProgressChart';
 import PlayerSessionHistoryList from '@/components/players/PlayerSessionHistoryList';
-import { User, Calendar, MapPin, Save, Edit3, X, TrendingUp, History } from 'lucide-react';
+import ElitePlayerCard, { mapStatsToPlayerSkills, playerSkillsToStats, type PlayerSkills } from '@/components/players/ElitePlayerCard';
+import AverageRatingLineChart from '@/components/players/AverageRatingLineChart';
+import { User, Calendar, MapPin, Save, Edit3, X, TrendingUp, History, CreditCard } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,13 +53,13 @@ const statLabels: Record<keyof PlayerStats, string> = {
   tactical: 'Táctico',
 };
 
-const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ 
-  player, 
-  isOpen, 
+const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
+  player,
+  isOpen,
   onClose,
-  onStatsUpdated 
+  onStatsUpdated
 }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editedStats, setEditedStats] = useState<PlayerStats | null>(null);
@@ -162,8 +164,12 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="carta" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="carta" className="flex items-center gap-1">
+              <CreditCard className="w-3 h-3" />
+              Carta
+            </TabsTrigger>
             <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="progress" className="flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
@@ -174,6 +180,45 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
               Sesiones
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="carta" className="mt-4 flex justify-center">
+            <ElitePlayerCard
+              name={player.name}
+              position={player.position}
+              photoUrl={player.photo_url}
+              skills={mapStatsToPlayerSkills(player.stats as Record<string, unknown>)}
+              notes={player.notes}
+              isCoach={isAdmin}
+              onSkillsChange={async (skills: PlayerSkills) => {
+                const statsJson = playerSkillsToStats(skills) as unknown as Record<string, number>;
+                const { error } = await supabase
+                  .from('players')
+                  .update({ stats: statsJson, updated_at: new Date().toISOString() })
+                  .eq('id', player.id);
+                if (!error) {
+                  if (user?.id) {
+                    const historyStats = { ...statsJson, ...skills };
+                    await supabase.from('player_stats_history').insert({
+                      player_id: player.id,
+                      reservation_id: null,
+                      recorded_by: user.id,
+                      stats: historyStats,
+                      notes: null,
+                      recorded_at: new Date().toISOString(),
+                    });
+                  }
+                  onStatsUpdated?.();
+                }
+              }}
+              onNotesChange={async (notes: string) => {
+                const { error } = await supabase
+                  .from('players')
+                  .update({ notes: notes || null, updated_at: new Date().toISOString() })
+                  .eq('id', player.id);
+                if (!error) onStatsUpdated?.();
+              }}
+            />
+          </TabsContent>
 
           <TabsContent value="profile" className="mt-4">
             <div className="grid md:grid-cols-2 gap-6">
@@ -315,9 +360,14 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
             </div>
           </TabsContent>
 
-          <TabsContent value="progress" className="mt-4">
-            <PlayerProgressChart 
-              playerId={player.id} 
+          <TabsContent value="progress" className="mt-4 space-y-6">
+            <AverageRatingLineChart
+              playerId={player.id}
+              playerLevel={player.level}
+              currentStats={player.stats as Record<string, number>}
+            />
+            <PlayerProgressChart
+              playerId={player.id}
               currentStats={player.stats}
             />
           </TabsContent>

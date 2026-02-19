@@ -13,7 +13,7 @@ import NewReservationWithCalendar from '@/components/reservations/NewReservation
 import ReservationNegotiationCard from '@/components/reservations/ReservationNegotiationCard';
 import CancelReservationModal from '@/components/reservations/CancelReservationModal';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
   Dialog,
@@ -78,6 +78,11 @@ const Reservations: React.FC = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const sessionStartsInLessThan24h = (startTime: string) => {
+    const hours = differenceInHours(new Date(startTime), new Date());
+    return hours >= 0 && hours < 24;
   };
 
   const handleAcceptProposal = async (reservationId: string) => {
@@ -384,11 +389,12 @@ const Reservations: React.FC = () => {
                   <NeonButton
                     variant="outline"
                     size="sm"
-                    onClick={() => handleCancelClick(reservation)}
-                    className="w-full mt-4 border-destructive/50 text-destructive hover:bg-destructive/10"
+                    onClick={() => !sessionStartsInLessThan24h(reservation.start_time) && handleCancelClick(reservation)}
+                    disabled={sessionStartsInLessThan24h(reservation.start_time)}
+                    className="w-full mt-4 border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Cancelar
+                    {sessionStartsInLessThan24h(reservation.start_time) ? 'Cancelar (bloqueado <24h)' : 'Cancelar'}
                   </NeonButton>
                 </EliteCard>
               ))}

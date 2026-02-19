@@ -144,10 +144,24 @@ const CompleteSessionModal: React.FC<CompleteSessionModalProps> = ({
 
       toast({
         title: status === 'completed' ? '✅ Sesión completada' : '❌ Ausencia registrada',
-        description: status === 'no_show' 
+        description: status === 'no_show'
           ? 'Se ha descontado el crédito por no asistir.'
           : 'La sesión ha sido marcada como completada.',
       });
+
+      if (status === 'completed') {
+        try {
+          await supabase.functions.invoke('notify-session-events', {
+            body: {
+              event: 'training_completed',
+              reservation_id: reservation.id,
+              trainer_comments: trainerComments.trim() || undefined,
+            },
+          });
+        } catch (notifyErr) {
+          console.warn('notify-session-events (training_completed):', notifyErr);
+        }
+      }
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['reservations'] });

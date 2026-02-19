@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   CalendarPlus,
   History,
-  CheckCircle
+  CheckCircle,
+  Filter
 } from 'lucide-react';
 import {
   Dialog,
@@ -32,6 +33,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -297,6 +304,8 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationWithTrainer | null>(null);
   const [lowCreditsNotified, setLowCreditsNotified] = useState<Set<string>>(new Set());
+  const [coachFilterIds, setCoachFilterIds] = useState<string[]>([]);
+  const [coachFilterOpen, setCoachFilterOpen] = useState(false);
   
   // States for editing reservation in detail modal
   const [editingPlayer, setEditingPlayer] = useState<string>('');
@@ -416,6 +425,12 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     return { total, zeroCredits, lowCredits };
   }, [playersWithFullInfo]);
 
+  // Filter reservations by selected coach(es)
+  const filteredReservations = useMemo(() => {
+    if (coachFilterIds.length === 0) return reservations;
+    return reservations.filter(r => r.trainer_id && coachFilterIds.includes(r.trainer_id));
+  }, [reservations, coachFilterIds]);
+
   // Group reservations by day and hour
   const scheduleGrid = useMemo(() => {
     const grid: Record<string, Record<number, ReservationWithTrainer[]>> = {};
@@ -428,7 +443,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
       });
     });
 
-    reservations.forEach(reservation => {
+    filteredReservations.forEach(reservation => {
       const resDate = parseISO(reservation.start_time);
       const dayKey = format(resDate, 'yyyy-MM-dd');
       const hour = resDate.getHours();
@@ -443,7 +458,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     });
 
     return grid;
-  }, [reservations, weekDays, trainers]);
+  }, [filteredReservations, weekDays, trainers]);
 
   // Check for schedule conflicts - if the player already has a session at the target time
   const checkConflicts = useCallback((playerId: string, targetDate: Date, targetHour: number, excludeReservationId?: string): string | undefined => {
@@ -884,17 +899,63 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 
         {/* Main Schedule Grid */}
         <div className="flex-1 min-w-0">
-          {/* Week Navigation */}
-          <div className="flex items-center justify-between mb-2">
+          {/* Week Navigation + Coach Filter */}
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <NeonButton variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
               <ChevronLeft className="w-4 h-4" />
             </NeonButton>
-            <h2 className="font-orbitron font-bold text-lg gradient-text text-center">
+            <h2 className="font-orbitron font-bold text-lg gradient-text text-center order-first w-full lg:order-none lg:w-auto">
               {format(weekStart, "dd MMM", { locale: es })} - {format(addDays(weekStart, 6), "dd MMM yyyy", { locale: es })}
             </h2>
-            <NeonButton variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-              <ChevronRight className="w-4 h-4" />
-            </NeonButton>
+            <div className="flex items-center gap-2">
+              {trainers.length > 0 && (
+                <Popover open={coachFilterOpen} onOpenChange={setCoachFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <NeonButton variant="outline" size="sm" className="gap-2">
+                      <Filter className="w-4 h-4" />
+                      {coachFilterIds.length === 0
+                        ? 'Todos'
+                        : coachFilterIds.length === 1
+                          ? trainers.find(t => t.id === coachFilterIds[0])?.name ?? '1 coach'
+                          : `${coachFilterIds.length} coaches`}
+                    </NeonButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-3 bg-card border-neon-cyan/30" align="end">
+                    <p className="text-xs font-orbitron text-neon-cyan mb-2">Ver agenda de</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer rounded-md p-2 hover:bg-muted/50">
+                        <Checkbox
+                          checked={coachFilterIds.length === 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) setCoachFilterIds([]);
+                          }}
+                        />
+                        <span className="text-sm">Todos</span>
+                      </label>
+                      {trainers.map(trainer => (
+                        <label key={trainer.id} className="flex items-center gap-2 cursor-pointer rounded-md p-2 hover:bg-muted/50">
+                          <Checkbox
+                            checked={coachFilterIds.includes(trainer.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setCoachFilterIds(prev => prev.length === 0 ? [trainer.id] : [...prev, trainer.id]);
+                              } else {
+                                setCoachFilterIds(prev => prev.filter(id => id !== trainer.id));
+                              }
+                            }}
+                          />
+                          <span className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: trainer.color || '#06b6d4' }} />
+                          <span className="text-sm">{trainer.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <NeonButton variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                <ChevronRight className="w-4 h-4" />
+              </NeonButton>
+            </div>
           </div>
 
           {/* Trainer Legend */}
@@ -913,7 +974,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
             </div>
           )}
 
-          <EliteCard className="overflow-x-auto">
+          <EliteCard className="overflow-auto max-h-[calc(100vh-18rem)] min-h-[320px]">
             <div className="min-w-[800px]">
               {/* Header Row - Days of Week */}
               <div className="grid border-b border-neon-cyan/20" style={{ gridTemplateColumns: `60px repeat(7, 1fr)` }}>

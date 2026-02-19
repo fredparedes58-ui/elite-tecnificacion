@@ -79,9 +79,9 @@ const CancelReservationModal: React.FC<CancelReservationModalProps> = ({
               )}
 
               {isLessThan24Hours && (
-                <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                  <p className="text-yellow-400 text-sm">
-                    ⚠️ La sesión es en menos de 24 horas. Considera contactar directamente con el staff.
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-amber-400 text-sm font-medium">
+                    No se puede cancelar ni editar cuando la sesión empieza en menos de 24 horas.
                   </p>
                 </div>
               )}
@@ -108,8 +108,8 @@ const CancelReservationModal: React.FC<CancelReservationModalProps> = ({
               e.preventDefault();
               onConfirm();
             }}
-            disabled={loading || isPast}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={loading || isPast || isLessThan24Hours}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />

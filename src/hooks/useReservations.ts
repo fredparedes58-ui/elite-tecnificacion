@@ -100,6 +100,13 @@ export const useReservations = () => {
 
       if (error) throw error;
       refetch();
+      try {
+        await supabase.functions.invoke('notify-session-events', {
+          body: { event: 'reservation_requested', reservation_id: data.id },
+        });
+      } catch (notifyErr) {
+        console.warn('notify-session-events (reservation_requested):', notifyErr);
+      }
       return data;
     } catch (err) {
       console.error('Error creating reservation:', err);
@@ -296,8 +303,17 @@ export const useAllReservations = () => {
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
         }
+        if (status === 'approved') {
+          try {
+            await supabase.functions.invoke('notify-session-events', {
+              body: { event: 'reservation_accepted', reservation_id: id },
+            });
+          } catch (notifyErr) {
+            console.warn('notify-session-events (reservation_accepted):', notifyErr);
+          }
+        }
       }
-      
+
       return true;
     } catch (err) {
       console.error('Error updating reservation:', err);
@@ -367,8 +383,21 @@ export const useAllReservations = () => {
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
         }
+        if (emailType === 'moved') {
+          try {
+            await supabase.functions.invoke('notify-session-events', {
+              body: {
+                event: 'reservation_moved',
+                reservation_id: id,
+                old_start_time: currentReservation.start_time,
+              },
+            });
+          } catch (notifyErr) {
+            console.warn('notify-session-events (reservation_moved):', notifyErr);
+          }
+        }
       }
-      
+
       // Refetch to get updated player/user names if player_id changed
       if (updates.player_id !== undefined) {
         queryClient.invalidateQueries({ queryKey: ['all-reservations'] });

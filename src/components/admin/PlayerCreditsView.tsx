@@ -313,8 +313,21 @@ const PlayerCreditsView: React.FC = () => {
             alert_type: alertType,
           },
         });
-        
+
         if (error) throw error;
+        if (player.credits < 1) {
+          try {
+            await supabase.functions.invoke('notify-session-events', {
+              body: {
+                event: 'credits_low',
+                user_id: player.parent.id,
+                balance: player.credits,
+              },
+            });
+          } catch (notifyErr) {
+            console.warn('notify-session-events (credits_low):', notifyErr);
+          }
+        }
         sentCount++;
       } catch (err) {
         console.error(`Error sending alert for ${player.name}:`, err);
