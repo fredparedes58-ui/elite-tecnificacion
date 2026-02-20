@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   getR2PresignedUrl,
   uploadToR2,
@@ -74,6 +75,8 @@ export function useUpload(options: UseUploadOptions): UseUploadResult {
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
         setError(e);
+        // Mostrar mensaje de error al usuario usando toast
+        toast.error(e.message || "Error al subir la foto. Verifica tu conexión e intenta de nuevo.");
         onError?.(e);
         return null;
       } finally {
@@ -138,6 +141,8 @@ export function useTusUpload(options: UseTusUploadOptions): UseTusUploadResult {
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
         setError(e);
+        // Mostrar mensaje de error al usuario usando toast
+        toast.error(e.message || "Error al subir el vídeo. Verifica tu conexión y el tamaño del archivo.");
         onError?.(e);
         return null;
       } finally {

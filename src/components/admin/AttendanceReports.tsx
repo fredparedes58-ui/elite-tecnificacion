@@ -362,47 +362,6 @@ const AttendanceReports: React.FC<AttendanceReportsProps> = ({
           )}
         </EliteCard>
       </div>
-
-      {/* Player Stats Table */}
-      <EliteCard className="p-6">
-        <h3 className="font-orbitron text-lg mb-4">Asistencia por Jugador</h3>
-        {playerStats.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-neon-cyan/20">
-                  <th className="text-left py-3 px-4 font-orbitron text-sm text-muted-foreground">Jugador</th>
-                  <th className="text-center py-3 px-4 font-orbitron text-sm text-muted-foreground">Total</th>
-                  <th className="text-center py-3 px-4 font-orbitron text-sm text-muted-foreground">Completadas</th>
-                  <th className="text-center py-3 px-4 font-orbitron text-sm text-muted-foreground">No Asistió</th>
-                  <th className="text-center py-3 px-4 font-orbitron text-sm text-muted-foreground">Tasa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {playerStats.map((player, index) => (
-                  <tr key={index} className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="py-3 px-4 font-rajdhani">{player.name}</td>
-                    <td className="text-center py-3 px-4 font-orbitron text-neon-cyan">{player.total}</td>
-                    <td className="text-center py-3 px-4 font-orbitron text-green-400">{player.completed}</td>
-                    <td className="text-center py-3 px-4 font-orbitron text-orange-400">{player.no_show}</td>
-                    <td className="text-center py-3 px-4">
-                      <StatusBadge 
-                        variant={player.rate >= 80 ? 'success' : player.rate >= 50 ? 'warning' : 'error'}
-                      >
-                        {player.rate}%
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="py-12 text-center text-muted-foreground">
-            No hay datos de jugadores para este mes
-          </div>
-        )}
-      </EliteCard>
     </div>
   );
 };

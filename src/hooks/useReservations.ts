@@ -329,6 +329,7 @@ export const useAllReservations = () => {
     start_time?: string;
     end_time?: string;
     status?: ReservationStatus;
+    title?: string;
   }, sendEmail: boolean = true) => {
     try {
       // Get current reservation for comparison

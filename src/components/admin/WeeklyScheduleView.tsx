@@ -243,14 +243,18 @@ const DraggableReservation: React.FC<{
         <div className="font-rajdhani font-medium truncate">
           {reservation.player?.name || reservation.title}
         </div>
-        <div className="text-muted-foreground truncate flex items-center gap-1">
+        <div className="text-muted-foreground truncate flex items-center gap-1 flex-wrap">
           {format(parseISO(reservation.start_time), 'HH:mm')}
-          {reservation.trainer && (
+          {reservation.trainer ? (
             <span 
               className="inline-block w-2 h-2 rounded-full ml-auto shrink-0"
               style={{ backgroundColor: trainerColor || '#888' }}
               title={reservation.trainer.name}
             />
+          ) : (
+            <span className="text-amber-400 text-[10px] font-medium" title="Doble clic para asignar entrenador">
+              Sin entrenador
+            </span>
           )}
         </div>
       </div>

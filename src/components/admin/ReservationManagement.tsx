@@ -31,13 +31,22 @@ type ReservationStatus = Database['public']['Enums']['reservation_status'];
 interface ReservationManagementProps {
   reservations: Reservation[];
   loading: boolean;
+  updateReservation?: (id: string, updates: { title?: string }, sendEmail?: boolean) => Promise<boolean>;
   updateReservationStatus: (id: string, status: ReservationStatus, sendEmail?: boolean) => Promise<boolean>;
   refetch?: () => void;
 }
 
+/**
+ * Origen de los datos: reservations proviene de useAllReservations() en AdminReservations,
+ * que consulta Supabase (tabla reservations con joins a profiles:user_id y players:player_id).
+ * El título mostrado es reservation.title de la tabla reservations.
+ * Al hacer Check (aprobar): se llama updateReservationStatus(id, 'approved', true), se actualiza
+ * el estado en Supabase y se dispara el envío de email de notificación al usuario.
+ */
 const ReservationManagement: React.FC<ReservationManagementProps> = ({
   reservations,
   loading,
+  updateReservation,
   updateReservationStatus,
   refetch
 }) => {
@@ -47,6 +56,8 @@ const ReservationManagement: React.FC<ReservationManagementProps> = ({
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [proposalMessage, setProposalMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState('');
 
   const handleApprove = async (id: string) => {
     const success = await updateReservationStatus(id, 'approved', true);
@@ -139,6 +150,21 @@ const ReservationManagement: React.FC<ReservationManagementProps> = ({
         return 'info';
       default:
         return 'default';
+    }
+  };
+
+  const handleTitleSave = async (id: string) => {
+    if (!updateReservation || editingTitleValue.trim() === '') {
+      setEditingTitleId(null);
+      return;
+    }
+    const success = await updateReservation(id, { title: editingTitleValue.trim() }, false);
+    setEditingTitleId(null);
+    if (success) {
+      toast({ title: 'Título actualizado' });
+      refetch?.();
+    } else {
+      toast({ title: 'Error al guardar', variant: 'destructive' });
     }
   };
 
@@ -237,7 +263,33 @@ const ReservationManagement: React.FC<ReservationManagementProps> = ({
                     <TableCell className="text-muted-foreground">
                       {reservation.player?.name || '-'}
                     </TableCell>
-                    <TableCell className="font-rajdhani">{reservation.title}</TableCell>
+                    <TableCell className="font-rajdhani">
+                      {editingTitleId === reservation.id ? (
+                        <input
+                          type="text"
+                          value={editingTitleValue}
+                          onChange={(e) => setEditingTitleValue(e.target.value)}
+                          onBlur={() => handleTitleSave(reservation.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleTitleSave(reservation.id);
+                            if (e.key === 'Escape') { setEditingTitleId(null); setEditingTitleValue(''); }
+                          }}
+                          className="w-full min-w-[120px] bg-muted/50 border border-neon-cyan/30 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-neon-cyan"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+                          onClick={() => {
+                            setEditingTitleId(reservation.id);
+                            setEditingTitleValue(reservation.title);
+                          }}
+                          title="Clic para editar título"
+                        >
+                          {reservation.title}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1 text-sm text-neon-cyan">

@@ -7,11 +7,10 @@ import ReservationCalendarView from '@/components/admin/ReservationCalendarView'
 import WeeklyScheduleView from '@/components/admin/WeeklyScheduleView';
 import TrainerManagement from '@/components/admin/TrainerManagement';
 import AttendanceReports from '@/components/admin/AttendanceReports';
-import PlayerDirectory from '@/components/admin/PlayerDirectory';
 import PlayerCreditsView from '@/components/admin/PlayerCreditsView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, List, Users, BarChart3, UserCircle, CalendarDays, CreditCard, Wifi } from 'lucide-react';
+import { Calendar, List, Users, BarChart3, CalendarDays, CreditCard, Wifi } from 'lucide-react';
 import { useAllReservations } from '@/hooks/useReservations';
 import { useTrainers } from '@/hooks/useTrainers';
 import { usePlayers } from '@/hooks/usePlayers';
@@ -34,7 +33,7 @@ const AdminReservations: React.FC = () => {
     lastRealtimeUpdate,
   } = useAllReservations();
   const { trainers, loading: trainersLoading } = useTrainers();
-  const { players, isLoading: playersLoading, refetch: refetchPlayers } = usePlayers();
+  const { players, isLoading: playersLoading } = usePlayers();
 
   // Combined loading state for initial load only
   const initialLoading = reservationsLoading && trainersLoading && playersLoading;
@@ -105,10 +104,6 @@ const AdminReservations: React.FC = () => {
               <List className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Lista
             </TabsTrigger>
-            <TabsTrigger value="players" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple text-xs md:text-sm shrink-0">
-              <UserCircle className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
-              Jug.
-            </TabsTrigger>
             <TabsTrigger value="credits" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-xs md:text-sm shrink-0">
               <CreditCard className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Créd.
@@ -153,13 +148,10 @@ const AdminReservations: React.FC = () => {
             <ReservationManagement 
               reservations={reservations}
               loading={reservationsLoading}
+              updateReservation={updateReservation}
               updateReservationStatus={updateReservationStatus}
               refetch={refetchReservations}
             />
-          </TabsContent>
-
-          <TabsContent value="players" forceMount className={activeTab !== 'players' ? 'hidden' : 'mt-0'}>
-            <PlayerDirectory />
           </TabsContent>
 
           <TabsContent value="credits" forceMount className={activeTab !== 'credits' ? 'hidden' : 'mt-0'}>

@@ -5,6 +5,7 @@ import { NeonButton } from '@/components/ui/NeonButton';
 import { EliteCard } from '@/components/ui/EliteCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { z } from 'zod';
@@ -30,6 +31,7 @@ const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -235,6 +237,18 @@ const Auth: React.FC = () => {
             </NeonButton>
           </form>
 
+          {mode === 'signin' && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-neon-cyan transition-colors underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
+
           {mode === 'signup' && (
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Al registrarte, tu cuenta quedará pendiente de aprobación por el administrador.
@@ -242,6 +256,12 @@ const Auth: React.FC = () => {
           )}
         </EliteCard>
       </div>
+
+      {/* Modal de recuperación de contraseña */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };

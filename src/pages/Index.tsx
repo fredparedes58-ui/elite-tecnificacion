@@ -8,7 +8,7 @@ import BlockedScreen from './BlockedScreen';
 import ViewModeToggle from '@/components/admin/ViewModeToggle';
 import CreditsReportDashboard from '@/components/admin/CreditsReportDashboard';
 import { ViewModeProvider, useViewMode } from '@/contexts/ViewModeContext';
-import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity, GitCompare } from 'lucide-react';
+import { Target, Users, Calendar, MessageSquare, Shield, Zap, BarChart3, CreditCard, Activity, GitCompare, UserCircle } from 'lucide-react';
 import AdminKPIDashboard from '@/components/admin/AdminKPIDashboard';
 import PerformanceSummaryCard from '@/components/admin/PerformanceSummaryCard';
 import { usePendingPlayers } from '@/hooks/usePendingPlayers';
@@ -231,6 +231,13 @@ const AdminDashboardContent: React.FC = () => {
               <Target className="w-8 h-8 md:w-10 md:h-10 text-neon-purple mb-2 md:mb-4" />
               <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Scouting</h3>
               <p className="text-muted-foreground text-xs md:text-sm">Ver todos los jugadores</p>
+            </EliteCard>
+          </Link>
+          <Link to="/admin/players">
+            <EliteCard className="p-4 md:p-6 h-full hover:border-neon-purple/50 transition-colors">
+              <UserCircle className="w-8 h-8 md:w-10 md:h-10 text-neon-purple mb-2 md:mb-4" />
+              <h3 className="font-orbitron font-semibold text-sm md:text-lg mb-1 md:mb-2">Jugadores</h3>
+              <p className="text-muted-foreground text-xs md:text-sm">Directorio y gestión de jugadores</p>
             </EliteCard>
           </Link>
           <Link to="/admin/reservations">

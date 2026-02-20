@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { initializePushNotifications, setupDeviceTokenRegistration } from '@/services/pushNotificationService';
 
 interface Profile {
   id: string;
@@ -84,9 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Inicializar push notifications al cargar la app
+    initializePushNotifications().catch((error) => {
+      console.error('Error inicializando push notifications:', error);
+    });
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -95,6 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(() => {
             fetchProfile(session.user.id);
           }, 0);
+
+          // Registrar token de dispositivo para push notifications
+          // Esperar un poco para asegurar que el perfil se haya cargado
+          setTimeout(() => {
+            setupDeviceTokenRegistration(session.user.id);
+          }, 1000);
         } else {
           setProfile(null);
           setIsAdmin(false);
@@ -105,12 +117,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         fetchProfile(session.user.id);
+        
+        // Registrar token de dispositivo si hay sesión existente
+        setTimeout(() => {
+          setupDeviceTokenRegistration(session.user.id);
+        }, 1000);
       }
       setIsLoading(false);
     });

@@ -44,7 +44,9 @@ export async function getR2PresignedUrl(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Failed to get upload URL");
+    const errorMessage = (err as { error?: string }).error ?? "Failed to get upload URL";
+    // Lanzar error con mensaje claro para el usuario
+    throw new Error("Error al obtener permisos de subida. Verifica tu conexión e intenta de nuevo.");
   }
 
   return res.json() as Promise<PresignedResult>;
@@ -65,7 +67,8 @@ export async function uploadToR2(
   });
 
   if (!res.ok) {
-    throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+    // Mensaje claro para el usuario
+    throw new Error("Error al subir la foto. El archivo puede ser muy grande o la conexión es inestable.");
   }
 }
 
@@ -88,7 +91,8 @@ export async function getBunnyUploadCredentials(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Failed to get Bunny upload credentials");
+    // Mensaje claro para el usuario
+    throw new Error("Error al obtener permisos de subida de vídeo. Verifica tu conexión e intenta de nuevo.");
   }
 
   return res.json() as Promise<BunnyUploadCredentials>;
@@ -126,7 +130,8 @@ export async function uploadVideoTus(
         resolve(credentials.videoId);
       },
       onError(err: Error) {
-        reject(err);
+        // Mensaje claro para el usuario sobre errores de subida TUS
+        reject(new Error("Error al subir el vídeo. Verifica tu conexión y el tamaño del archivo."));
       },
     });
     upload.start();

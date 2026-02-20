@@ -58,47 +58,96 @@ const sendEmailWithResend = async (
   return res.json();
 };
 
-/** OneSignal: envía push a un user_id (external_id). Configurar ONE_SIGNAL_APP_ID y ONE_SIGNAL_REST_API_KEY. */
-const sendPushOneSignal = async (
-  userId: string,
-  heading: string,
-  message: string
-): Promise<void> => {
-  const appId = Deno.env.get("ONE_SIGNAL_APP_ID");
-  const apiKey = Deno.env.get("ONE_SIGNAL_REST_API_KEY");
-  if (!appId || !apiKey) {
-    console.log("OneSignal not configured, skipping push");
-    return;
-  }
-  await fetch("https://api.onesignal.com/notifications", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${apiKey}`,
-    },
-    body: JSON.stringify({
-      app_id: appId,
-      include_external_user_ids: [userId],
-      headings: { en: heading },
-      contents: { en: message },
-    }),
-  });
-};
-
-/** Firebase FCM: envía a un token. Configurar FCM_SERVER_KEY y pasar device_token en payload si se usa. */
+/** Firebase FCM: envía push a tokens de dispositivos guardados en Supabase. */
 const sendPushFirebase = async (
-  _deviceToken: string,
+  userId: string,
   title: string,
-  body: string
+  body: string,
+  supabaseClient: any
 ): Promise<void> => {
-  const fcmKey = Deno.env.get("FCM_SERVER_KEY");
-  if (!fcmKey) {
-    console.log("FCM not configured, skipping push");
+  const fcmServerKey = Deno.env.get("FCM_SERVER_KEY");
+  if (!fcmServerKey) {
+    console.log("FCM_SERVER_KEY not configured, skipping push");
     return;
   }
-  // POST a https://fcm.googleapis.com/fcm/send con Authorization: key=FCM_SERVER_KEY
-  // body: { to: deviceToken, notification: { title, body } }
-  console.log("FCM push (boilerplate):", title, body);
+
+  try {
+    // Obtener todos los tokens de dispositivo del usuario desde Supabase
+    const { data: deviceTokens, error } = await supabaseClient
+      .from("device_tokens")
+      .select("device_token, platform")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error obteniendo tokens de dispositivo:", error);
+      return;
+    }
+
+    if (!deviceTokens || deviceTokens.length === 0) {
+      console.log(`No hay tokens de dispositivo para el usuario ${userId}`);
+      return;
+    }
+
+    // Enviar push a cada token
+    const pushPromises = deviceTokens.map(async (tokenData: { device_token: string; platform: string }) => {
+      const { device_token, platform } = tokenData;
+
+      try {
+        const response = await fetch("https://fcm.googleapis.com/fcm/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `key=${fcmServerKey}`,
+          },
+          body: JSON.stringify({
+            to: device_token,
+            notification: {
+              title,
+              body,
+              sound: "default",
+            },
+            data: {
+              // Datos adicionales que se pueden usar en la app
+              click_action: "FLUTTER_NOTIFICATION_CLICK",
+            },
+            // Configuración específica por plataforma
+            ...(platform === "ios" && {
+              apns: {
+                payload: {
+                  aps: {
+                    sound: "default",
+                    badge: 1,
+                  },
+                },
+              },
+            }),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error enviando push a ${device_token}:`, errorText);
+          
+          // Si el token es inválido, eliminarlo de la base de datos
+          if (response.status === 400 || response.status === 401) {
+            await supabaseClient
+              .from("device_tokens")
+              .delete()
+              .eq("device_token", device_token);
+            console.log(`Token inválido eliminado: ${device_token}`);
+          }
+        } else {
+          console.log(`Push enviado correctamente a ${device_token}`);
+        }
+      } catch (err) {
+        console.error(`Error enviando push a ${device_token}:`, err);
+      }
+    });
+
+    await Promise.allSettled(pushPromises);
+  } catch (err) {
+    console.error("Error en sendPushFirebase:", err);
+  }
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -277,7 +326,7 @@ const handler = async (req: Request): Promise<Response> => {
       await sendEmailWithResend(targetEmail, subject, html, resendApiKey);
     }
     if (targetUserId && pushHeading && pushBody) {
-      await sendPushOneSignal(targetUserId, pushHeading, pushBody);
+      await sendPushFirebase(targetUserId, pushHeading, pushBody, supabase);
     }
 
     return new Response(
