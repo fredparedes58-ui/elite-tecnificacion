@@ -1,7 +1,14 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Miscellaneous
 *.class
-*.log
 *.pyc
 *.swp
 .DS_Store
@@ -14,18 +21,27 @@
 .env
 .env.local
 .env.*.local
+*.local
 
-# IntelliJ
-.idea/
-*.iml
-*.ipr
-
-# Visual Studio Code
-.vscode/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
-!.vscode/extensions.json
+.idea
+*.iml
+*.ipr
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Dependencies
+node_modules
+dist
+dist-ssr
 
 # Flutter/Dart
 .dart_tool/
