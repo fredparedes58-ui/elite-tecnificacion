@@ -4,6 +4,7 @@
 // Servicio para gestionar posts del feed social
 // ============================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/social_post_model.dart';
 
@@ -40,7 +41,7 @@ class SocialService {
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => SocialPost.fromJson(json)).toList();
     } catch (e) {
-      print('❌ Error obteniendo feed social: $e');
+      debugPrint('❌ Error obteniendo feed social: $e');
       rethrow;
     }
   }
@@ -66,7 +67,7 @@ class SocialService {
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => SocialPost.fromJson(json)).toList();
     } catch (e) {
-      print('❌ Error obteniendo feed del club: $e');
+      debugPrint('❌ Error obteniendo feed del club: $e');
       rethrow;
     }
   }
@@ -126,7 +127,7 @@ class SocialService {
 
       return SocialPost.fromJson(response);
     } catch (e) {
-      print('❌ Error creando post: $e');
+      debugPrint('❌ Error creando post: $e');
       rethrow;
     }
   }
@@ -146,7 +147,7 @@ class SocialService {
           .update({'content_text': newText})
           .eq('id', postId);
     } catch (e) {
-      print('❌ Error actualizando post: $e');
+      debugPrint('❌ Error actualizando post: $e');
       rethrow;
     }
   }
@@ -162,7 +163,7 @@ class SocialService {
           .update({'is_pinned': isPinned})
           .eq('id', postId);
     } catch (e) {
-      print('❌ Error fijando/desfijando post: $e');
+      debugPrint('❌ Error fijando/desfijando post: $e');
       rethrow;
     }
   }
@@ -176,7 +177,7 @@ class SocialService {
     try {
       await _supabase.from('social_posts').delete().eq('id', postId);
     } catch (e) {
-      print('❌ Error eliminando post: $e');
+      debugPrint('❌ Error eliminando post: $e');
       rethrow;
     }
   }
@@ -198,7 +199,7 @@ class SocialService {
     } catch (e) {
       // Si ya existe el like, ignorar el error (UNIQUE constraint)
       if (!e.toString().contains('unique')) {
-        print('❌ Error dando like: $e');
+        debugPrint('❌ Error dando like: $e');
         rethrow;
       }
     }
@@ -216,7 +217,7 @@ class SocialService {
           .eq('post_id', postId)
           .eq('user_id', userId);
     } catch (e) {
-      print('❌ Error quitando like: $e');
+      debugPrint('❌ Error quitando like: $e');
       rethrow;
     }
   }
@@ -236,7 +237,7 @@ class SocialService {
 
       return response != null;
     } catch (e) {
-      print('❌ Error verificando like: $e');
+      debugPrint('❌ Error verificando like: $e');
       return false;
     }
   }
@@ -257,7 +258,7 @@ class SocialService {
         return true; // Ahora tiene like
       }
     } catch (e) {
-      print('❌ Error haciendo toggle de like: $e');
+      debugPrint('❌ Error haciendo toggle de like: $e');
       rethrow;
     }
   }
@@ -281,7 +282,7 @@ class SocialService {
 
       return SocialPost.fromJson(response);
     } catch (e) {
-      print('❌ Error obteniendo post: $e');
+      debugPrint('❌ Error obteniendo post: $e');
       return null;
     }
   }
@@ -301,7 +302,7 @@ class SocialService {
 
       return response.count;
     } catch (e) {
-      print('❌ Error obteniendo conteo de posts: $e');
+      debugPrint('❌ Error obteniendo conteo de posts: $e');
       return 0;
     }
   }
@@ -323,7 +324,7 @@ class SocialService {
           .map((json) => SocialPost.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo posts populares: $e');
+      debugPrint('❌ Error obteniendo posts populares: $e');
       return [];
     }
   }

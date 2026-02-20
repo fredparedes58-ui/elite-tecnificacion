@@ -76,7 +76,7 @@ class _VictoryShareScreenState extends State<VictoryShareScreen> {
               color: Colors.black,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: theme.primaryColor.withOpacity(0.3),
+                color: theme.primaryColor.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -124,7 +124,7 @@ class _VictoryShareScreenState extends State<VictoryShareScreen> {
               color: const Color(0xFF1D1E33),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),

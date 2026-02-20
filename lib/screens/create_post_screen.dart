@@ -149,7 +149,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     try {
       // 1. Subir archivo a R2/Bunny/Storage
-      final String mediaUrl = await _uploadMedia();
+      final uploadResult = await _uploadMedia();
 
       // 2. Crear el post en Supabase
       final postDto = CreateSocialPostDto(
@@ -158,9 +158,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         contentText: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-        mediaUrl: mediaUrl,
+        mediaUrl: uploadResult.mediaUrl,
         mediaType: _mediaType!,
-        thumbnailUrl: null, // TODO: Generar thumbnail para videos
+        thumbnailUrl: uploadResult.thumbnailUrl,
         scope: _selectedScope,
       );
 
@@ -182,16 +182,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<String> _uploadMedia() async {
+  Future<_MediaUploadResult> _uploadMedia() async {
     if (_selectedFile == null) throw Exception('No hay archivo seleccionado');
 
     setState(() => _uploadProgress = 0.0);
 
     try {
       String mediaUrl;
+      String? thumbnailUrl;
+
       if (_mediaType == MediaType.image) {
+        // Para imágenes, no hay thumbnail (se usa el mismo mediaUrl)
         mediaUrl = await _mediaService.uploadPhoto(_selectedFile!);
+        thumbnailUrl = null;
       } else {
+        // Para videos, Bunny Stream genera automáticamente el thumbnail
         final result = await _mediaService.uploadVideo(
           _selectedFile!,
           onProgress: (progress) {
@@ -199,9 +204,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           },
         );
         mediaUrl = result.directPlayUrl;
+        thumbnailUrl = result.thumbnailUrl;
       }
       setState(() => _uploadProgress = 1.0);
-      return mediaUrl;
+      return _MediaUploadResult(mediaUrl: mediaUrl, thumbnailUrl: thumbnailUrl);
     } catch (e) {
       throw Exception('Error subiendo archivo: $e');
     }
@@ -226,7 +232,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ),
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       Navigator.pop(context, true);
     }
   }
@@ -439,7 +445,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
@@ -488,7 +494,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         color: const Color(0xFF1D1E33),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 2,
           style: BorderStyle.solid,
         ),
@@ -502,7 +508,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             Icon(
               Icons.add_photo_alternate_outlined,
               size: 80,
-              color: Theme.of(context).primaryColor.withOpacity(0.7),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
             Text(
@@ -518,7 +524,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               'Foto o Video',
               style: GoogleFonts.roboto(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -534,7 +540,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         color: Colors.black,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -633,10 +639,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1D1E33),
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF1D1E33),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withOpacity(0.1),
+            color: isSelected ? color : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -656,7 +664,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               subtitle,
               style: GoogleFonts.roboto(
                 fontSize: 10,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -665,4 +673,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ),
     );
   }
+}
+
+// ============================================================
+// MODELO DE RESULTADO DE SUBIDA DE MEDIA
+// ============================================================
+
+class _MediaUploadResult {
+  final String mediaUrl;
+  final String? thumbnailUrl;
+
+  _MediaUploadResult({required this.mediaUrl, this.thumbnailUrl});
 }

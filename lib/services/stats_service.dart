@@ -4,6 +4,7 @@
 // Maneja todas las operaciones de estadísticas de partidos y rankings
 // ============================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/match_stats_model.dart';
 
@@ -27,7 +28,7 @@ class StatsService {
           .map((json) => MatchStats.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting match stats: $e');
+      debugPrint('Error getting match stats: $e');
       return [];
     }
   }
@@ -61,7 +62,7 @@ class StatsService {
 
       return true;
     } catch (e) {
-      print('Error saving match stats: $e');
+      debugPrint('Error saving match stats: $e');
       return false;
     }
   }
@@ -87,7 +88,7 @@ class StatsService {
 
       return true;
     } catch (e) {
-      print('Error updating player stats: $e');
+      debugPrint('Error updating player stats: $e');
       return false;
     }
   }
@@ -98,7 +99,7 @@ class StatsService {
       await _supabase.from('match_stats').delete().eq('match_id', matchId);
       return true;
     } catch (e) {
-      print('Error deleting match stats: $e');
+      debugPrint('Error deleting match stats: $e');
       return false;
     }
   }
@@ -125,7 +126,7 @@ class StatsService {
           .map((json) => TopScorer.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting team top scorers: $e');
+      debugPrint('Error getting team top scorers: $e');
       return [];
     }
   }
@@ -150,7 +151,7 @@ class StatsService {
           .map((json) => TopScorer.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting category top scorers: $e');
+      debugPrint('Error getting category top scorers: $e');
       return [];
     }
   }
@@ -173,7 +174,7 @@ class StatsService {
           .map((json) => TopScorer.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting club top scorers: $e');
+      debugPrint('Error getting club top scorers: $e');
       return [];
     }
   }
@@ -213,7 +214,7 @@ class StatsService {
             : '0.00',
       };
     } catch (e) {
-      print('Error getting player total stats: $e');
+      debugPrint('Error getting player total stats: $e');
       return null;
     }
   }
@@ -229,7 +230,7 @@ class StatsService {
 
       return response.isNotEmpty;
     } catch (e) {
-      print('Error checking match stats: $e');
+      debugPrint('Error checking match stats: $e');
       return false;
     }
   }
@@ -240,7 +241,7 @@ class StatsService {
       final scorers = await getTeamTopScorers(teamId: teamId, limit: 1);
       return scorers.isNotEmpty ? scorers.first : null;
     } catch (e) {
-      print('Error getting team top scorer: $e');
+      debugPrint('Error getting team top scorer: $e');
       return null;
     }
   }
@@ -262,7 +263,7 @@ class StatsService {
           .map((json) => MatchStats.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting player recent stats: $e');
+      debugPrint('Error getting player recent stats: $e');
       return [];
     }
   }
@@ -289,7 +290,7 @@ class StatsService {
       categories.sort();
       return categories;
     } catch (e) {
-      print('Error getting club categories: $e');
+      debugPrint('Error getting club categories: $e');
       return [];
     }
   }
@@ -306,7 +307,7 @@ class StatsService {
 
       return true;
     } catch (e) {
-      print('Error updating team category: $e');
+      debugPrint('Error updating team category: $e');
       return false;
     }
   }

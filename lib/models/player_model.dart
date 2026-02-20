@@ -41,7 +41,7 @@ class Player {
       stats: json['stats'] != null
           ? PlayerStats.fromMap(json['stats'])
           : PlayerStats(),
-      matchStatus: _parseMatchStatus(json['match_status']),
+      matchStatus: parseMatchStatus(json['match_status']),
       statusNote: json['status_note'] as String?,
       nickname: json['nickname'] as String?,
       number: json['number'] as int?,
@@ -49,7 +49,7 @@ class Player {
   }
 
   // Parse match_status desde string
-  static MatchStatus _parseMatchStatus(dynamic value) {
+  static MatchStatus parseMatchStatus(dynamic value) {
     if (value == null) return MatchStatus.sub;
     if (value is String) {
       switch (value.toLowerCase()) {
@@ -90,7 +90,7 @@ class Player {
       role: profile['position'] as String?,
       isStarter: matchStatus == 'starter',
       image: profile['avatar_url'] ?? 'assets/images/default_avatar.png',
-      matchStatus: _parseMatchStatus(matchStatus),
+      matchStatus: parseMatchStatus(matchStatus),
       statusNote: statusNote,
       nickname: profile['nickname'] as String?,
       number: profile['jersey_number'] as int?,

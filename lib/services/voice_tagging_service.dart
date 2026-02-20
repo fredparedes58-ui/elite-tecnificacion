@@ -122,10 +122,12 @@ class VoiceTaggingService {
         },
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
-        partialResults: true,
+        listenOptions: stt.SpeechListenOptions(
+          partialResults: true,
+          cancelOnError: false,
+          listenMode: stt.ListenMode.confirmation,
+        ),
         localeId: 'es_ES', // Español
-        cancelOnError: false,
-        listenMode: stt.ListenMode.confirmation,
       );
     } catch (e) {
       debugPrint('❌ Error al iniciar escucha: $e');

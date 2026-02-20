@@ -13,6 +13,7 @@ class NoticeBoardPost {
   final String id;
   final String? teamId; // NULL = para toda la escuela
   final String authorId;
+  final String? authorName; // Nombre completo del autor
   final String title;
   final String content; // Soporta markdown
   final String? attachmentUrl; // URL del PDF o imagen
@@ -28,6 +29,7 @@ class NoticeBoardPost {
     required this.id,
     this.teamId,
     required this.authorId,
+    this.authorName,
     required this.title,
     required this.content,
     this.attachmentUrl,
@@ -43,6 +45,7 @@ class NoticeBoardPost {
       id: json['id'] as String,
       teamId: json['team_id'] as String?,
       authorId: json['author_id'] as String,
+      authorName: json['author_name'] as String?,
       title: json['title'] as String,
       content: json['content'] as String,
       attachmentUrl: json['attachment_url'] as String?,
@@ -93,6 +96,7 @@ class NoticeBoardPost {
     String? id,
     String? teamId,
     String? authorId,
+    String? authorName,
     String? title,
     String? content,
     String? attachmentUrl,
@@ -106,6 +110,7 @@ class NoticeBoardPost {
       id: id ?? this.id,
       teamId: teamId ?? this.teamId,
       authorId: authorId ?? this.authorId,
+      authorName: authorName ?? this.authorName,
       title: title ?? this.title,
       content: content ?? this.content,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,

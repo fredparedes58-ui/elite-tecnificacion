@@ -6,6 +6,7 @@ import 'package:myapp/widgets/upcoming_match_card.dart';
 import 'package:myapp/screens/squad_management_screen.dart';
 import 'package:myapp/screens/tactical_board_screen.dart';
 import 'package:myapp/screens/session_planner_screen.dart';
+import 'package:myapp/screens/training_categories_screen.dart';
 import 'package:myapp/screens/matches_screen.dart';
 import 'package:myapp/screens/drills_screen.dart';
 import 'package:myapp/screens/team_chat_screen.dart';
@@ -21,8 +22,75 @@ import 'package:myapp/screens/parent_attendance_screen.dart';
 import 'package:myapp/screens/notice_board_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<String?> _getCurrentTeamId() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['team_id'] as String;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error obteniendo teamId: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, String?>> _getTeamInfo() async {
+    try {
+      final teamId = await _getCurrentTeamId();
+      if (teamId == null) {
+        return {
+          'teamId': null,
+          'category': null,
+          'clubId': null,
+        };
+      }
+
+      final teamResponse = await Supabase.instance.client
+          .from('teams')
+          .select('id, category, club_id')
+          .eq('id', teamId)
+          .maybeSingle();
+
+      if (teamResponse != null) {
+        return {
+          'teamId': teamId,
+          'category': teamResponse['category'] as String? ?? 'Alevín',
+          'clubId': teamResponse['club_id'] as String?,
+        };
+      }
+
+      return {
+        'teamId': teamId,
+        'category': 'Alevín',
+        'clubId': null,
+      };
+    } catch (e) {
+      debugPrint('Error obteniendo información del equipo: $e');
+      return {
+        'teamId': null,
+        'category': null,
+        'clubId': null,
+      };
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,15 +187,15 @@ class HomeScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -136,7 +204,7 @@ class HomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -194,7 +262,7 @@ class HomeScreen extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                   Colors.transparent,
                 ],
               ),
@@ -233,7 +301,7 @@ class HomeScreen extends StatelessWidget {
         color: Colors.green,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SessionPlannerScreen()),
+          MaterialPageRoute(builder: (context) => const TrainingCategoriesScreen()),
         ),
       ),
       _QuickAccessItem(
@@ -270,14 +338,18 @@ class HomeScreen extends StatelessWidget {
         title: 'Fútbol Social',
         icon: Icons.photo_camera,
         color: Colors.deepOrange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const SocialFeedScreen(
-              teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
+        onTap: () async {
+          final teamId = await _getCurrentTeamId() ?? 'demo-team-id';
+          if (!context.mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SocialFeedScreen(
+                teamId: teamId,
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
       _QuickAccessItem(
         title: 'Galería',
@@ -310,16 +382,20 @@ class HomeScreen extends StatelessWidget {
         title: 'Goleadores',
         icon: Icons.emoji_events,
         color: Colors.amber,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const TopScorersScreen(
-              teamId: 'demo-team-id', // TODO: Obtener del contexto/provider
-              category: 'Alevín', // TODO: Obtener del contexto/provider
-              clubId: 'demo-club-id', // TODO: Obtener del contexto/provider
+        onTap: () async {
+          final teamInfo = await _getTeamInfo();
+          if (!context.mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TopScorersScreen(
+                teamId: teamInfo['teamId'] ?? 'demo-team-id',
+                category: teamInfo['category'] ?? 'Alevín',
+                clubId: teamInfo['clubId'] ?? 'demo-club-id',
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
       _QuickAccessItem(
         title: 'Asistencia',
@@ -339,12 +415,14 @@ class HomeScreen extends StatelessWidget {
 
               if (children.isNotEmpty) {
                 // Es padre, navegar a pantalla de padres
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ParentAttendanceScreen(),
-                  ),
-                );
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ParentAttendanceScreen(),
+                    ),
+                  );
+                }
               } else {
                 // No es padre, verificar si es coach/admin
                 final memberCheck = await Supabase.instance.client
@@ -356,33 +434,39 @@ class HomeScreen extends StatelessWidget {
                 if (memberCheck != null &&
                     ['coach', 'admin'].contains(memberCheck['role'])) {
                   // Es coach/admin, navegar a pantalla normal
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AttendanceScreen(),
-                    ),
-                  );
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AttendanceScreen(),
+                      ),
+                    );
+                  }
                 } else {
                   // No tiene permisos
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'No tienes permisos para acceder a la asistencia',
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'No tienes permisos para acceder a la asistencia',
+                        ),
+                        backgroundColor: Colors.orange,
                       ),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
+                    );
+                  }
                 }
               }
             } catch (e) {
               debugPrint('Error verificando rol: $e');
               // Por defecto, intentar pantalla normal
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AttendanceScreen(),
-                ),
-              );
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AttendanceScreen(),
+                  ),
+                );
+              }
             }
           } else {
             Navigator.push(
@@ -427,12 +511,12 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [item.color.withOpacity(0.2), item.color.withOpacity(0.05)],
+            colors: [item.color.withValues(alpha: 0.2), item.color.withValues(alpha: 0.05)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: item.color.withOpacity(0.3), width: 1),
+          border: Border.all(color: item.color.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -515,16 +599,16 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -580,7 +664,7 @@ class HomeScreen extends StatelessWidget {
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -592,7 +676,7 @@ class HomeScreen extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -637,10 +721,14 @@ class HomeScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SocialFeedScreen(
-                        teamId:
-                            'demo-team-id', // TODO: Obtener del contexto/provider
-                      ),
+                    builder: (context) => FutureBuilder<String?>(
+                      future: _getCurrentTeamId(),
+                      builder: (context, snapshot) {
+                        return SocialFeedScreen(
+                          teamId: snapshot.data ?? 'demo-team-id',
+                        );
+                      },
+                    ),
                     ),
                   );
                 },

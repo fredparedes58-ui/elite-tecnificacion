@@ -140,7 +140,7 @@ class _VideoSyncModalState extends State<VideoSyncModal> {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.cyan.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         children: [
@@ -185,10 +185,10 @@ class _VideoSyncModalState extends State<VideoSyncModal> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.orange.withOpacity(0.3),
+                      color: Colors.orange.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -241,7 +241,7 @@ class _VideoSyncModalState extends State<VideoSyncModal> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.9),
+                        color: Colors.green.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -274,10 +274,10 @@ class _VideoSyncModalState extends State<VideoSyncModal> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.cyan.withOpacity(0.5),
+                        color: Colors.cyan.withValues(alpha: 0.5),
                         width: 1,
                       ),
                     ),
@@ -303,13 +303,13 @@ class _VideoSyncModalState extends State<VideoSyncModal> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.9),
+                  Colors.black.withValues(alpha: 0.9),
                   Colors.black,
                 ],
               ),
               border: Border(
                 top: BorderSide(
-                  color: Colors.cyan.withOpacity(0.3),
+                  color: Colors.cyan.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),

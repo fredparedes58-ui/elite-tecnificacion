@@ -40,8 +40,23 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // TODO: Get current user ID
-      final parentId = 'parent-id'; // Placeholder
+      // Obtener ID del usuario actual
+      final parentId = _supabaseService.client.auth.currentUser?.id;
+      
+      if (parentId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Usuario no autenticado. Por favor, inicia sesión.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
       
       // Cargar hijos del padre
       final children = await _supabaseService.getParentChildren(parentId);
@@ -388,13 +403,13 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: colorScheme.primary.withOpacity(0.3),
+              color: colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: colorScheme.primary.withOpacity(0.3),
+              color: colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -441,11 +456,11 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: statusColor.withOpacity(0.1),
+      color: statusColor.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: statusColor.withOpacity(0.3),
+          color: statusColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -534,10 +549,10 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
+                      color: statusColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: statusColor.withOpacity(0.5),
+                        color: statusColor.withValues(alpha: 0.5),
                         width: 1,
                       ),
                     ),

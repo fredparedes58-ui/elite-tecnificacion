@@ -172,7 +172,7 @@ class _SocialFeedScreenState extends State<SocialFeedScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -292,7 +292,7 @@ class _SocialFeedScreenState extends State<SocialFeedScreen> {
           Icon(
             Icons.photo_library_outlined,
             size: 80,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -300,7 +300,7 @@ class _SocialFeedScreenState extends State<SocialFeedScreen> {
             style: GoogleFonts.roboto(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),
@@ -308,7 +308,7 @@ class _SocialFeedScreenState extends State<SocialFeedScreen> {
             '¡Sé el primero en compartir un momento!',
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -420,12 +420,12 @@ class SocialPostCard extends StatelessWidget {
         color: const Color(0xFF1D1E33),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -488,7 +488,7 @@ class _PostHeader extends StatelessWidget {
           // Avatar circular
           CircleAvatar(
             radius: 20,
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
             child: Text(
               authorName[0].toUpperCase(),
               style: GoogleFonts.oswald(
@@ -519,7 +519,7 @@ class _PostHeader extends StatelessWidget {
                       : '$authorRole • $relativeTime',
                   style: GoogleFonts.roboto(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -530,7 +530,7 @@ class _PostHeader extends StatelessWidget {
           if (isAuthor)
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
-              color: Colors.red.withOpacity(0.7),
+              color: Colors.red.withValues(alpha: 0.7),
               onPressed: onDelete,
             ),
         ],
@@ -612,7 +612,7 @@ class _PostMedia extends StatelessWidget {
           width: 70,
           height: 70,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -670,14 +670,14 @@ class _PostFooter extends StatelessWidget {
               Icon(
                 Icons.chat_bubble_outline,
                 size: 24,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 8),
               Text(
                 '${post.commentsCount}',
                 style: GoogleFonts.roboto(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -691,7 +691,7 @@ class _PostFooter extends StatelessWidget {
                 post.contentText!,
                 style: GoogleFonts.roboto(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   height: 1.4,
                 ),
               ),

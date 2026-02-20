@@ -32,7 +32,7 @@ class PlayerPiece extends StatelessWidget {
       borderWidth = 4;
       shadows = [
         BoxShadow(
-          color: Colors.amber.withOpacity(0.6),
+          color: Colors.amber.withValues(alpha: 0.6),
           blurRadius: 15,
           spreadRadius: 3,
         ),
@@ -77,7 +77,7 @@ class PlayerPiece extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withOpacity(0.5),
+                        color: Colors.amber.withValues(alpha: 0.5),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),

@@ -7,25 +7,76 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import 'match_report_screen.dart';
 import 'live_match_screen.dart';
+import 'victory_share_screen.dart';
 import '../models/player_model.dart';
+import '../services/file_management_service.dart';
+import '../data/ffcv_fixtures.dart';
 
-class MatchesScreen extends StatelessWidget {
+class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
 
   @override
+  State<MatchesScreen> createState() => _MatchesScreenState();
+}
+
+class _MatchesScreenState extends State<MatchesScreen>
+    with SingleTickerProviderStateMixin {
+  String? _userRole;
+  final FileManagementService _fileService = FileManagementService();
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkUserRole() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _userRole = response['role'] as String?;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+    }
+  }
+
+  bool get _isCoachOrAdmin => ['coach', 'admin'].contains(_userRole);
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final stream = Supabase.instance.client
         .from('matches')
         .stream(primaryKey: ['id'])
         .order('match_date');
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'PARTIDOS',
+          'PARTIDOS & RESULTADOS',
           style: GoogleFonts.oswald(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -35,66 +86,391 @@ class MatchesScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: theme.colorScheme.primary,
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: Colors.white54,
+          tabs: const [
+            Tab(text: 'CALENDARIO FFCV'),
+            Tab(text: 'PARTIDOS REGISTRADOS'),
+          ],
+        ),
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: stream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: TabBarView(
+        controller: _tabController,
+        children: [_buildFFCVCalendarTab(), _buildRegisteredMatchesTab(stream)],
+      ),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error: ${snapshot.error}',
-                    style: GoogleFonts.roboto(color: Colors.red),
+  Widget _buildFFCVCalendarTab() {
+    final allMatches = getAllFFCVMatches();
+
+    // Agrupar por jornada
+    final Map<int, List<FFCVMatch>> matchesByJornada = {};
+    for (var match in allMatches) {
+      if (!matchesByJornada.containsKey(match.jornada)) {
+        matchesByJornada[match.jornada] = [];
+      }
+      matchesByJornada[match.jornada]!.add(match);
+    }
+
+    final sortedJornadas = matchesByJornada.keys.toList()..sort();
+
+    if (allMatches.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.calendar_today, size: 64, color: Colors.white24),
+            const SizedBox(height: 16),
+            Text(
+              'Calendario FFCV',
+              style: GoogleFonts.roboto(fontSize: 18, color: Colors.white54),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Los partidos se mostrarán aquí',
+              style: GoogleFonts.roboto(fontSize: 14, color: Colors.white38),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: sortedJornadas.length,
+      itemBuilder: (context, index) {
+        final jornada = sortedJornadas[index];
+        final matches = matchesByJornada[jornada]!;
+        return _buildJornadaSection(jornada, matches);
+      },
+    );
+  }
+
+  Widget _buildRegisteredMatchesTab(Stream<List<Map<String, dynamic>>> stream) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Error: ${snapshot.error}',
+                  style: GoogleFonts.roboto(color: Colors.red),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.sports_soccer, size: 64, color: Colors.white24),
+                const SizedBox(height: 16),
+                Text(
+                  'No hay partidos registrados',
+                  style: GoogleFonts.roboto(
+                    fontSize: 16,
+                    color: Colors.white54,
                   ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final matches = snapshot.data!;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: matches.length,
+          itemBuilder: (context, index) {
+            final match = matches[index];
+            return _buildMatchCard(context, match);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildJornadaSection(int jornada, List<FFCVMatch> matches) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header de jornada
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withValues(alpha: 0.3),
+                  theme.colorScheme.secondary.withValues(alpha: 0.2),
                 ],
               ),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.sports_soccer,
-                    size: 64,
-                    color: Colors.white24,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'JORNADA $jornada',
+                  style: GoogleFonts.oswald(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
                   ),
-                  const SizedBox(height: 16),
+                ),
+                const Spacer(),
+                Text(
+                  '${matches.length} partidos',
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Lista de partidos de la jornada
+          ...matches.map((match) => _buildFFCVMatchCard(match, theme)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFFCVMatchCard(FFCVMatch match, ThemeData theme) {
+    final isPlayed = match.isPlayed;
+    final statusColor = isPlayed ? Colors.green : Colors.orange;
+    final statusLabel = isPlayed ? 'JUGADO' : 'PROGRAMADO';
+    final statusIcon = isPlayed ? Icons.check_circle : Icons.schedule;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header con estado y fecha
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(statusIcon, color: statusColor, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  statusLabel,
+                  style: GoogleFonts.robotoCondensed(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const Spacer(),
+                if (match.time != null)
                   Text(
-                    'No hay partidos registrados',
+                    '${match.time}',
                     style: GoogleFonts.roboto(
-                      fontSize: 16,
-                      color: Colors.white54,
+                      fontSize: 12,
+                      color: Colors.white70,
                     ),
                   ),
+                const SizedBox(width: 8),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(match.date),
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Marcador
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Equipo Local
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        match.homeTeam,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.roboto(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          match.isPlayed && match.homeGoals != null
+                              ? match.homeGoals!.toString()
+                              : '-',
+                          style: GoogleFonts.oswald(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // VS / Resultado
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    match.isPlayed ? match.score! : 'VS',
+                    style: GoogleFonts.oswald(
+                      fontSize: match.isPlayed ? 16 : 20,
+                      fontWeight: FontWeight.bold,
+                      color: match.isPlayed ? Colors.white : Colors.white38,
+                      letterSpacing: match.isPlayed ? 0 : 2,
+                    ),
+                  ),
+                ),
+
+                // Equipo Visitante
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        match.awayTeam,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.roboto(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          match.isPlayed && match.awayGoals != null
+                              ? match.awayGoals!.toString()
+                              : '-',
+                          style: GoogleFonts.oswald(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Información adicional (ubicación)
+          if (match.location.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.location_on, size: 14, color: Colors.white54),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      match.location,
+                      style: GoogleFonts.roboto(
+                        fontSize: 11,
+                        color: Colors.white54,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (match.field != null)
+                    Text(
+                      match.field!,
+                      style: GoogleFonts.roboto(
+                        fontSize: 11,
+                        color: Colors.white38,
+                      ),
+                    ),
                 ],
               ),
-            );
-          }
-
-          final matches = snapshot.data!;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: matches.length,
-            itemBuilder: (context, index) {
-              final match = matches[index];
-              return _buildMatchCard(context, match);
-            },
-          );
-        },
+            ),
+        ],
       ),
     );
   }
@@ -138,15 +514,12 @@ class MatchesScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.05),
-            Colors.white.withOpacity(0.02),
+            Colors.white.withValues(alpha: 0.05),
+            Colors.white.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         children: [
@@ -154,7 +527,7 @@ class MatchesScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -213,7 +586,7 @@ class MatchesScreen extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -265,7 +638,7 @@ class MatchesScreen extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -300,30 +673,89 @@ class MatchesScreen extends StatelessWidget {
     String status,
   ) {
     if (status == 'FINISHED') {
-      // Partido finalizado: registrar estadísticas
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            await _openMatchReport(context, match);
-          },
-          icon: const Icon(Icons.edit_note, size: 20),
-          label: Text(
-            'REGISTRAR ESTADÍSTICAS',
-            style: GoogleFonts.oswald(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+      // Partido finalizado: botones de acción
+      return Column(
+        children: [
+          // Botón principal: Registrar estadísticas
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await _openMatchReport(context, match);
+              },
+              icon: const Icon(Icons.edit_note, size: 20),
+              label: Text(
+                'REGISTRAR ESTADÍSTICAS',
+                style: GoogleFonts.oswald(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+          const SizedBox(height: 12),
+          // Fila de botones secundarios: Viralizar e Informe AI
+          Row(
+            children: [
+              // Botón Viralizar
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _handleVictoryShare(context),
+                  icon: const Icon(Icons.rocket_launch, size: 20),
+                  label: Text(
+                    'VIRALIZAR',
+                    style: GoogleFonts.oswald(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Botón Informe AI (solo para coaches/admins)
+              if (_isCoachOrAdmin)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await _openMatchReport(context, match);
+                    },
+                    icon: const Icon(Icons.auto_awesome, size: 20),
+                    label: Text(
+                      'INFORME AI',
+                      style: GoogleFonts.oswald(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
+        ],
       );
     } else if (status == 'LIVE' || status == 'PENDING') {
       // Partido próximo o en vivo: iniciar modo Live
@@ -365,7 +797,7 @@ class MatchesScreen extends StatelessWidget {
         ),
       );
     }
-    
+
     return const SizedBox.shrink();
   }
 
@@ -384,7 +816,7 @@ class MatchesScreen extends StatelessWidget {
         'Sep',
         'Oct',
         'Nov',
-        'Dic'
+        'Dic',
       ];
       return '${date.day} ${months[date.month - 1]}';
     } catch (e) {
@@ -392,44 +824,181 @@ class MatchesScreen extends StatelessWidget {
     }
   }
 
+  /// Maneja el flujo de viralización: seleccionar imagen y navegar a VictoryShareScreen
+  Future<void> _handleVictoryShare(BuildContext context) async {
+    // Mostrar diálogo para seleccionar fuente de imagen
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Tomar Foto'),
+                subtitle: const Text('Usar cámara del dispositivo'),
+                onTap: () async {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  final image = await _fileService.pickImageFromCamera();
+                  if (image != null && context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            VictoryShareScreen(imageFile: image),
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Galería'),
+                subtitle: const Text('Seleccionar de galería'),
+                onTap: () async {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  final image = await _fileService.pickImageFromGallery();
+                  if (image != null && context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            VictoryShareScreen(imageFile: image),
+                      ),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_open, color: Colors.orange),
+                title: const Text('Explorador de Archivos'),
+                subtitle: const Text('PC, iCloud, Google Drive'),
+                onTap: () async {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  final image = await _fileService.pickFile(
+                    type: FileType.image,
+                  );
+                  if (image != null && context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            VictoryShareScreen(imageFile: image),
+                      ),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<List<Player>> _getConvocatedPlayers(String teamId) async {
+    try {
+      // Obtener jugadores del equipo con match_status de 'starter' o 'sub'
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('*, profiles(*)')
+          .eq('team_id', teamId)
+          .eq('role', 'player')
+          .or('match_status.eq.starter,match_status.eq.sub');
+
+      final playersData = List<Map<String, dynamic>>.from(response);
+
+      // Convertir a objetos Player
+      final players = playersData.map((data) {
+        // Mapear los datos de team_members y profiles a formato Player
+        final profile = data['profiles'] as Map<String, dynamic>?;
+        final name =
+            profile?['full_name'] as String? ??
+            data['user_id'] as String? ??
+            'Jugador';
+        final image =
+            profile?['avatar_url'] as String? ?? 'assets/players/default.png';
+
+        return Player(
+          id: data['user_id'] as String?,
+          name: name,
+          role: data['position'] as String?,
+          isStarter: (data['match_status'] as String?) == 'starter',
+          image: image,
+          matchStatus: data['match_status'] == 'starter'
+              ? MatchStatus.starter
+              : MatchStatus.sub,
+          statusNote: data['status_note'] as String?,
+          number: data['number'] as int?,
+        );
+      }).toList();
+
+      return players;
+    } catch (e) {
+      debugPrint('Error obteniendo jugadores convocados: $e');
+      return [];
+    }
+  }
+
   Future<void> _openMatchReport(
     BuildContext context,
     Map<String, dynamic> match,
   ) async {
-    // TODO: Obtener los jugadores convocados del partido desde Supabase
-    // Por ahora, creamos una lista demo
-    final List<Player> demoPlayers = [
-      Player(
-        id: 'demo-player-1',
-        name: 'Juan Pérez',
-        role: 'Delantero',
-        isStarter: true,
-        image: 'assets/players/default.png',
-      ),
-      Player(
-        id: 'demo-player-2',
-        name: 'Pedro Rodríguez',
-        role: 'Mediocampista',
-        isStarter: true,
-        image: 'assets/players/default.png',
-      ),
-      Player(
-        id: 'demo-player-3',
-        name: 'Carlos García',
-        role: 'Delantero',
-        isStarter: true,
-        image: 'assets/players/default.png',
-      ),
-    ];
+    // Obtener los jugadores convocados del partido desde Supabase
+    final teamId = match['team_id'] as String? ?? 'demo-team-id';
+    final convocatedPlayers = await _getConvocatedPlayers(teamId);
 
-    // Navegar a la pantalla de reporte
+    // Si no hay jugadores convocados, usar lista vacía
+    if (convocatedPlayers.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '⚠️ No hay jugadores convocados para este partido',
+              style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+
+    if (!context.mounted) return;
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MatchReportScreen(
           matchId: match['id'] as String,
-          teamId: 'demo-team-id', // TODO: Obtener del contexto
-          convocatedPlayers: demoPlayers,
+          teamId: teamId,
+          convocatedPlayers: convocatedPlayers,
         ),
       ),
     );
@@ -443,8 +1012,8 @@ class MatchesScreen extends StatelessWidget {
             style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.green,
-      ),
-    );
+        ),
+      );
+    }
   }
-}
 }

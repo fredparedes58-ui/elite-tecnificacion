@@ -128,7 +128,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.2),
+                      color: Colors.red.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -177,7 +177,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.surface.withOpacity(0.3),
+                color: colorScheme.surface.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -194,11 +194,11 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
             // Botón de descarga de adjunto
             if (hasAttachment)
               Card(
-                color: colorScheme.primary.withOpacity(0.1),
+                color: colorScheme.primary.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
-                    color: colorScheme.primary.withOpacity(0.3),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: InkWell(
@@ -271,11 +271,11 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
     final readPercentage = (_readStats!['read_percentage'] as num?)?.toDouble() ?? 0.0;
 
     return Card(
-      color: colorScheme.primary.withOpacity(0.1),
+      color: colorScheme.primary.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: colorScheme.primary.withOpacity(0.3),
+          color: colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Padding(
@@ -315,7 +315,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
                 value: readPercentage / 100,
-                backgroundColor: Colors.grey.withOpacity(0.2),
+                backgroundColor: Colors.grey.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   readPercentage >= 80 ? Colors.green : Colors.orange,
                 ),
@@ -338,10 +338,10 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
+                      color: Colors.red.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -418,7 +418,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
               final user = _unreadUsers[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.red.withOpacity(0.2),
+                  backgroundColor: Colors.red.withValues(alpha: 0.2),
                   child: Icon(Icons.person, color: Colors.red),
                 ),
                 title: Text(

@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/player_model.dart';
 import '../models/match_stats_model.dart';
 import '../services/stats_service.dart';
@@ -16,11 +17,11 @@ class MatchReportScreen extends StatefulWidget {
   final List<Player> convocatedPlayers;
 
   const MatchReportScreen({
-    Key? key,
+    super.key,
     required this.matchId,
     required this.teamId,
     required this.convocatedPlayers,
-  }) : super(key: key);
+  });
 
   @override
   State<MatchReportScreen> createState() => _MatchReportScreenState();
@@ -28,11 +29,12 @@ class MatchReportScreen extends StatefulWidget {
 
 class _MatchReportScreenState extends State<MatchReportScreen> {
   final StatsService _statsService = StatsService();
-  
+
   // Mapa para almacenar las estadísticas de cada jugador
   Map<String, PlayerStatsInput> playerStats = {};
   bool isLoading = true;
   bool isSaving = false;
+  bool isGeneratingGuru = false;
 
   @override
   void initState() {
@@ -53,7 +55,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
 
     // Cargar estadísticas existentes si ya se registraron
     final existingStats = await _statsService.getMatchStats(widget.matchId);
-    
+
     for (var stat in existingStats) {
       if (playerStats.containsKey(stat.playerId)) {
         playerStats[stat.playerId]!.goals = stat.goals;
@@ -75,10 +77,12 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
     try {
       // Preparar datos para guardar
       final List<Map<String, dynamic>> statsToSave = playerStats.values
-          .map((stat) => stat.toMatchStats(
-                matchId: widget.matchId,
-                teamId: widget.teamId,
-              ))
+          .map(
+            (stat) => stat.toMatchStats(
+              matchId: widget.matchId,
+              teamId: widget.teamId,
+            ),
+          )
           .toList();
 
       final success = await _statsService.saveMatchStats(
@@ -156,7 +160,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
               children: [
                 // Header con instrucciones
                 _buildHeader(),
-                
+
                 // Lista de jugadores
                 Expanded(
                   child: ListView.builder(
@@ -165,14 +169,14 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
                     itemBuilder: (context, index) {
                       final player = widget.convocatedPlayers[index];
                       final stats = playerStats[player.id]!;
-                      
+
                       return _buildPlayerStatsCard(player, stats);
                     },
                   ),
                 ),
 
-                // Botón para guardar
-                _buildSaveButton(),
+                // Botones de acción
+                _buildActionButtons(),
               ],
             ),
     );
@@ -185,13 +189,13 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.2),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+            Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -200,17 +204,11 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
+              color: Colors.blue.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.blue.withOpacity(0.3),
-              ),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
             ),
-            child: const Icon(
-              Icons.edit_note,
-              color: Colors.blue,
-              size: 32,
-            ),
+            child: const Icon(Icons.edit_note, color: Colors.blue, size: 32),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -248,14 +246,12 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.05),
-            Colors.white.withOpacity(0.02),
+            Colors.white.withValues(alpha: 0.05),
+            Colors.white.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -265,7 +261,9 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
               // Foto del jugador
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.3),
+                backgroundColor: Theme.of(
+                  context,
+                ).primaryColor.withValues(alpha: 0.3),
                 backgroundImage: player.image.startsWith('http')
                     ? NetworkImage(player.image)
                     : null,
@@ -280,7 +278,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
                     : null,
               ),
               const SizedBox(width: 16),
-              
+
               // Nombre y número
               Expanded(
                 child: Column(
@@ -307,9 +305,9 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Contadores de estadísticas
           Row(
             children: [
@@ -332,9 +330,9 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
                   },
                 ),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // Asistencias
               Expanded(
                 child: _buildStatCounter(
@@ -354,9 +352,9 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
                   },
                 ),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // Minutos jugados
               Expanded(
                 child: _buildStatCounter(
@@ -400,11 +398,9 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -455,50 +451,139 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildActionButtons() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
           ),
         ),
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isSaving ? null : _saveStats,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            // Botón Guardar Estadísticas
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isSaving ? null : _saveStats,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'GUARDAR ESTADÍSTICAS',
+                        style: GoogleFonts.oswald(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
               ),
             ),
-            child: isSaving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'GUARDAR ESTADÍSTICAS',
-                    style: GoogleFonts.oswald(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
+            const SizedBox(height: 12),
+            // Botón GURU GURU (Generar Informes con Gemini)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isGeneratingGuru ? null : _generateGuruReports,
+                icon: isGeneratingGuru
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 24),
+                label: Text(
+                  'GURU GURU',
+                  style: GoogleFonts.oswald(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
                   ),
-          ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _generateGuruReports() async {
+    setState(() {
+      isGeneratingGuru = true;
+    });
+
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'generate_match_report_gemini',
+        body: {'match_id': widget.matchId},
+      );
+
+      if (response.status == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '✅ Informes generados correctamente con Gemini AI',
+                style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        final errorData = response.data as Map<String, dynamic>?;
+        final errorMessage = errorData?['error'] ?? 'Error desconocido';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '❌ Error al generar informes: $e',
+              style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGeneratingGuru = false;
+        });
+      }
+    }
   }
 
   void _showHelpDialog() {
@@ -508,10 +593,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
         backgroundColor: const Color(0xFF1A1A1A),
         title: Text(
           'Ayuda - Reporte de Partido',
-          style: GoogleFonts.oswald(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.oswald(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -547,9 +629,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'ENTENDIDO',
-              style: GoogleFonts.oswald(
-                color: Theme.of(context).primaryColor,
-              ),
+              style: GoogleFonts.oswald(color: Theme.of(context).primaryColor),
             ),
           ),
         ],
@@ -569,10 +649,7 @@ class _MatchReportScreenState extends State<MatchReportScreen> {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.roboto(
-              fontSize: 13,
-              color: Colors.white70,
-            ),
+            style: GoogleFonts.roboto(fontSize: 13, color: Colors.white70),
           ),
         ),
       ],

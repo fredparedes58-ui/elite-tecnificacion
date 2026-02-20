@@ -151,11 +151,11 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
         children: [
           // Selector de equipo
           Card(
-            color: colorScheme.primary.withOpacity(0.1),
+            color: colorScheme.primary.withValues(alpha: 0.1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: colorScheme.primary.withOpacity(0.3),
+                color: colorScheme.primary.withValues(alpha: 0.3),
               ),
             ),
             child: Padding(
@@ -222,11 +222,11 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
 
           // Selector de rol
           Card(
-            color: colorScheme.secondary.withOpacity(0.1),
+            color: colorScheme.secondary.withValues(alpha: 0.1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: colorScheme.secondary.withOpacity(0.3),
+                color: colorScheme.secondary.withValues(alpha: 0.3),
               ),
             ),
             child: Padding(
@@ -344,12 +344,12 @@ class _AddTeamMemberScreenState extends State<AddTeamMemberScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
-                    color: colorScheme.primary.withOpacity(0.3),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: colorScheme.primary.withOpacity(0.2),
+                    backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
                     child: Icon(
                       Icons.person,
                       color: colorScheme.primary,

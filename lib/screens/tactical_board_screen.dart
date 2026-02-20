@@ -304,7 +304,7 @@ class TacticalBoardScreen extends StatelessWidget {
                           Icon(
                             Icons.edit,
                             size: 14,
-                            color: Colors.amber.withOpacity(0.7),
+                            color: Colors.amber.withValues(alpha: 0.7),
                           ),
                       ],
                     ),
@@ -1062,12 +1062,12 @@ class ZoneIndicatorPainter extends CustomPainter {
     final zoneHeight = height / 3;
 
     // Zona de ATAQUE (superior) - Rojo suave
-    paint.color = Colors.red.withOpacity(0.1);
+    paint.color = Colors.red.withValues(alpha: 0.1);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, zoneHeight), paint);
 
     // Línea divisoria
     paint
-      ..color = Colors.red.withOpacity(0.3)
+      ..color = Colors.red.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawLine(
@@ -1078,7 +1078,7 @@ class ZoneIndicatorPainter extends CustomPainter {
 
     // Zona de MEDIO CAMPO - Amarillo suave
     paint
-      ..color = Colors.amber.withOpacity(0.1)
+      ..color = Colors.amber.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
     canvas.drawRect(
       Rect.fromLTWH(0, zoneHeight, size.width, zoneHeight),
@@ -1087,7 +1087,7 @@ class ZoneIndicatorPainter extends CustomPainter {
 
     // Línea divisoria
     paint
-      ..color = Colors.amber.withOpacity(0.3)
+      ..color = Colors.amber.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawLine(
@@ -1098,7 +1098,7 @@ class ZoneIndicatorPainter extends CustomPainter {
 
     // Zona de DEFENSA (inferior) - Azul suave
     paint
-      ..color = Colors.blue.withOpacity(0.1)
+      ..color = Colors.blue.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
     canvas.drawRect(
       Rect.fromLTWH(0, zoneHeight * 2, size.width, zoneHeight),
@@ -1112,7 +1112,7 @@ class ZoneIndicatorPainter extends CustomPainter {
     textPainter.text = TextSpan(
       text: 'ATAQUE',
       style: TextStyle(
-        color: Colors.red.withOpacity(0.5),
+        color: Colors.red.withValues(alpha: 0.5),
         fontSize: 14,
         fontWeight: FontWeight.bold,
         letterSpacing: 2,
@@ -1128,7 +1128,7 @@ class ZoneIndicatorPainter extends CustomPainter {
     textPainter.text = TextSpan(
       text: 'MEDIO CAMPO',
       style: TextStyle(
-        color: Colors.amber.withOpacity(0.5),
+        color: Colors.amber.withValues(alpha: 0.5),
         fontSize: 14,
         fontWeight: FontWeight.bold,
         letterSpacing: 2,
@@ -1144,7 +1144,7 @@ class ZoneIndicatorPainter extends CustomPainter {
     textPainter.text = TextSpan(
       text: 'DEFENSA',
       style: TextStyle(
-        color: Colors.blue.withOpacity(0.5),
+        color: Colors.blue.withValues(alpha: 0.5),
         fontSize: 14,
         fontWeight: FontWeight.bold,
         letterSpacing: 2,
@@ -1176,7 +1176,7 @@ class SubstitutesBench extends StatelessWidget {
             color: Colors.black.withAlpha(77),
             border: Border(
               top: BorderSide(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -1214,7 +1214,7 @@ class SubstitutesBench extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
+                          color: Colors.amber.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.amber),
                         ),

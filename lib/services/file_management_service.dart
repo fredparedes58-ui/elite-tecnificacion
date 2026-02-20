@@ -271,6 +271,7 @@ class FileManagementService {
                 title: const Text('Galería'),
                 onTap: () async {
                   final image = await service.pickImageFromGallery();
+                  if (!context.mounted) return;
                   Navigator.pop(context, image);
                 },
               ),
@@ -279,6 +280,7 @@ class FileManagementService {
                 title: const Text('Cámara'),
                 onTap: () async {
                   final image = await service.pickImageFromCamera();
+                  if (!context.mounted) return;
                   Navigator.pop(context, image);
                 },
               ),

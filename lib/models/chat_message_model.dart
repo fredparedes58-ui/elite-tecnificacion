@@ -14,15 +14,24 @@ class ChatMessage {
   final ChatMediaType? mediaType;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  
+  // Para mensajes privados
+  final String? recipientId; // ID del destinatario en mensajes privados
+  final bool isPrivate; // Si es mensaje privado (uno a uno)
 
   // Información del usuario (desde la vista detailed)
   final String? userName;
   final String? userAvatarUrl;
   final String? userRole;
+  final String? playerRepresentedId; // ID del jugador si es representante
 
   // Información del canal (desde la vista detailed)
   final String? channelType;
   final String? channelName;
+  
+  // Para ubicaciones
+  final double? latitude;
+  final double? longitude;
 
   ChatMessage({
     required this.id,
@@ -33,11 +42,16 @@ class ChatMessage {
     this.mediaType,
     required this.createdAt,
     this.updatedAt,
+    this.recipientId,
+    this.isPrivate = false,
     this.userName,
     this.userAvatarUrl,
     this.userRole,
+    this.playerRepresentedId,
     this.channelType,
     this.channelName,
+    this.latitude,
+    this.longitude,
   });
 
   /// Crea un ChatMessage desde un JSON de Supabase
@@ -55,11 +69,16 @@ class ChatMessage {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      recipientId: json['recipient_id'] as String?,
+      isPrivate: json['is_private'] as bool? ?? false,
       userName: json['user_name'] as String?,
       userAvatarUrl: json['user_avatar_url'] as String?,
       userRole: json['user_role'] as String?,
+      playerRepresentedId: json['player_represented_id'] as String?,
       channelType: json['channel_type'] as String?,
       channelName: json['channel_name'] as String?,
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
     );
   }
 
@@ -71,6 +90,10 @@ class ChatMessage {
       'content': content,
       if (mediaUrl != null) 'media_url': mediaUrl,
       if (mediaType != null) 'media_type': mediaType!.value,
+      if (recipientId != null) 'recipient_id': recipientId,
+      'is_private': isPrivate,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 
@@ -82,6 +105,15 @@ class ChatMessage {
 
   /// Verifica si el mensaje es un video
   bool get isVideo => mediaType == ChatMediaType.video;
+
+  /// Verifica si el mensaje es un audio
+  bool get isAudio => mediaType == ChatMediaType.audio;
+
+  /// Verifica si el mensaje es un documento
+  bool get isDocument => mediaType == ChatMediaType.document;
+
+  /// Verifica si el mensaje es una ubicación
+  bool get isLocation => mediaType == ChatMediaType.location;
 
   /// Obtiene el tiempo relativo del mensaje (ej: "hace 5 min")
   String getRelativeTime() {
@@ -112,6 +144,9 @@ class ChatMessage {
 enum ChatMediaType {
   image,
   video,
+  audio,
+  document,
+  location,
 }
 
 extension ChatMediaTypeExtension on ChatMediaType {
@@ -121,6 +156,27 @@ extension ChatMediaTypeExtension on ChatMediaType {
         return 'image';
       case ChatMediaType.video:
         return 'video';
+      case ChatMediaType.audio:
+        return 'audio';
+      case ChatMediaType.document:
+        return 'document';
+      case ChatMediaType.location:
+        return 'location';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case ChatMediaType.image:
+        return '📷 Foto';
+      case ChatMediaType.video:
+        return '🎥 Video';
+      case ChatMediaType.audio:
+        return '🎤 Audio';
+      case ChatMediaType.document:
+        return '📄 Documento';
+      case ChatMediaType.location:
+        return '📍 Ubicación';
     }
   }
 
@@ -130,6 +186,12 @@ extension ChatMediaTypeExtension on ChatMediaType {
         return ChatMediaType.image;
       case 'video':
         return ChatMediaType.video;
+      case 'audio':
+        return ChatMediaType.audio;
+      case 'document':
+        return ChatMediaType.document;
+      case 'location':
+        return ChatMediaType.location;
       default:
         throw ArgumentError('Tipo de media desconocido: $value');
     }
@@ -147,12 +209,20 @@ class CreateChatMessageDto {
   final String content;
   final String? mediaUrl;
   final ChatMediaType? mediaType;
+  final String? recipientId;
+  final bool isPrivate;
+  final double? latitude;
+  final double? longitude;
 
   CreateChatMessageDto({
     required this.channelId,
     required this.content,
     this.mediaUrl,
     this.mediaType,
+    this.recipientId,
+    this.isPrivate = false,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toJson() {
@@ -161,6 +231,10 @@ class CreateChatMessageDto {
       'content': content,
       if (mediaUrl != null) 'media_url': mediaUrl,
       if (mediaType != null) 'media_type': mediaType!.value,
+      if (recipientId != null) 'recipient_id': recipientId,
+      'is_private': isPrivate,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 }

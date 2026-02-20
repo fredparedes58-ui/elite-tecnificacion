@@ -9,22 +9,23 @@ class PlayerAnalysisVideo {
   final String playerId;
   final String coachId;
   final String teamId;
-  
+
   // Video info
   final String videoUrl; // HLS playlist URL
   final String? thumbnailUrl;
   final String videoGuid; // Bunny Stream GUID
-  
+
   // Metadata
   final String title;
   final String? comments;
-  final String? analysisType; // 'technique', 'positioning', 'decision_making', etc.
+  final String?
+  analysisType; // 'technique', 'positioning', 'decision_making', etc.
   final int? durationSeconds;
-  
+
   // Timestamps
   final DateTime createdAt;
   final DateTime? updatedAt;
-  
+
   // Extra info (from joins/views)
   final String? playerName;
   final String? playerAvatar;
@@ -190,10 +191,10 @@ class PlayerAnalysisVideo {
 
     if (difference.inDays > 365) {
       final years = (difference.inDays / 365).floor();
-      return 'Hace ${years} año${years > 1 ? 's' : ''}';
+      return 'Hace $years año${years > 1 ? 's' : ''}';
     } else if (difference.inDays > 30) {
       final months = (difference.inDays / 30).floor();
-      return 'Hace ${months} mes${months > 1 ? 'es' : ''}';
+      return 'Hace $months mes${months > 1 ? 'es' : ''}';
     } else if (difference.inDays > 0) {
       return 'Hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
     } else if (difference.inHours > 0) {
@@ -216,22 +217,22 @@ class TacticalVideo {
   final String? alignmentId;
   final String teamId;
   final String coachId;
-  
+
   // Video info
   final String videoUrl;
   final String? thumbnailUrl;
   final String videoGuid;
-  
+
   // Metadata
   final String title;
   final String? description;
   final String videoType; // 'reference', 'real_match', 'training'
   final int? durationSeconds;
-  
+
   // Timestamps
   final DateTime createdAt;
   final DateTime? updatedAt;
-  
+
   // Extra info (from joins)
   final String? tacticalSessionName;
   final String? alignmentName;

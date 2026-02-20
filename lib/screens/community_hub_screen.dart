@@ -452,7 +452,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen>
           Icon(
             icon,
             size: 80,
-            color: Theme.of(context).primaryColor.withOpacity(0.5),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 24),
           Text(
@@ -468,7 +468,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen>
             subtitle,
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -514,7 +514,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen>
                 subtitle: Text(
                   'Solo visible para tu equipo',
                   style: GoogleFonts.roboto(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -533,7 +533,7 @@ class _CommunityHubScreenState extends State<CommunityHubScreen>
                   subtitle: Text(
                     'Visible para todos los equipos',
                     style: GoogleFonts.roboto(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),

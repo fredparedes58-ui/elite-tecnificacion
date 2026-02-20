@@ -76,36 +76,171 @@ class SupabaseService {
   Future<Map<String, int>> getPlayersCountByStatus(String teamId) async {
     try {
       final response = await client
-          .from('players')
+          .from('team_members')
           .select('match_status')
-          .eq('team_id', teamId);
+          .eq('team_id', teamId)
+          .eq('role', 'player');
 
       final data = List<Map<String, dynamic>>.from(response);
-      final counts = {'available': 0, 'injured': 0, 'suspended': 0};
+      final counts = {'starters': 0, 'substitutes': 0, 'unselected': 0};
 
-      for (var player in data) {
-        final status = player['match_status'] ?? 'available';
-        counts[status] = (counts[status] ?? 0) + 1;
+      for (var member in data) {
+        final status = member['match_status'] ?? 'sub';
+        if (status == 'starter') {
+          counts['starters'] = (counts['starters'] ?? 0) + 1;
+        } else if (status == 'sub') {
+          counts['substitutes'] = (counts['substitutes'] ?? 0) + 1;
+        } else if (status == 'unselected') {
+          counts['unselected'] = (counts['unselected'] ?? 0) + 1;
+        }
       }
 
       return counts;
     } catch (e) {
       debugPrint('Error getting players count by status: $e');
-      return {'available': 0, 'injured': 0, 'suspended': 0};
+      return {'starters': 0, 'substitutes': 0, 'unselected': 0};
     }
   }
 
-  Future<bool> updatePlayerMatchStatus(String playerId, String status) async {
+  Future<bool> updatePlayerMatchStatus(
+    String playerId,
+    String status, {
+    String? statusNote,
+  }) async {
     try {
+      final updateData = <String, dynamic>{'match_status': status};
+      if (statusNote != null) {
+        updateData['status_note'] = statusNote;
+      }
       await client
-          .from('players')
-          .update({'match_status': status})
-          .eq('id', playerId);
+          .from('team_members')
+          .update(updateData)
+          .eq('user_id', playerId);
       return true;
     } catch (e) {
       debugPrint('Error updating player match status: $e');
       return false;
     }
+  }
+
+  /// Importa una lista de jugadores al equipo
+  /// Nota: Requiere que los jugadores ya existan como usuarios en auth.users
+  /// Para crear usuarios desde la app, se necesita una función Edge Function en Supabase
+  Future<Map<String, dynamic>> importPlayersToTeam({
+    required String teamId,
+    required List<Map<String, dynamic>> players,
+  }) async {
+    int successCount = 0;
+    int errorCount = 0;
+    final errors = <String>[];
+    final skipped = <String>[];
+
+    try {
+      for (var playerData in players) {
+        try {
+          final playerName = playerData['name'] as String;
+          final playerRole = playerData['role'] as String? ?? 'player';
+
+          // Buscar si ya existe un perfil con ese nombre
+          final existingProfiles = await client
+              .from('profiles')
+              .select('id')
+              .ilike('full_name', playerName)
+              .limit(1);
+
+          if (existingProfiles.isEmpty) {
+            // El jugador no existe, necesitamos crearlo
+            // Esto requiere que se cree primero un usuario en auth.users
+            // Por ahora, lo saltamos y lo reportamos
+            skipped.add(playerName);
+            errorCount++;
+            continue;
+          }
+
+          final userId = existingProfiles[0]['id'] as String;
+
+          // Verificar si el jugador ya está en el equipo
+          final existingMember = await client
+              .from('team_members')
+              .select('id')
+              .eq('team_id', teamId)
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          // Obtener el estado inicial del jugador si está especificado
+          final matchStatus = playerData['match_status'] as String? ?? 'sub';
+          
+          if (existingMember == null) {
+            // Agregar jugador al equipo
+            await client.from('team_members').insert({
+              'team_id': teamId,
+              'user_id': userId,
+              'role': playerRole,
+              'match_status': matchStatus, // Usar el estado especificado
+            });
+            successCount++;
+          } else {
+            // Ya existe, actualizar datos incluyendo el estado
+            await client
+                .from('team_members')
+                .update({
+                  'role': playerRole,
+                  'match_status': matchStatus,
+                })
+                .eq('id', existingMember['id']);
+            successCount++;
+          }
+        } catch (e) {
+          errorCount++;
+          errors.add('${playerData['name']}: $e');
+          debugPrint('Error importing player ${playerData['name']}: $e');
+        }
+      }
+
+      String message = 'Importación completada: $successCount agregados';
+      if (skipped.isNotEmpty) {
+        message += ', ${skipped.length} no encontrados (${skipped.join(", ")})';
+      }
+      if (errors.isNotEmpty) {
+        message += ', ${errors.length} errores';
+      }
+
+      return {
+        'success': successCount > 0,
+        'successCount': successCount,
+        'errorCount': errorCount,
+        'skipped': skipped,
+        'errors': errors,
+        'message': message,
+      };
+    } catch (e) {
+      debugPrint('Error importing players: $e');
+      return {
+        'success': false,
+        'successCount': successCount,
+        'errorCount': errorCount,
+        'errors': ['Error general: $e', ...errors],
+        'message': 'Error al importar jugadores: $e',
+      };
+    }
+  }
+
+  /// Crea jugadores directamente en team_members sin requerir auth.users
+  /// Requiere que la tabla team_members permita user_id NULL o tenga una columna alternativa
+  /// Por ahora, crea registros básicos que luego pueden vincularse a usuarios
+  Future<Map<String, dynamic>> createPlayersDirectly({
+    required String teamId,
+    required List<Map<String, dynamic>> players,
+  }) async {
+    // Nota: Esta función requiere modificar la estructura de BD
+    // Por ahora, retornamos un error informativo
+    return {
+      'success': false,
+      'message':
+          'La importación directa requiere configuración adicional. Por favor, crea los usuarios primero o contacta al administrador.',
+      'successCount': 0,
+      'errorCount': players.length,
+    };
   }
 
   // ============================================================

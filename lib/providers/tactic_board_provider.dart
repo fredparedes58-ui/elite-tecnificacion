@@ -169,13 +169,15 @@ class TacticBoardProvider with ChangeNotifier {
     _substitutes.clear();
     _starterPositions.clear();
 
-    // Separar jugadores por estado
+    // Separar jugadores por estado (solo starter y sub, excluir unselected)
     final starterPlayers = _allPlayers
         .where((p) => p.matchStatus == MatchStatus.starter)
         .toList();
     final subPlayers = _allPlayers
         .where((p) => p.matchStatus == MatchStatus.sub)
         .toList();
+    
+    // Los jugadores con status 'unselected' NO aparecen ni como titulares ni suplentes
 
     // Posiciones predeterminadas en formación 4-4-2
     final defaultPositions = [
@@ -643,9 +645,29 @@ class TacticBoardProvider with ChangeNotifier {
       }
 
       final playersData = await _supabaseService.getTeamPlayers(teamId);
-      _allPlayers = playersData
-          .map((data) => Player.fromJson(data))
-          .toList();
+      
+      // Transformar datos de Supabase a Player (igual que en squad_management_screen)
+      _allPlayers = playersData.map((data) {
+        final profile = data['profiles'] as Map<String, dynamic>?;
+        if (profile != null) {
+          return Player.fromSupabaseProfile(
+            profile,
+            matchStatus: data['match_status'] as String?,
+            statusNote: data['status_note'] as String?,
+          );
+        } else {
+          // Fallback si no hay perfil
+          return Player(
+            id: data['user_id'] as String?,
+            name: data['user_id'] as String? ?? 'Jugador desconocido',
+            image: 'assets/players/default.png',
+            isStarter: data['match_status'] == 'starter',
+            matchStatus: Player.parseMatchStatus(data['match_status']),
+            statusNote: data['status_note'] as String?,
+          );
+        }
+      }).toList();
+      
       developer.log(
         'Jugadores cargados desde Supabase: ${_allPlayers.length}',
         name: 'TacticBoardProvider',

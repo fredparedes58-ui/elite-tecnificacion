@@ -70,6 +70,7 @@ class ChatChannel {
 enum ChatChannelType {
   announcement, // Tablón del Entrenador (solo lectura para padres)
   general, // Vestuario (chat libre)
+  private, // Chat privado (uno a uno)
 }
 
 extension ChatChannelTypeExtension on ChatChannelType {
@@ -79,6 +80,8 @@ extension ChatChannelTypeExtension on ChatChannelType {
         return 'announcement';
       case ChatChannelType.general:
         return 'general';
+      case ChatChannelType.private:
+        return 'private';
     }
   }
 
@@ -89,6 +92,8 @@ extension ChatChannelTypeExtension on ChatChannelType {
         return 'Avisos Oficiales';
       case ChatChannelType.general:
         return 'Vestuario';
+      case ChatChannelType.private:
+        return 'Chat Privado';
     }
   }
 
@@ -98,6 +103,8 @@ extension ChatChannelTypeExtension on ChatChannelType {
         return ChatChannelType.announcement;
       case 'general':
         return ChatChannelType.general;
+      case 'private':
+        return ChatChannelType.private;
       default:
         throw ArgumentError('Tipo de canal desconocido: $value');
     }

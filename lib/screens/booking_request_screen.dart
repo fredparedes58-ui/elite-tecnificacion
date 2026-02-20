@@ -241,13 +241,13 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.withOpacity(0.2),
-            Colors.blue.withOpacity(0.05),
+            Colors.blue.withValues(alpha: 0.2),
+            Colors.blue.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.blue.withOpacity(0.3),
+          color: Colors.blue.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -260,7 +260,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
               'Selecciona el día y horario deseado. El sistema te mostrará automáticamente los campos disponibles.',
               style: GoogleFonts.roboto(
                 fontSize: 13,
-                color: colorScheme.onSurface.withOpacity(0.8),
+                color: colorScheme.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -298,13 +298,13 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              colorScheme.primary.withOpacity(0.2),
-              colorScheme.secondary.withOpacity(0.1),
+              colorScheme.primary.withValues(alpha: 0.2),
+              colorScheme.secondary.withValues(alpha: 0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colorScheme.primary.withOpacity(0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -313,7 +313,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.2),
+                color: colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.calendar_today, color: colorScheme.primary, size: 24),
@@ -327,7 +327,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
                     'Fecha',
                     style: GoogleFonts.roboto(
                       fontSize: 12,
-                      color: colorScheme.onSurface.withOpacity(0.6),
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   Text(
@@ -421,10 +421,10 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.5),
+          color: colorScheme.surface.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colorScheme.primary.withOpacity(0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -435,7 +435,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
               label,
               style: GoogleFonts.roboto(
                 fontSize: 12,
-                color: colorScheme.onSurface.withOpacity(0.6),
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 4),
@@ -468,7 +468,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
           style: GoogleFonts.roboto(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface.withOpacity(0.8),
+            color: colorScheme.onSurface.withValues(alpha: 0.8),
           ),
         ),
         const SizedBox(height: 12),
@@ -505,26 +505,26 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-                    colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+                    colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
                   )
                 : null,
-            color: isSelected ? null : colorScheme.surface.withOpacity(0.3),
+            color: isSelected ? null : colorScheme.surface.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? color : colorScheme.onSurface.withOpacity(0.2),
+              color: isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.2),
               width: isSelected ? 2 : 1,
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? color : colorScheme.onSurface.withOpacity(0.5), size: 24),
+              Icon(icon, color: isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.5), size: 24),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: GoogleFonts.roboto(
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? color : colorScheme.onSurface.withOpacity(0.7),
+                  color: isSelected ? color : colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -553,11 +553,11 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
         prefixIcon: Icon(icon, color: colorScheme.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.3)),
+          borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.3)),
+          borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -603,12 +603,12 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.orange.withOpacity(0.2),
-              Colors.orange.withOpacity(0.05),
+              Colors.orange.withValues(alpha: 0.2),
+              Colors.orange.withValues(alpha: 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange.withOpacity(0.3), width: 1),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           children: [
@@ -657,15 +657,15 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
                 gradient: isSelected
                     ? LinearGradient(
                         colors: [
-                          Colors.green.withOpacity(0.3),
-                          Colors.green.withOpacity(0.1),
+                          Colors.green.withValues(alpha: 0.3),
+                          Colors.green.withValues(alpha: 0.1),
                         ],
                       )
                     : null,
-                color: isSelected ? null : colorScheme.surface.withOpacity(0.5),
+                color: isSelected ? null : colorScheme.surface.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? Colors.green : colorScheme.primary.withOpacity(0.3),
+                  color: isSelected ? Colors.green : colorScheme.primary.withValues(alpha: 0.3),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -674,7 +674,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: (isSelected ? Colors.green : colorScheme.primary).withOpacity(0.2),
+                      color: (isSelected ? Colors.green : colorScheme.primary).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -700,7 +700,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen> {
                           '${field.type} • ${field.location ?? 'Sin ubicación'}',
                           style: GoogleFonts.roboto(
                             fontSize: 12,
-                            color: colorScheme.onSurface.withOpacity(0.6),
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],

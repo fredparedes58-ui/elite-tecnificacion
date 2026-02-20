@@ -36,6 +36,9 @@ dependencies:
   path: ^1.9.1
   share_plus: ^10.1.2
   image: ^4.3.0
+  geolocator: ^13.0.1
+  audioplayers: ^6.1.0
+  record: ^5.1.2
 
 dev_dependencies:
   flutter_test:
@@ -50,4 +53,5 @@ flutter:
     - assets/data/teams_data.json
     - assets/players/
     - assets/images/
+    - assets/images/teams/
     - .env

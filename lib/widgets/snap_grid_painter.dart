@@ -11,7 +11,7 @@ class SnapGridPainter extends CustomPainter {
     if (!showGrid) return;
 
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+      ..color = Colors.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     // Posiciones clave donde los jugadores "snapean"
@@ -41,19 +41,19 @@ class SnapGridPainter extends CustomPainter {
       canvas.drawCircle(
         point,
         15,
-        paint..color = Colors.white.withOpacity(0.15),
+        paint..color = Colors.white.withValues(alpha: 0.15),
       );
       
       // Círculo interior (punto central)
       canvas.drawCircle(
         point,
         4,
-        paint..color = Colors.greenAccent.withOpacity(0.4),
+        paint..color = Colors.greenAccent.withValues(alpha: 0.4),
       );
       
       // Anillo de "magnetismo"
       paint
-        ..color = Colors.greenAccent.withOpacity(0.2)
+        ..color = Colors.greenAccent.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawCircle(point, 20, paint);
@@ -62,7 +62,7 @@ class SnapGridPainter extends CustomPainter {
 
     // Líneas de ayuda horizontales (cada tercio del campo)
     final paint2 = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 

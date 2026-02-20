@@ -410,7 +410,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.cyan.withOpacity(0.2),
+            Colors.cyan.withValues(alpha: 0.2),
             Colors.black,
           ],
         ),
@@ -427,7 +427,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
               shadows: [
                 Shadow(
                   blurRadius: 20,
-                  color: Colors.cyan.withOpacity(0.5),
+                  color: Colors.cyan.withValues(alpha: 0.5),
                 ),
               ],
             ),
@@ -543,18 +543,18 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  action.color.withOpacity(0.3),
-                  action.color.withOpacity(0.1),
+                  action.color.withValues(alpha: 0.3),
+                  action.color.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: action.color.withOpacity(0.5),
+                color: action.color.withValues(alpha: 0.5),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: action.color.withOpacity(0.3),
+                  color: action.color.withValues(alpha: 0.3),
                   blurRadius: 8,
                   spreadRadius: 0,
                 ),
@@ -594,7 +594,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+          border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
         ),
         child: Text(
           'Sin eventos registrados',
@@ -609,12 +609,12 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.cyan.withOpacity(0.1),
-            Colors.blue.withOpacity(0.05),
+            Colors.cyan.withValues(alpha: 0.1),
+            Colors.blue.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+        border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,7 +635,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
             children: _eventCounts.entries.map((entry) {
               return Chip(
                 backgroundColor: Colors.grey[850],
-                side: BorderSide(color: Colors.cyan.withOpacity(0.3)),
+                side: BorderSide(color: Colors.cyan.withValues(alpha: 0.3)),
                 label: Text(
                   '${_getEventTitle(entry.key)}: ${entry.value}',
                   style: GoogleFonts.roboto(
@@ -662,7 +662,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
           end: Alignment.topCenter,
           colors: [
             Colors.black,
-            Colors.black.withOpacity(0.0),
+            Colors.black.withValues(alpha: 0.0),
           ],
         ),
       ),
@@ -682,7 +682,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: (_isRecording ? Colors.red : Colors.cyan).withOpacity(0.5),
+                color: (_isRecording ? Colors.red : Colors.cyan).withValues(alpha: 0.5),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),

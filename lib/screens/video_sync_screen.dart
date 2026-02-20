@@ -238,12 +238,12 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.cyan.withOpacity(0.2),
-            Colors.blue.withOpacity(0.1),
+            Colors.cyan.withValues(alpha: 0.2),
+            Colors.blue.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+        border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,9 +283,9 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.2),
+              color: Colors.orange.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -328,7 +328,7 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        shadowColor: Colors.green.withOpacity(0.5),
+        shadowColor: Colors.green.withValues(alpha: 0.5),
         elevation: 8,
       ),
     );
@@ -343,7 +343,7 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.0),
+            Colors.black.withValues(alpha: 0.0),
             Colors.black,
             Colors.black,
           ],
@@ -357,7 +357,7 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
             decoration: BoxDecoration(
               color: Colors.grey[900],
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+              border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -423,7 +423,7 @@ class _VideoSyncScreenState extends State<VideoSyncScreen> {
                         },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                    side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

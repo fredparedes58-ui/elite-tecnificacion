@@ -45,12 +45,15 @@ class HomeScreenProMatchButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.purple.withOpacity(0.2),
-              Colors.purple.withOpacity(0.05),
+              Colors.purple.withValues(alpha: 0.2),
+              Colors.purple.withValues(alpha: 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.purple.withOpacity(0.3), width: 1),
+          border: Border.all(
+            color: Colors.purple.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +62,7 @@ class HomeScreenProMatchButton extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.purple.withOpacity(0.2),
+                color: Colors.purple.withValues(alpha: 0.2),
               ),
               child: const Icon(
                 Icons.analytics,
@@ -220,10 +223,13 @@ class VideoAnalysisCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.cyan.withOpacity(0.1), Colors.blue.withOpacity(0.05)],
+          colors: [
+            Colors.cyan.withValues(alpha: 0.1),
+            Colors.blue.withValues(alpha: 0.05),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.cyan.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +262,7 @@ class VideoAnalysisCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Row(
@@ -403,7 +409,10 @@ class AnalysisFloatingButton extends StatelessWidget {
             colors: [Colors.grey[900]!, Colors.black],
           ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1),
+          border: Border.all(
+            color: Colors.cyan.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -115,15 +115,15 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            colorScheme.primary.withOpacity(0.2),
-            colorScheme.secondary.withOpacity(0.1),
+            colorScheme.primary.withValues(alpha: 0.2),
+            colorScheme.secondary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.primary.withOpacity(0.3),
+          color: colorScheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -156,7 +156,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                   DateFormat('d MMMM yyyy').format(_selectedDate),
                   style: GoogleFonts.roboto(
                     fontSize: 14,
-                    color: colorScheme.onSurface.withOpacity(0.7),
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -174,7 +174,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
           Container(
             margin: const EdgeInsets.only(left: 8),
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.2),
+              color: colorScheme.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
@@ -198,10 +198,10 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.5),
+        color: colorScheme.surface.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colorScheme.primary.withOpacity(0.2),
+          color: colorScheme.primary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -224,7 +224,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             border: Border.all(color: color, width: 1),
             borderRadius: BorderRadius.circular(2),
           ),
@@ -234,7 +234,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
           label,
           style: GoogleFonts.roboto(
             fontSize: 11,
-            color: colorScheme.onSurface.withOpacity(0.7),
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -273,13 +273,13 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              colorScheme.primary.withOpacity(0.2),
-                              colorScheme.secondary.withOpacity(0.1),
+                              colorScheme.primary.withValues(alpha: 0.2),
+                              colorScheme.secondary.withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: colorScheme.primary.withOpacity(0.3),
+                            color: colorScheme.primary.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -298,7 +298,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                               field.type,
                               style: GoogleFonts.roboto(
                                 fontSize: 11,
-                                color: colorScheme.onSurface.withOpacity(0.6),
+                                color: colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -336,7 +336,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                               '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
                               style: GoogleFonts.robotoMono(
                                 fontSize: 12,
-                                color: colorScheme.onSurface.withOpacity(0.7),
+                                color: colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
                             ),
                           )
@@ -375,13 +375,13 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
     if (booking != null) {
       // Hay una reserva
       final purposeColor = _getPurposeColor(booking.purpose);
-      backgroundColor = purposeColor.withOpacity(0.2);
-      borderColor = purposeColor.withOpacity(0.5);
+      backgroundColor = purposeColor.withValues(alpha: 0.2);
+      borderColor = purposeColor.withValues(alpha: 0.5);
       displayText = booking.title;
     } else {
       // Disponible
-      backgroundColor = Colors.grey.withOpacity(0.05);
-      borderColor = Colors.grey.withOpacity(0.2);
+      backgroundColor = Colors.grey.withValues(alpha: 0.05);
+      borderColor = Colors.grey.withValues(alpha: 0.2);
     }
 
     return GestureDetector(
@@ -458,7 +458,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             border: Border.all(
-              color: colorScheme.primary.withOpacity(0.3),
+              color: colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -473,7 +473,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _getPurposeColor(booking.purpose).withOpacity(0.2),
+                        color: _getPurposeColor(booking.purpose).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -499,7 +499,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                             Booking.getPurposeLabel(booking.purpose),
                             style: GoogleFonts.roboto(
                               fontSize: 12,
-                              color: colorScheme.onSurface.withOpacity(0.6),
+                              color: colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -533,7 +533,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                     style: GoogleFonts.roboto(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface.withOpacity(0.8),
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -541,7 +541,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
                     booking.description!,
                     style: GoogleFonts.roboto(
                       fontSize: 13,
-                      color: colorScheme.onSurface.withOpacity(0.7),
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -570,7 +570,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
             '$label:',
             style: GoogleFonts.roboto(
               fontSize: 13,
-              color: colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(width: 8),
@@ -610,14 +610,14 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
           Icon(
             Icons.stadium_outlined,
             size: 80,
-            color: colorScheme.primary.withOpacity(0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'No hay campos registrados',
             style: GoogleFonts.oswald(
               fontSize: 20,
-              color: colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
@@ -625,7 +625,7 @@ class _FieldScheduleScreenState extends State<FieldScheduleScreen> {
             'Configura los campos en la base de datos',
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: colorScheme.onSurface.withOpacity(0.4),
+              color: colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],

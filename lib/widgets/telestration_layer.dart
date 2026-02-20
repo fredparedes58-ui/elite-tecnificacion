@@ -55,7 +55,8 @@ class _TelestrationLayerState extends State<TelestrationLayer> {
               points: [details.localPosition],
               color: widget.controller._currentColor,
               strokeWidth: widget.controller._strokeWidth,
-              isEraser: widget.controller._currentTool == TelestrationTool.eraser,
+              isEraser:
+                  widget.controller._currentTool == TelestrationTool.eraser,
             );
           });
         },
@@ -216,8 +217,9 @@ class TelestrationController {
 
   Future<Uint8List?> captureAsImage() async {
     try {
-      final boundary = _repaintKey?.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _repaintKey?.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
 
       if (boundary == null) {
         debugPrint('❌ No se pudo obtener RenderRepaintBoundary');
@@ -254,11 +256,7 @@ class TelestrationController {
 /// ENUM: TelestrationTool
 /// ============================================================
 
-enum TelestrationTool {
-  pen,
-  arrow,
-  eraser,
-}
+enum TelestrationTool { pen, arrow, eraser }
 
 /// ============================================================
 /// WIDGET: TelestrationToolbar
@@ -285,15 +283,12 @@ class TelestrationToolbar extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.black.withOpacity(0.9),
-            Colors.black.withOpacity(0.7),
+            Colors.black.withValues(alpha: 0.9),
+            Colors.black.withValues(alpha: 0.7),
           ],
         ),
         border: Border(
-          top: BorderSide(
-            color: Colors.cyan.withOpacity(0.3),
-            width: 1,
-          ),
+          top: BorderSide(color: Colors.cyan.withValues(alpha: 0.3), width: 1),
         ),
       ),
       child: Column(
@@ -383,11 +378,7 @@ class TelestrationToolbar extends StatelessWidget {
                 color: Colors.cyan,
                 onTap: onSave,
               ),
-              _ActionButton(
-                icon: Icons.close,
-                label: 'Cerrar',
-                onTap: onClose,
-              ),
+              _ActionButton(icon: Icons.close, label: 'Cerrar', onTap: onClose),
             ],
           ),
         ],
@@ -422,20 +413,16 @@ class _ToolButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withOpacity(0.2),
+            color: isSelected ? color : Colors.white.withValues(alpha: 0.2),
             width: 2,
           ),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Colors.white70,
-              size: 28,
-            ),
+            Icon(icon, color: isSelected ? color : Colors.white70, size: 28),
             const SizedBox(height: 4),
             Text(
               label,
@@ -475,13 +462,15 @@ class _ColorButton extends StatelessWidget {
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? Colors.cyan : Colors.white.withOpacity(0.3),
+            color: isSelected
+                ? Colors.cyan
+                : Colors.white.withValues(alpha: 0.3),
             width: isSelected ? 3 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.5),
+                    color: color.withValues(alpha: 0.5),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -512,18 +501,11 @@ class _ActionButton extends StatelessWidget {
       onTap: onTap,
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: color ?? Colors.white70,
-            size: 28,
-          ),
+          Icon(icon, color: color ?? Colors.white70, size: 28),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              color: color ?? Colors.white70,
-              fontSize: 10,
-            ),
+            style: TextStyle(color: color ?? Colors.white70, fontSize: 10),
           ),
         ],
       ),

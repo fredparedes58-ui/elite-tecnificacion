@@ -294,12 +294,16 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
         _isDrawingMode = false;
       });
 
-      Navigator.of(context).pop(); // Cerrar loading
-      _showSuccess('Dibujo guardado exitosamente');
+      if (mounted) {
+        Navigator.of(context).pop(); // Cerrar loading
+        _showSuccess('Dibujo guardado exitosamente');
+      }
 
       debugPrint('✅ Dibujo guardado: $drawingUrl');
     } catch (e) {
-      Navigator.of(context).pop(); // Cerrar loading
+      if (mounted) {
+        Navigator.of(context).pop(); // Cerrar loading
+      }
       debugPrint('❌ Error guardando dibujo: $e');
       _showError('Error al guardar el dibujo');
     }
@@ -508,7 +512,7 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.9),
+        color: Colors.red.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white, width: 2),
       ),
@@ -539,9 +543,9 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.cyan.withOpacity(0.5), width: 1),
+        border: Border.all(color: Colors.cyan.withValues(alpha: 0.5), width: 1),
       ),
       child: Text(
         timeString,
@@ -563,12 +567,12 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.9),
+            Colors.black.withValues(alpha: 0.9),
             Colors.black,
           ],
         ),
         border: Border(
-          top: BorderSide(color: Colors.cyan.withOpacity(0.3), width: 1),
+          top: BorderSide(color: Colors.cyan.withValues(alpha: 0.3), width: 1),
         ),
       ),
       child: Column(
@@ -625,13 +629,13 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.cyan.withOpacity(0.2),
-              Colors.blue.withOpacity(0.1),
+              Colors.cyan.withValues(alpha: 0.2),
+              Colors.blue.withValues(alpha: 0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.cyan.withOpacity(0.3),
+            color: Colors.cyan.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -643,7 +647,7 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.cyan.withOpacity(0.3),
+                color: Colors.cyan.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -689,14 +693,14 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
                       : event.voiceTranscript != null
                           ? Icons.mic
                           : Icons.circle,
-                  color: Colors.cyan.withOpacity(0.6),
+                  color: Colors.cyan.withValues(alpha: 0.6),
                   size: 14,
                 ),
                 if (event.drawingUrl != null) ...[
                   const SizedBox(width: 4),
                   Icon(
                     Icons.image,
-                    color: Colors.yellow.withOpacity(0.6),
+                    color: Colors.yellow.withValues(alpha: 0.6),
                     size: 14,
                   ),
                 ],
@@ -729,7 +733,7 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (_isRecording ? Colors.red : Colors.cyan).withOpacity(0.5),
+                  color: (_isRecording ? Colors.red : Colors.cyan).withValues(alpha: 0.5),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -803,7 +807,7 @@ class _ProMatchAnalysisScreenState extends State<ProMatchAnalysisScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.cyan.withOpacity(0.9),
+        backgroundColor: Colors.cyan.withValues(alpha: 0.9),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),

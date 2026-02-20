@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/models/player_model.dart';
 import 'package:myapp/models/training_session_model.dart';
 import 'package:myapp/models/attendance_record_model.dart';
@@ -21,13 +22,14 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   final SupabaseService _supabaseService = SupabaseService();
-  
+
   DateTime _selectedDate = DateTime.now();
   TrainingSession? _currentSession;
   List<Player> _players = [];
   Map<String, AttendanceStatus> _attendanceMap = {};
   final Map<String, String> _notesMap = {};
-  Map<String, Map<String, dynamic>> _markerInfo = {}; // Información de quién marcó la asistencia
+  Map<String, Map<String, dynamic>> _markerInfo =
+      {}; // Información de quién marcó la asistencia
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -37,23 +39,43 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _loadData();
   }
 
+  Future<String?> _getCurrentTeamId() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['team_id'] as String;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error obteniendo teamId: $e');
+      return null;
+    }
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      // TODO: Get teamId from user
-      final teamId = 'default-team-id'; // Placeholder
-      
+      final teamId = await _getCurrentTeamId() ?? 'default-team-id';
+
       // Cargar jugadores del equipo
       final playersData = await _supabaseService.getTeamPlayers(teamId);
       final players = playersData.map((data) => Player.fromJson(data)).toList();
-      
+
       setState(() {
         _players = players;
         // Inicializar todos como "presente" por defecto
         _attendanceMap = {
-          for (var player in players)
-            player.id ?? '': AttendanceStatus.present
+          for (var player in players) player.id ?? '': AttendanceStatus.present,
         };
       });
 
@@ -65,9 +87,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       if (sessionData != null) {
         final sessionId = sessionData['id'] as String;
-        
+
         // Cargar registros existentes con información del marcador
-        final recordsList = await _supabaseService.getAttendanceRecordsWithMarker(sessionId);
+        final recordsList = await _supabaseService
+            .getAttendanceRecordsWithMarker(sessionId);
 
         // Convertir lista a mapa para facilitar el acceso
         final markerInfo = <String, Map<String, dynamic>>{};
@@ -76,23 +99,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           markerInfo[playerId] = {'record': record};
         }
 
+        // Mapear 'notes' a 'topic' para el modelo TrainingSession
+        final sessionJson = Map<String, dynamic>.from(sessionData);
+        if (sessionJson.containsKey('notes') &&
+            !sessionJson.containsKey('topic')) {
+          sessionJson['topic'] = sessionJson['notes'];
+        }
+        // Mapear 'session_date' a 'date' si es necesario
+        if (sessionJson.containsKey('session_date') &&
+            !sessionJson.containsKey('date')) {
+          sessionJson['date'] = sessionJson['session_date'];
+        }
+
         setState(() {
-          _currentSession = null; // TODO: Convert to TrainingSession object
+          _currentSession = TrainingSession.fromJson(sessionJson);
           _markerInfo = markerInfo;
-          
+
           for (var entry in markerInfo.entries) {
             final playerId = entry.key;
             final info = entry.value;
             final recordData = info['record'] as Map<String, dynamic>;
             final status = recordData['status'] as String;
-            
+
             // Convert string status to AttendanceStatus enum
-            _attendanceMap[playerId] = status == 'present' 
-                ? AttendanceStatus.present 
+            _attendanceMap[playerId] = status == 'present'
+                ? AttendanceStatus.present
                 : status == 'absent'
-                    ? AttendanceStatus.absent
-                    : AttendanceStatus.late;
-            
+                ? AttendanceStatus.absent
+                : AttendanceStatus.late;
+
             final note = recordData['notes'] as String?;
             if (note != null && note.isNotEmpty) {
               _notesMap[playerId] = note;
@@ -112,9 +147,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (topic == null) return;
 
     try {
-      // TODO: Get teamId from user
-      final teamId = 'default-team-id'; // Placeholder
-      
+      final teamId = await _getCurrentTeamId() ?? 'default-team-id';
+
       final sessionId = await _supabaseService.createTrainingSession(
         teamId: teamId,
         date: _selectedDate,
@@ -122,15 +156,38 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
 
       if (sessionId.isNotEmpty) {
-        setState(() => _currentSession = null); // TODO: Create TrainingSession object
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sesión creada exitosamente')),
+        // Obtener la sesión creada para crear el objeto TrainingSession
+        final sessionData = await _supabaseService.getTrainingSessionByDate(
+          teamId,
+          _selectedDate,
         );
+        if (sessionData != null) {
+          // Mapear 'notes' a 'topic' y 'session_date' a 'date' para el modelo
+          final sessionJson = Map<String, dynamic>.from(sessionData);
+          if (sessionJson.containsKey('notes') &&
+              !sessionJson.containsKey('topic')) {
+            sessionJson['topic'] = sessionJson['notes'];
+          }
+          if (sessionJson.containsKey('session_date') &&
+              !sessionJson.containsKey('date')) {
+            sessionJson['date'] = sessionJson['session_date'];
+          }
+          setState(() {
+            _currentSession = TrainingSession.fromJson(sessionJson);
+          });
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sesión creada exitosamente')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al crear la sesión: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al crear la sesión: $e')));
+      }
     }
   }
 
@@ -140,23 +197,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tipo de Entrenamiento'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: topics.map((topic) {
-            return RadioListTile<String>(
-              title: Text(topic),
-              value: topic,
-              groupValue: selectedTopic,
-              onChanged: (value) {
-                setState(() => selectedTopic = value);
-                Navigator.pop(context, value);
-              },
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Tipo de Entrenamiento'),
+              content: RadioGroup<String>(
+                groupValue: selectedTopic,
+                onChanged: (value) {
+                  setState(() => selectedTopic = value);
+                  Navigator.pop(context, value);
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: topics.map((topic) {
+                    return RadioListTile<String>(
+                      title: Text(topic),
+                      value: topic,
+                    );
+                  }).toList(),
+                ),
+              ),
             );
-          }).toList(),
-        ),
-      ),
+          },
+        );
+      },
     );
   }
 
@@ -187,9 +252,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _showNoteDialog(String playerId, String playerName) async {
-    final controller = TextEditingController(
-      text: _notesMap[playerId] ?? '',
-    );
+    final controller = TextEditingController(text: _notesMap[playerId] ?? '');
 
     final result = await showDialog<String>(
       context: context,
@@ -244,22 +307,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final playerId = entry.key;
       final status = entry.value;
       final note = _notesMap[playerId];
-      
+
       return {
         'player_id': playerId,
-        'status': status == AttendanceStatus.present 
-            ? 'present' 
+        'status': status == AttendanceStatus.present
+            ? 'present'
             : status == AttendanceStatus.absent
-                ? 'absent'
-                : 'late',
+            ? 'absent'
+            : 'late',
         'notes': note,
-        'marked_by': null, // TODO: Get current user ID
+        'marked_by': Supabase.instance.client.auth.currentUser?.id,
       };
     }).toList();
 
-    // TODO: Get sessionId properly
+    if (_currentSession?.id == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No se encontró la sesión de entrenamiento'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() => _isSaving = false);
+      return;
+    }
+
     final success = await _supabaseService.saveAttendanceRecords(
-      'session-id', // Placeholder
+      _currentSession!.id,
       records,
     );
 
@@ -268,20 +343,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (success) {
       // Recargar datos para obtener información actualizada del marcador
       await _loadData();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Asistencia guardada exitosamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Asistencia guardada exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al guardar la asistencia'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al guardar la asistencia'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -419,16 +498,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 // Selector de fecha y botón crear sesión
                 _buildHeader(colorScheme),
                 const Divider(height: 1),
-                
+
                 // Lista de jugadores
                 Expanded(
                   child: _players.isEmpty
                       ? Center(
                           child: Text(
                             'No hay jugadores en el equipo',
-                            style: GoogleFonts.roboto(
-                              color: Colors.white54,
-                            ),
+                            style: GoogleFonts.roboto(color: Colors.white54),
                           ),
                         )
                       : ListView.builder(
@@ -437,7 +514,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           itemBuilder: (context, index) {
                             final player = _players[index];
                             final playerId = player.id ?? '';
-                            final status = _attendanceMap[playerId] ??
+                            final status =
+                                _attendanceMap[playerId] ??
                                 AttendanceStatus.present;
                             final hasNote = _notesMap.containsKey(playerId);
                             final markerInfo = _markerInfo[playerId];
@@ -487,7 +565,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _selectedDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365),
+                      ),
                       lastDate: DateTime.now(),
                     );
                     if (date != null) {
@@ -498,10 +578,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withOpacity(0.1),
+                      color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: colorScheme.primary.withOpacity(0.3),
+                        color: colorScheme.primary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -543,7 +623,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: colorScheme.secondary.withOpacity(0.1),
+                color: colorScheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -574,13 +654,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: statusColor.withOpacity(0.1),
+      color: statusColor.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: statusColor.withOpacity(0.3),
-          width: 1,
-        ),
+        side: BorderSide(color: statusColor.withValues(alpha: 0.3), width: 1),
       ),
       child: InkWell(
         onTap: () => _toggleAttendance(playerId),
@@ -597,7 +674,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 backgroundColor: colorScheme.surface,
               ),
               const SizedBox(width: 16),
-              
+
               // Nombre y número
               Expanded(
                 child: Column(
@@ -625,11 +702,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
-                            Icons.note,
-                            size: 12,
-                            color: Colors.amber,
-                          ),
+                          Icon(Icons.note, size: 12, color: Colors.amber),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -647,15 +720,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       ),
                     ],
                     // Información de quién marcó la asistencia
-                    if (markerInfo != null && markerInfo['marked_by_name'] != null) ...[
+                    if (markerInfo != null &&
+                        markerInfo['marked_by_name'] != null) ...[
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.1),
+                          color: _getMarkerColor(
+                            markerInfo['marked_by_role'],
+                          ).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.3),
+                            color: _getMarkerColor(
+                              markerInfo['marked_by_role'],
+                            ).withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -665,7 +746,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             Icon(
                               _getMarkerIcon(markerInfo['marked_by_role']),
                               size: 12,
-                              color: _getMarkerColor(markerInfo['marked_by_role']),
+                              color: _getMarkerColor(
+                                markerInfo['marked_by_role'],
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Flexible(
@@ -673,7 +756,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 '${_getMarkerLabel(markerInfo['marked_by_role'])}: ${markerInfo['marked_by_name']}',
                                 style: GoogleFonts.roboto(
                                   fontSize: 10,
-                                  color: _getMarkerColor(markerInfo['marked_by_role']),
+                                  color: _getMarkerColor(
+                                    markerInfo['marked_by_role'],
+                                  ),
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
@@ -686,7 +771,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 '• ${_formatDate(markerInfo['updated_at'])}',
                                 style: GoogleFonts.roboto(
                                   fontSize: 9,
-                                  color: _getMarkerColor(markerInfo['marked_by_role']).withOpacity(0.7),
+                                  color: _getMarkerColor(
+                                    markerInfo['marked_by_role'],
+                                  ).withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -697,15 +784,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ],
                 ),
               ),
-              
+
               // Estado
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.2),
+                  color: statusColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: statusColor.withOpacity(0.5),
+                    color: statusColor.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),

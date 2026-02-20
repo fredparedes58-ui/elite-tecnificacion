@@ -215,26 +215,30 @@ class _SessionPlannerScreenState extends State<SessionPlannerScreen> {
                     'Campos Disponibles:',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  ...availableFields.map((field) => RadioListTile<Field>(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: Text(field.name, style: const TextStyle(fontSize: 13)),
-                        subtitle: Text('${field.type} • ${field.location ?? ""}',
-                            style: const TextStyle(fontSize: 11)),
-                        value: field,
-                        groupValue: selectedField,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedField = value;
-                          });
-                        },
-                      )),
+                  RadioGroup<Field>(
+                    groupValue: selectedField,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedField = value;
+                      });
+                    },
+                    child: Column(
+                      children: availableFields.map((field) => RadioListTile<Field>(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(field.name, style: const TextStyle(fontSize: 13)),
+                            subtitle: Text('${field.type} • ${field.location ?? ""}',
+                                style: const TextStyle(fontSize: 11)),
+                            value: field,
+                          )).toList(),
+                    ),
+                  ),
                 ] else if (availableFields.isEmpty && !isCheckingFields) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.orange, width: 1),
                     ),
@@ -346,19 +350,23 @@ class _SessionPlannerScreenState extends State<SessionPlannerScreen> {
                       date,
                     );
                     navigator.pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Sesión creada y campo reservado'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Sesión creada y campo reservado'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(bookingResult['message'] ?? 'Error al reservar campo'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(bookingResult['message'] ?? 'Error al reservar campo'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 }
               },

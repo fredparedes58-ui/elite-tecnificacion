@@ -76,7 +76,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
         isLoadingTeam = false;
       });
     } catch (e) {
-      print('Error loading team scorers: $e');
+      debugPrint('Error loading team scorers: $e');
       setState(() => isLoadingTeam = false);
     }
   }
@@ -99,7 +99,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
         isLoadingCategory = false;
       });
     } catch (e) {
-      print('Error loading category scorers: $e');
+      debugPrint('Error loading category scorers: $e');
       setState(() => isLoadingCategory = false);
     }
   }
@@ -116,7 +116,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
         isLoadingClub = false;
       });
     } catch (e) {
-      print('Error loading club scorers: $e');
+      debugPrint('Error loading club scorers: $e');
       setState(() => isLoadingClub = false);
     }
   }
@@ -263,13 +263,13 @@ class _TopScorersScreenState extends State<TopScorersScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.2),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+            Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -278,9 +278,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.2),
+              color: Colors.amber.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
             ),
             child: const Icon(
               Icons.emoji_events,
@@ -330,19 +330,19 @@ class _TopScorersScreenState extends State<TopScorersScreen>
     switch (rank) {
       case 1:
         rankColor = const Color(0xFFFFD700); // Oro
-        cardBorderColor = const Color(0xFFFFD700).withOpacity(0.3);
+        cardBorderColor = const Color(0xFFFFD700).withValues(alpha: 0.3);
         break;
       case 2:
         rankColor = const Color(0xFFC0C0C0); // Plata
-        cardBorderColor = const Color(0xFFC0C0C0).withOpacity(0.3);
+        cardBorderColor = const Color(0xFFC0C0C0).withValues(alpha: 0.3);
         break;
       case 3:
         rankColor = const Color(0xFFCD7F32); // Bronce
-        cardBorderColor = const Color(0xFFCD7F32).withOpacity(0.3);
+        cardBorderColor = const Color(0xFFCD7F32).withValues(alpha: 0.3);
         break;
       default:
         rankColor = Colors.white70;
-        cardBorderColor = Colors.white.withOpacity(0.1);
+        cardBorderColor = Colors.white.withValues(alpha: 0.1);
     }
 
     final isTopThree = rank <= 3;
@@ -353,10 +353,10 @@ class _TopScorersScreenState extends State<TopScorersScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isTopThree
-              ? [rankColor.withOpacity(0.1), rankColor.withOpacity(0.05)]
+              ? [rankColor.withValues(alpha: 0.1), rankColor.withValues(alpha: 0.05)]
               : [
-                  Colors.white.withOpacity(0.05),
-                  Colors.white.withOpacity(0.02),
+                  Colors.white.withValues(alpha: 0.05),
+                  Colors.white.withValues(alpha: 0.02),
                 ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -369,9 +369,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: rankColor.withOpacity(0.2),
+              color: rankColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
-              border: Border.all(color: rankColor.withOpacity(0.3), width: 2),
+              border: Border.all(color: rankColor.withValues(alpha: 0.3), width: 2),
             ),
             child: Center(
               child: Text(
@@ -390,7 +390,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
           // Foto del jugador
           CircleAvatar(
             radius: 28,
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.3),
+            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             backgroundImage: scorer.photoUrl != null
                 ? NetworkImage(scorer.photoUrl!)
                 : null,
@@ -486,9 +486,9 @@ class _TopScorersScreenState extends State<TopScorersScreen>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -543,7 +543,7 @@ class _TopScorersScreenState extends State<TopScorersScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(

@@ -2,22 +2,58 @@
 /// CONFIGURACIÓN DE MEDIA UPLOAD
 /// ============================================================
 /// Credenciales para Cloudflare R2 (imágenes) y Bunny Stream (videos)
+/// Lee desde variables de entorno (.env) para seguridad
 /// ============================================================
+library;
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MediaConfig {
   // --- CLOUDFLARE R2 (FOTOS) ---
-  static const String r2Endpoint = "https://cf60f9bc215ffa03c9dcbf139e1f9e8b.r2.cloudflarestorage.com";
-  static const String r2AccessKey = "6cb92b2fff1fd2237f44087e3f40afa4";
-  static const String r2SecretKey = "QG0bCW_m2GYHLC-zneXqTrpyGXHxw_iqsjyFChR8";
-  static const String r2BucketName = "futbol-media-app";
-  static const String r2PublicUrl = "https://futbol-media-app.celiannycastro.workers.dev"; // Configura tu Worker/Domain
+  static String get r2Endpoint =>
+      dotenv.env['R2_ENDPOINT'] ?? _throwMissingEnvError('R2_ENDPOINT');
+
+  static String get r2AccessKey =>
+      dotenv.env['R2_ACCESS_KEY'] ?? _throwMissingEnvError('R2_ACCESS_KEY');
+
+  static String get r2SecretKey =>
+      dotenv.env['R2_SECRET_KEY'] ?? _throwMissingEnvError('R2_SECRET_KEY');
+
+  static String get r2BucketName =>
+      dotenv.env['R2_BUCKET_NAME'] ?? _throwMissingEnvError('R2_BUCKET_NAME');
+
+  static String get r2PublicUrl =>
+      dotenv.env['R2_PUBLIC_URL'] ?? _throwMissingEnvError('R2_PUBLIC_URL');
 
   // --- BUNNY STREAM (VIDEO) ---
-  static const String bunnyApiKey = "49aec20a-50cb-4d2d-b2fd072ac61b-6e05-4d7c";
-  static const String bunnyLibraryId = "575748";
-  static const String bunnyCdnHostname = "vz-cc855308-31c.b-cdn.net";
-  static const String bunnyStreamEndpoint = "https://video.bunnycdn.com";
+  static String get bunnyApiKey =>
+      dotenv.env['BUNNY_API_KEY'] ?? _throwMissingEnvError('BUNNY_API_KEY');
+
+  static String get bunnyLibraryId =>
+      dotenv.env['BUNNY_LIBRARY_ID'] ??
+      _throwMissingEnvError('BUNNY_LIBRARY_ID');
+
+  static String get bunnyCdnHostname =>
+      dotenv.env['BUNNY_CDN_HOSTNAME'] ??
+      _throwMissingEnvError('BUNNY_CDN_HOSTNAME');
+
+  static String get bunnyStreamEndpoint =>
+      dotenv.env['BUNNY_STREAM_ENDPOINT'] ??
+      _throwMissingEnvError('BUNNY_STREAM_ENDPOINT');
 
   // Constructor privado para evitar instanciación
   MediaConfig._();
+
+  /// Lanza error si falta una variable de entorno crítica
+  static String _throwMissingEnvError(String key) {
+    throw Exception(
+      '❌ ERROR DE CONFIGURACIÓN:\n'
+      'Variable de entorno "$key" no encontrada.\n\n'
+      'Solución:\n'
+      '1. Copia .env.example a .env\n'
+      '2. Rellena las credenciales reales para R2 y Bunny Stream\n'
+      '3. Reinicia la app\n\n'
+      'Ver: SECURITY_SETUP.md',
+    );
+  }
 }

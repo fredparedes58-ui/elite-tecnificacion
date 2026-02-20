@@ -108,16 +108,20 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
           _attachmentUrl = url;
         } else {
           _attachmentFileName = null;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al subir el archivo'),
-              backgroundColor: Colors.red,
-            ),
-          );
         }
       });
+      if (!mounted) return;
+      if (url == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al subir el archivo'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _isUploading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
@@ -236,11 +240,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
             // Selector de tipo de comunicado
             Card(
-              color: colorScheme.primary.withOpacity(0.1),
+              color: colorScheme.primary.withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: colorScheme.primary.withOpacity(0.3),
+                  color: colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: Padding(
@@ -278,7 +282,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: _isTeamNotice
-                                    ? colorScheme.primary.withOpacity(0.3)
+                                    ? colorScheme.primary.withValues(alpha: 0.3)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
@@ -327,7 +331,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: !_isTeamNotice
-                                    ? colorScheme.primary.withOpacity(0.3)
+                                    ? colorScheme.primary.withValues(alpha: 0.3)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
@@ -385,12 +389,12 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
             // Toggle Urgente
             Card(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
                   color: _isUrgent
-                      ? Colors.red.withOpacity(0.5)
+                      ? Colors.red.withValues(alpha: 0.5)
                       : Colors.transparent,
                   width: 2,
                 ),
@@ -424,11 +428,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
             // Adjunto
             Card(
-              color: colorScheme.primary.withOpacity(0.1),
+              color: colorScheme.primary.withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: colorScheme.primary.withOpacity(0.3),
+                  color: colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: Padding(
@@ -466,7 +470,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(

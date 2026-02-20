@@ -67,10 +67,20 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
 
       // Convert to NoticeBoardPost objects
       final noticeObjects = filteredNotices.map((data) {
+        // Extract author name from the created_by_user relation
+        String? authorName;
+        if (data['created_by_user'] != null) {
+          final createdByUser = data['created_by_user'];
+          if (createdByUser is Map<String, dynamic>) {
+            authorName = createdByUser['full_name'] as String?;
+          }
+        }
+
         return NoticeBoardPost(
           id: data['id'],
           teamId: data['team_id'],
           authorId: data['created_by'] ?? '',
+          authorName: authorName,
           title: data['title'],
           content: data['content'],
           attachmentUrl: null,
@@ -151,7 +161,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
           Icon(
             Icons.announcement_outlined,
             size: 64,
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -163,7 +173,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
             'Los anuncios del equipo aparecerán aquí',
             style: GoogleFonts.roboto(
               fontSize: 14,
-              color: Colors.grey.withOpacity(0.7),
+              color: Colors.grey.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -186,7 +196,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
     final priority = notice.priorityString;
     final title = notice.title;
     final content = notice.content;
-    final createdBy = 'Equipo'; // TODO: Cargar nombre del autor
+    final createdBy = notice.authorName ?? 'Equipo';
     final createdAt = notice.createdAt;
 
     Color priorityColor;
@@ -214,7 +224,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: priorityColor.withOpacity(0.3), width: 1),
+        side: BorderSide(color: priorityColor.withValues(alpha: 0.3), width: 1),
       ),
       child: InkWell(
         onTap: () async {
@@ -237,8 +247,8 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                priorityColor.withOpacity(0.1),
-                priorityColor.withOpacity(0.05),
+                priorityColor.withValues(alpha: 0.1),
+                priorityColor.withValues(alpha: 0.05),
               ],
             ),
           ),
@@ -251,7 +261,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: priorityColor.withOpacity(0.2),
+                      color: priorityColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(priorityIcon, color: priorityColor, size: 20),
@@ -315,7 +325,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.roboto(
                   fontSize: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 12),
