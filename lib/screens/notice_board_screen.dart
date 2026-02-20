@@ -5,6 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/screens/create_notice_screen.dart';
 import 'package:myapp/screens/notice_detail_screen.dart';
 import 'package:myapp/models/notice_board_post_model.dart';
+import 'package:myapp/widgets/empty_state_widget.dart';
+import 'package:myapp/widgets/loading_widget.dart';
+import 'package:myapp/utils/snackbar_helper.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
   const NoticeBoardScreen({super.key});
@@ -19,6 +22,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
   bool _isLoading = true;
   String _filterPriority = 'all';
   String _filterRole = 'all';
+  bool _isCoachOrAdmin = false;
 
   @override
   void initState() {
@@ -42,6 +46,13 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
 
       final teamId = teamMember['team_id'];
       final userRole = teamMember['role'];
+      
+      // Guardar si es coach/admin para mostrar/ocultar FAB
+      if (mounted) {
+        setState(() {
+          _isCoachOrAdmin = ['coach', 'admin'].contains(userRole);
+        });
+      }
 
       // Fetch notices
       var query = _supabase.client
@@ -95,7 +106,18 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
       });
     } catch (e) {
       debugPrint('Error loading notices: $e');
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _notices = [];
+        });
+        SnackBarHelper.showError(
+          context,
+          'Error al cargar avisos: ${e.toString()}',
+          actionLabel: 'Reintentar',
+          onAction: _loadNotices,
+        );
+      }
     }
   }
 
@@ -123,7 +145,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingWidget(message: 'Cargando avisos...')
           : _notices.isEmpty
           ? _buildEmptyState()
           : RefreshIndicator(
@@ -136,48 +158,32 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                 },
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateNoticeScreen()),
-          );
-          if (result == true) {
-            _loadNotices();
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('NUEVO ANUNCIO'),
-        backgroundColor: theme.colorScheme.primary,
-      ),
+      floatingActionButton: _isCoachOrAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateNoticeScreen(),
+                  ),
+                );
+                if (result == true) {
+                  _loadNotices();
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('NUEVO ANUNCIO'),
+              backgroundColor: theme.colorScheme.primary,
+            )
+          : null,
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.announcement_outlined,
-            size: 64,
-            color: Colors.grey.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No hay anuncios',
-            style: GoogleFonts.roboto(fontSize: 18, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Los anuncios del equipo aparecerán aquí',
-            style: GoogleFonts.roboto(
-              fontSize: 14,
-              color: Colors.grey.withValues(alpha: 0.7),
-            ),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.announcement_outlined,
+      title: 'No hay anuncios',
+      subtitle: 'Los anuncios del equipo aparecerán aquí',
     );
   }
 

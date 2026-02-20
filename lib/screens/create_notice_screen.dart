@@ -10,6 +10,7 @@ import 'package:myapp/services/supabase_service.dart';
 import 'package:myapp/services/file_management_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:myapp/utils/snackbar_helper.dart';
 import 'dart:io';
 
 class CreateNoticeScreen extends StatefulWidget {
@@ -33,11 +34,58 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   bool _isSaving = false;
   bool _isTeamNotice = true; // true = equipo, false = club
   String? _currentTeamId;
+  bool _isCoachOrAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _checkUserRole();
     _loadCurrentTeamId();
+  }
+
+  Future<void> _checkUserRole() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        // Si no hay usuario, redirigir
+        if (mounted) {
+          Navigator.pop(context);
+          SnackBarHelper.showError(context, 'Debes iniciar sesión para crear avisos');
+        }
+        return;
+      }
+
+      final response = await Supabase.instance.client
+          .from('team_members')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        final isCoachOrAdmin = ['coach', 'admin'].contains(response['role']);
+        setState(() {
+          _isCoachOrAdmin = isCoachOrAdmin;
+        });
+
+        // Si no es coach/admin, mostrar error y cerrar
+        if (!isCoachOrAdmin) {
+          Navigator.pop(context);
+          SnackBarHelper.showWarning(context, 'Solo los entrenadores pueden crear avisos');
+        }
+      } else {
+        // No está en team_members, no puede crear avisos
+        if (mounted) {
+          Navigator.pop(context);
+          SnackBarHelper.showWarning(context, 'No tienes permisos para crear avisos');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error verificando rol: $e');
+      if (mounted) {
+        Navigator.pop(context);
+        SnackBarHelper.showError(context, 'Error verificando permisos: $e');
+      }
+    }
   }
 
   @override
@@ -112,22 +160,12 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
       });
       if (!mounted) return;
       if (url == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al subir el archivo'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarHelper.showError(context, 'Error al subir el archivo');
       }
     } catch (e) {
       setState(() => _isUploading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackBarHelper.showError(context, 'Error: $e');
     }
   }
 
@@ -148,23 +186,13 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
       if (notice.isNotEmpty && mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comunicado creado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackBarHelper.showSuccess(context, 'Comunicado creado exitosamente');
       } else {
         throw Exception('No se pudo crear el comunicado');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarHelper.showError(context, 'Error: $e');
       }
     } finally {
       if (mounted) {
@@ -175,6 +203,24 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Si no es coach/admin, mostrar mensaje (aunque ya debería haber sido redirigido en initState)
+    if (!_isCoachOrAdmin) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Crear Aviso'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'No tienes permisos para crear avisos. Solo los entrenadores pueden crear comunicados.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/widgets/drill_card.dart';
+import 'package:myapp/widgets/empty_state_widget.dart';
+import 'package:myapp/widgets/error_state_widget.dart';
+import 'package:myapp/widgets/loading_widget.dart';
 import 'package:myapp/screens/drill_details_screen.dart';
 
 class DrillsScreen extends StatefulWidget {
@@ -25,8 +29,9 @@ class _DrillsScreenState extends State<DrillsScreen> {
       final response = await Supabase.instance.client.from('drills').select();
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      // Si hay un error, lo lanzamos para que el FutureBuilder lo capture
-      throw Exception('Error al cargar los ejercicios: $e');
+      debugPrint('Error cargando ejercicios: $e');
+      // Retornar lista vacía en lugar de lanzar excepción para mejor UX
+      return [];
     }
   }
 
@@ -34,64 +39,77 @@ class _DrillsScreenState extends State<DrillsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Biblioteca de Ejercicios'),
+        title: Text(
+          'Biblioteca de Ejercicios',
+          style: GoogleFonts.oswald(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _drillsFuture,
         builder: (context, snapshot) {
-          // 1. Mientras se cargan los datos, muestra un spinner
+          // 1. Mientras se cargan los datos
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingWidget(message: 'Cargando ejercicios...');
           }
 
-          // 2. Si ocurre un error en la conexión o la tabla no existe
+          // 2. Si ocurre un error
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Error: No se pudieron cargar los ejercicios.\n\nAsegúrate de que la tabla "drills" existe en tu base de datos de Supabase y que la app tiene los permisos correctos.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
+            return ErrorStateWidget(
+              title: 'Error al cargar ejercicios',
+              message: 'Asegúrate de que la tabla "drills" existe en tu base de datos de Supabase y que la app tiene los permisos correctos.',
+              actionLabel: 'Reintentar',
+              onAction: () {
+                setState(() {
+                  _drillsFuture = _fetchDrills();
+                });
+              },
             );
           }
 
           // 3. Si la tabla está vacía
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No se encontraron ejercicios.\n\nAsegúrate de haber añadido datos a la tabla "drills" en Supabase.',
-                textAlign: TextAlign.center,
-              ),
+            return EmptyStateWidget(
+              icon: Icons.fitness_center_outlined,
+              title: 'No hay ejercicios disponibles',
+              subtitle: 'Los ejercicios aparecerán aquí una vez que se agreguen a la base de datos',
             );
           }
 
-          // 4. Si todo fue exitoso, muestra la lista
+          // 4. Si todo fue exitoso, muestra la lista con RefreshIndicator
           final drills = snapshot.data!;
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: drills.length,
-            itemBuilder: (context, index) {
-              final drill = drills[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: DrillCard(
-                  drill: drill,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DrillDetailsScreen(drill: drill),
-                      ),
-                    );
-                  },
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _drillsFuture = _fetchDrills();
+              });
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: drills.length,
+              itemBuilder: (context, index) {
+                final drill = drills[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: DrillCard(
+                    drill: drill,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DrillDetailsScreen(drill: drill),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

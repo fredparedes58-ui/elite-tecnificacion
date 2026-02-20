@@ -20,6 +20,7 @@ import 'package:myapp/screens/social_feed_screen.dart';
 import 'package:myapp/screens/attendance_screen.dart';
 import 'package:myapp/screens/parent_attendance_screen.dart';
 import 'package:myapp/screens/notice_board_screen.dart';
+import 'package:myapp/screens/add_team_member_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -116,9 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: colorScheme.primary,
             ),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notificaciones próximamente')),
-              );
+              // Ya está implementado en el tab de Notificaciones
             },
           ),
           IconButton(
@@ -550,8 +549,11 @@ class _HomeScreenState extends State<HomeScreen> {
           subtitle: 'Gestionar plantilla',
           color: Colors.blue,
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Función: Añadir jugador')),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddTeamMemberScreen(),
+              ),
             );
           },
         ),
@@ -685,8 +687,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text('Añadir Jugador', style: GoogleFonts.roboto()),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Añadir jugador')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddTeamMemberScreen(),
+                    ),
                   );
                 },
               ),
@@ -730,26 +735,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                     ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.edit, color: Colors.purple),
-                title: Text('Editar Elemento', style: GoogleFonts.roboto()),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Modo edición')));
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('Eliminar Elemento', style: GoogleFonts.roboto()),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Modo eliminación')),
                   );
                 },
               ),
