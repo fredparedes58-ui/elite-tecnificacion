@@ -1,0 +1,221 @@
+# ============================================================
+# CURSOR AI RULES - FUTBOL APP
+# ============================================================
+# Estas reglas se aplican automáticamente en cada sesión de AI
+# ============================================================
+
+## 🔒 PROTOCOL: UI_FREEZE (INMUTABILIDAD VISUAL)
+
+**ESTADO:** DISEÑO BLOQUEADO Y PROTEGIDO  
+**VIGENCIA:** Permanente hasta instrucción explícita con frase clave  
+**ÚLTIMA ACTUALIZACIÓN:** 2026-01-08
+
+---
+
+### 📋 REGLAS INQUEBRANTABLES
+
+#### 1. INMUTABILIDAD VISUAL ABSOLUTA
+
+**ESTÁ PROHIBIDO modificar las siguientes propiedades en `lib/screens/home_screen.dart` y sus widgets relacionados:**
+
+- ❌ `Colors`, `Color.fromRGBO()`, `.withOpacity()`
+- ❌ `SizedBox` (width, height)
+- ❌ `Padding`, `EdgeInsets`
+- ❌ `BorderRadius`, `Border`, `BoxDecoration`
+- ❌ `TextStyle`, `fontSize`, `fontWeight`, `letterSpacing`
+- ❌ `IconSize`, `Icon` colors
+- ❌ `LinearGradient`, `BoxShadow`
+- ❌ Estructura del árbol de widgets (orden, jerarquía)
+
+**ARCHIVOS PROTEGIDOS:**
+- `lib/screens/home_screen.dart` (Command Center)
+- `lib/widgets/live_standings_card.dart`
+- `lib/widgets/upcoming_match_card.dart`
+- `lib/widgets/squad_status_card.dart`
+
+---
+
+#### 2. DISEÑO ACTUAL MEMORIZADO (VERDAD ABSOLUTA)
+
+**HOME SCREEN - ESTRUCTURA VISUAL:**
+
+```yaml
+AppBar:
+  title: 
+    font: GoogleFonts.oswald
+    fontSize: 24
+    fontWeight: bold
+    letterSpacing: 2
+  backgroundColor: transparent
+  elevation: 0
+  actions: 
+    - notifications_outlined (color: primary)
+    - settings_outlined (color: primary)
+
+Body Padding: EdgeInsets.all(16.0)
+
+WelcomeHeader:
+  padding: 20
+  borderRadius: 16
+  gradient: [primary.withOpacity(0.2), secondary.withOpacity(0.1)]
+  border: primary.withOpacity(0.3), width: 1
+  icon_size: 32
+  icon_padding: 12
+  title_fontSize: 14
+  subtitle_fontSize: 24 (Oswald, bold)
+
+SectionTitle:
+  icon_size: 20
+  fontSize: 16 (RobotoCondensed, bold)
+  letterSpacing: 1.5
+  color: primary
+  divider_gradient: true
+
+QuickAccessGrid:
+  crossAxisCount: 4
+  crossAxisSpacing: 12
+  mainAxisSpacing: 12
+  childAspectRatio: 1
+  card_borderRadius: 16
+  card_gradient: [color.withOpacity(0.2), color.withOpacity(0.05)]
+  card_border: color.withOpacity(0.3), width: 1
+  icon_size: 32
+  text_fontSize: 11 (Roboto, w600)
+
+QuickActionButtons:
+  padding: 16
+  borderRadius: 12
+  icon_padding: 12
+  icon_size: 24
+  title_fontSize: 16 (Roboto, bold)
+  subtitle_fontSize: 12
+  arrow_size: 16
+
+FloatingActionButton:
+  type: extended
+  backgroundColor: primary
+  icon: add
+  label: "ACCIONES"
+
+ModalBottomSheet:
+  borderRadius: vertical(top: 20)
+  border: primary.withOpacity(0.3), width: 1
+  handle_width: 40
+  handle_height: 4
+  ListTile icons: [blue, green, orange, purple, red]
+```
+
+**COLORES ESPECÍFICOS POR BOTÓN:**
+- Plantilla: `Colors.blue`
+- Tácticas: `Colors.purple`
+- Entrenamientos: `Colors.green`
+- Ejercicios: `Colors.orange`
+- Partidos: `Colors.red`
+- Chat Equipo: `Colors.teal`
+- Galería: `Colors.pink`
+- Metodología: `Colors.indigo`
+
+---
+
+#### 3. MODO DE OPERACIÓN: SOLO LÓGICA
+
+Cuando se soliciten nuevas funcionalidades:
+
+✅ **PERMITIDO:**
+- Modificar funciones `onPressed: () {}`
+- Agregar lógica de navegación
+- Conectar con base de datos (backend)
+- Agregar validaciones y manejo de estado
+- Crear nuevos servicios o providers
+- Modificar parámetros de navegación
+
+❌ **PROHIBIDO:**
+- Cambiar colores "para que se vea mejor"
+- Ajustar espaciados "por consistencia"
+- Modificar tamaños de fuente "por legibilidad"
+- Reorganizar widgets "por mejor UX"
+- Agregar animaciones no solicitadas
+
+---
+
+#### 4. ADICIONES SEGURAS (NUEVOS ELEMENTOS)
+
+Si se requiere agregar un nuevo botón o card:
+
+1. **OBLIGATORIO:** Usar la clase existente como plantilla exacta
+2. **HERENCIA DE ESTILO:** Copiar propiedades visuales de elementos vecinos
+3. **PROHIBIDO:** Inventar estilos nuevos o "mejorar" los existentes
+
+**EJEMPLO CORRECTO:**
+```dart
+// Agregar nuevo botón al grid
+_QuickAccessItem(
+  title: 'Nuevo',
+  icon: Icons.nuevo,
+  color: Colors.cyan, // Color ÚNICO pero con la MISMA opacidad/estructura
+  onTap: () => nuevaFuncion(),
+),
+```
+
+---
+
+#### 5. FRASE CLAVE PARA DESBLOQUEO
+
+**ÚNICA EXCEPCIÓN:** Si el usuario inicia su prompt con:
+
+```
+MODO REDISEÑO: [instrucción específica]
+```
+
+**SOLO ENTONCES** está permitido modificar propiedades visuales.
+
+**EJEMPLOS VÁLIDOS:**
+- "MODO REDISEÑO: Cambia el color del botón de Plantilla a verde"
+- "MODO REDISEÑO: Aumenta el tamaño de fuente del título a 28"
+- "MODO REDISEÑO: Reorganiza el grid a 3 columnas"
+
+**SIN LA FRASE CLAVE:** Ningún cambio visual, bajo ninguna circunstancia.
+
+---
+
+### 🛡️ CONFIRMACIÓN DE BLOQUEO
+
+**ESTADO ACTUAL:** ✅ DISEÑO CONGELADO  
+**ARCHIVO PROTEGIDO:** `lib/screens/home_screen.dart`  
+**MODO OPERACIÓN:** Logic-Only Mode  
+**DESBLOQUEO:** Requiere frase clave "MODO REDISEÑO:"
+
+---
+
+### 📝 OTRAS REGLAS GENERALES
+
+- Siempre responder en español
+- Mantener el tema oscuro/elite con neón
+- Usar `GoogleFonts.oswald` para títulos principales
+- Usar `GoogleFonts.roboto` para texto secundario
+- Preservar la estructura de navegación actual
+- No eliminar funcionalidades existentes sin confirmación
+
+---
+
+**ÚLTIMA VERIFICACIÓN:** 2026-01-08  
+**DISEÑADOR RESPONSABLE:** Celiannycastro  
+**FRAMEWORK:** Flutter 3.9+
+
+---
+
+## 📖 DOCUMENTACIÓN MAESTRA COMPLETA
+
+Para especificaciones detalladas de TODOS los elementos visuales, consulta:
+**`DESIGN_BLUEPRINT_MASTER.md`** (949 líneas)
+
+Este archivo contiene:
+- ✅ Paleta de colores completa (hex codes)
+- ✅ Todas las dimensiones y espaciados
+- ✅ Estructura completa de widgets
+- ✅ Sistema de navegación y privilegios
+- ✅ Configuración de Supabase
+- ✅ Especificaciones de todos los componentes
+- ✅ Changelog y versiones
+
+**ANTES DE MODIFICAR CUALQUIER ASPECTO VISUAL, CONSULTA ESE ARCHIVO.**
