@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/utils/snackbar_helper.dart';
@@ -43,6 +44,7 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      if (mounted) context.go('/');
     } catch (error) {
       if (!mounted) return;
       SnackBarHelper.showError(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/utils/snackbar_helper.dart';
@@ -12,7 +13,7 @@ class WaitingApprovalScreen extends StatelessWidget {
     try {
       await Supabase.instance.client.auth.signOut();
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        context.go('/');
       }
     } catch (e) {
       if (context.mounted) {

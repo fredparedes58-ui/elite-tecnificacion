@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:myapp/auth/auth_gate.dart';
-import 'package:myapp/screens/profile_screen.dart';
+import 'package:myapp/auth/app_auth_state.dart';
 import 'package:myapp/screens/admin_coach_emails_screen.dart';
 import 'package:myapp/screens/pending_approvals_screen.dart';
 import 'package:myapp/utils/snackbar_helper.dart';
@@ -52,8 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        title: const Text('Cerrar sesi?n'),
+        content: const Text('?Est?s seguro de que deseas cerrar sesi?n?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -64,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextButton.styleFrom(
               foregroundColor: Colors.red,
             ),
-            child: const Text('Cerrar sesión'),
+            child: const Text('Cerrar sesi?n'),
           ),
         ],
       ),
@@ -77,17 +78,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await Supabase.instance.client.auth.signOut();
       if (!mounted) return;
-      
-      // Navegar a AuthGate (login/dashboard) y limpiar pila
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AuthGate()),
-        (route) => false,
-      );
+      Provider.of<AppAuthState>(context, listen: false).clear();
+      context.go('/');
     } catch (e) {
-      debugPrint('Error cerrando sesión: $e');
+      debugPrint('Error cerrando sesi?n: $e');
       if (!mounted) return;
       
-      SnackBarHelper.showError(context, 'Error al cerrar sesión: $e');
+      SnackBarHelper.showError(context, 'Error al cerrar sesi?n: $e');
     } finally {
       if (mounted) {
         setState(() => _isSigningOut = false);
@@ -124,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Sección de cuenta
+          // Secci?n de cuenta
           _buildSectionTitle(context, 'Cuenta'),
           Card(
             child: ListTile(
@@ -144,21 +141,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: GoogleFonts.roboto(fontSize: 12),
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                );
-              },
+              onTap: () => context.go('/profile'),
             ),
           ),
           const SizedBox(height: 24),
 
-          // Sección Administración (solo admins)
+          // Secci?n Administraci?n (solo admins)
           if (!_loadingRole && _isAdmin) ...[
-            _buildSectionTitle(context, 'Administración'),
+            _buildSectionTitle(context, 'Administraci?n'),
             Card(
               child: Column(
                 children: [
@@ -168,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: theme.colorScheme.primary,
                     ),
                     title: Text(
-                      'Cuentas pendientes de aprobación',
+                      'Cuentas pendientes de aprobaci?n',
                       style: GoogleFonts.roboto(fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
@@ -215,7 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
           ],
 
-          // Sección de preferencias
+          // Secci?n de preferencias
           _buildSectionTitle(context, 'Preferencias'),
           Card(
             child: Column(
@@ -232,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: Theme.of(context).brightness == Brightness.dark,
                   onChanged: (value) {
                     // TODO: Implementar cambio de tema si se requiere
-                    SnackBarHelper.showInfo(context, 'Cambio de tema próximamente');
+                    SnackBarHelper.showInfo(context, 'Cambio de tema pr?ximamente');
                   },
                 ),
                 const Divider(height: 1),
@@ -251,7 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    SnackBarHelper.showInfo(context, 'Configuración de notificaciones próximamente');
+                    SnackBarHelper.showInfo(context, 'Configuraci?n de notificaciones pr?ximamente');
                   },
                 ),
               ],
@@ -259,8 +249,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Sección de información
-          _buildSectionTitle(context, 'Información'),
+          // Secci?n de informaci?n
+          _buildSectionTitle(context, 'Informaci?n'),
           Card(
             child: Column(
               children: [
@@ -274,7 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: GoogleFonts.roboto(),
                   ),
                   subtitle: Text(
-                    'Versión 1.0.0',
+                    'Versi?n 1.0.0',
                     style: GoogleFonts.roboto(fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right),
@@ -283,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context: context,
                       applicationName: 'Futbol AI',
                       applicationVersion: '1.0.0',
-                      applicationLegalese: '© 2026 Futbol AI',
+                      applicationLegalese: '? 2026 Futbol AI',
                     );
                   },
                 ),
@@ -299,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    SnackBarHelper.showInfo(context, 'Centro de ayuda próximamente');
+                    SnackBarHelper.showInfo(context, 'Centro de ayuda pr?ximamente');
                   },
                 ),
               ],
@@ -307,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Botón de cerrar sesión
+          // Bot?n de cerrar sesi?n
           Card(
             color: theme.colorScheme.errorContainer.withOpacity(0.3),
             child: ListTile(
@@ -316,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: theme.colorScheme.error,
               ),
               title: Text(
-                'Cerrar sesión',
+                'Cerrar sesi?n',
                 style: GoogleFonts.roboto(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.error,

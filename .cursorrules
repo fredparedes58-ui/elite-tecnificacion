@@ -4,6 +4,19 @@
 # Estas reglas se aplican automáticamente en cada sesión de AI
 # ============================================================
 
+## 🎯 STACK ÚNICO: SOLO FLUTTER
+
+**DECISIÓN DE PROYECTO (VIGENTE):**
+
+- **Todo el desarrollo se realiza en Flutter** (`lib/`, Dart).
+- **No se hará ningún desarrollo ni mantenimiento en React.** La carpeta `src/` (React) es **legacy/referencia** y no debe modificarse para nuevas funcionalidades.
+- Cualquier feature nueva, corrección o cambio de lógica debe implementarse **solo en Flutter**.
+- Si se necesita paridad con algo que existía en React, se consulta `src/` como referencia y se codifica la solución en `lib/`.
+
+**RESUMEN:** Flutter = código activo. React = solo lectura/referencia, sin cambios.
+
+---
+
 ## 🔒 PROTOCOL: UI_FREEZE (INMUTABILIDAD VISUAL)
 
 **ESTADO:** DISEÑO BLOQUEADO Y PROTEGIDO  
@@ -189,6 +202,7 @@ MODO REDISEÑO: [instrucción específica]
 
 ### 📝 OTRAS REGLAS GENERALES
 
+- **Stack único:** Desarrollo solo en Flutter (`lib/`). No modificar ni desarrollar en React (`src/`); React es solo referencia.
 - Siempre responder en español
 - Mantener el tema oscuro/elite con neón
 - Usar `GoogleFonts.oswald` para títulos principales

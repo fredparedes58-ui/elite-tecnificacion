@@ -6,11 +6,11 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/widgets/app_bar_back.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/utils/snackbar_helper.dart';
-import 'package:myapp/auth/auth_gate.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String? accessToken;
@@ -88,10 +88,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         await Future.delayed(const Duration(seconds: 1));
 
         if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const AuthGate()),
-            (route) => false,
-          );
+          context.go('/');
         }
       }
     } catch (error) {
