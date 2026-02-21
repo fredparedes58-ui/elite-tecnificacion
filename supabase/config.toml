@@ -17,3 +17,16 @@ verify_jwt = false
 
 [functions.send-notification-email]
 verify_jwt = false
+
+# Elite Performance - Notificaciones
+[functions.notify_on_registration]
+verify_jwt = false
+
+[functions.session_management]
+verify_jwt = false
+
+[functions.low_credits_alert]
+verify_jwt = false
+
+[functions.daily_report_generator]
+verify_jwt = false
