@@ -181,7 +181,7 @@ export const ElitePlayerCard: React.FC<ElitePlayerCardProps> = ({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-orbitron font-bold text-lg text-white truncate">
+            <h3 className="font-orbitron font-bold text-lg text-foreground truncate">
               {name}
             </h3>
             {position && (
@@ -288,7 +288,7 @@ export const ElitePlayerCard: React.FC<ElitePlayerCardProps> = ({
                 className="flex items-center gap-0.5 rounded-lg border px-2 py-1"
                 style={{ borderColor: `${NEON_GREEN}40` }}
               >
-                <span className="text-[10px] text-white/80 w-10">{SKILL_LABELS[key].slice(0, 3)}</span>
+                <span className="text-[10px] text-foreground/80 w-10">{SKILL_LABELS[key].slice(0, 3)}</span>
                 <button
                   type="button"
                   className="w-5 h-5 rounded text-xs font-bold flex items-center justify-center hover:bg-[#39FF14]/20 transition-colors"
@@ -322,15 +322,15 @@ export const ElitePlayerCard: React.FC<ElitePlayerCardProps> = ({
               onBlur={handleNotesBlur}
               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLTextAreaElement).blur()}
               placeholder="Notas del entrenador..."
-              className="w-full bg-transparent text-sm text-white/90 placeholder-white/40 resize-none focus:outline-none"
+              className="w-full bg-transparent text-sm text-foreground/90 placeholder-muted-foreground resize-none focus:outline-none"
               rows={2}
               autoFocus
             />
           ) : (
             <p
               className={cn(
-                'text-sm text-white/80 whitespace-pre-wrap',
-                isCoach && 'cursor-pointer hover:bg-white/5 rounded p-1 -m-1'
+                'text-sm text-foreground/80 whitespace-pre-wrap',
+                isCoach && 'cursor-pointer hover:bg-foreground/5 rounded p-1 -m-1'
               )}
               onClick={() => isCoach && setIsEditingNotes(true)}
             >

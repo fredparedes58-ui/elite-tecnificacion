@@ -374,8 +374,8 @@ const TrainerManagement: React.FC = () => {
                     onClick={() => setFormData({ ...formData, color })}
                     className={`w-8 h-8 rounded-lg border-2 transition-all ${
                       formData.color === color 
-                        ? 'border-white scale-110 shadow-lg' 
-                        : 'border-transparent hover:border-white/30'
+                      ? 'border-neon-cyan scale-110 shadow-lg' 
+                      : 'border-transparent hover:border-neon-cyan/30'
                     }`}
                     style={{ backgroundColor: color }}
                   />
