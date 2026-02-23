@@ -186,7 +186,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
               name={player.name}
               position={player.position}
               photoUrl={player.photo_url}
-              skills={mapStatsToPlayerSkills(player.stats as Record<string, unknown>)}
+              skills={mapStatsToPlayerSkills(player.stats as unknown as Record<string, unknown>)}
               notes={player.notes}
               isCoach={isAdmin}
               onSkillsChange={async (skills: PlayerSkills) => {
@@ -364,7 +364,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
             <AverageRatingLineChart
               playerId={player.id}
               playerLevel={player.level}
-              currentStats={player.stats as Record<string, number>}
+              currentStats={player.stats as unknown as Record<string, number>}
             />
             <PlayerProgressChart
               playerId={player.id}

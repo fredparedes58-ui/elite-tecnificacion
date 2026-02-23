@@ -19,7 +19,7 @@ export function usePlayersWeeklyImprovement() {
   return useQuery({
     queryKey: ['players-weekly-improvement'],
     queryFn: async (): Promise<PlayerWeeklyImprovement[]> => {
-      const { data: rows, error } = await supabase.rpc('get_players_weekly_improvement');
+      const { data: rows, error } = await (supabase.rpc as any)('get_players_weekly_improvement');
 
       if (error) return [];
       if (!rows || (rows as unknown[]).length === 0) return [];
