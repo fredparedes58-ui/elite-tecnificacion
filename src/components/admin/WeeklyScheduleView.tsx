@@ -830,78 +830,8 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
       onDragStart={(event) => setActiveId(event.active.id as string)}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Left Sidebar - Players with Full Info */}
-        <EliteCard className="w-full lg:w-80 shrink-0 p-4">
-          <div className="mb-4">
-            <h3 className="font-orbitron text-lg gradient-text mb-2">Jugadores</h3>
-            <p className="text-xs text-muted-foreground">Arrastra un jugador a una celda</p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 text-center">
-              <p className="text-lg font-orbitron text-neon-cyan">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">Total</p>
-            </div>
-            <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
-              <p className="text-lg font-orbitron text-red-400">{stats.zeroCredits}</p>
-              <p className="text-[10px] text-muted-foreground">Sin créditos</p>
-            </div>
-            <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
-              <p className="text-lg font-orbitron text-yellow-400">{stats.lowCredits}</p>
-              <p className="text-[10px] text-muted-foreground">Bajos</p>
-            </div>
-          </div>
-          
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar jugador, padre, posición..."
-              value={playerSearch}
-              onChange={(e) => setPlayerSearch(e.target.value)}
-              className="pl-10 bg-background border-neon-cyan/30 text-sm"
-            />
-          </div>
-          
-          {/* Players List */}
-          <ScrollArea className="h-[280px] lg:h-[450px]">
-            <div className="space-y-2 pr-2">
-              {filteredPlayers.map(player => (
-                <DraggablePlayer
-                  key={player.id}
-                  player={player}
-                  isSelected={selectedPlayer?.id === player.id}
-                  onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-          
-          {/* Selected Player Detail */}
-          {selectedPlayer && (
-            <div className="mt-4 p-3 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-rajdhani font-bold">{selectedPlayer.name}</span>
-                <button onClick={() => setSelectedPlayer(null)}>
-                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                </button>
-              </div>
-              <div className="text-xs space-y-1">
-                <p><span className="text-muted-foreground">Padre:</span> {selectedPlayer.parent_name || 'N/A'}</p>
-                <p><span className="text-muted-foreground">Categoría:</span> {selectedPlayer.category}</p>
-                <p><span className="text-muted-foreground">Posición:</span> {selectedPlayer.position || 'N/A'}</p>
-                <p><span className="text-muted-foreground">Pierna:</span> {selectedPlayer.dominant_leg === 'right' ? 'Derecha' : selectedPlayer.dominant_leg === 'left' ? 'Izquierda' : 'Ambidiestro'}</p>
-                <p className={selectedPlayer.credits > 5 ? 'text-green-400' : selectedPlayer.credits > 0 ? 'text-yellow-400' : 'text-red-400'}>
-                  <span className="text-muted-foreground">Créditos:</span> {selectedPlayer.credits}
-                </p>
-              </div>
-            </div>
-          )}
-        </EliteCard>
-
-        {/* Main Schedule Grid */}
+      <div className="flex flex-col gap-4">
+        {/* Main Schedule Grid - FIRST */}
         <div className="flex-1 min-w-0">
           {/* Week Navigation + Coach Filter */}
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -948,7 +878,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                               }
                             }}
                           />
-                          <span className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: trainer.color || '#06b6d4' }} />
+                          <span className="w-2.5 h-2.5 rounded-full border border-neon-cyan/20 shrink-0" style={{ backgroundColor: trainer.color || '#06b6d4' }} />
                           <span className="text-sm">{trainer.name}</span>
                         </label>
                       ))}
@@ -969,7 +899,7 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
               {trainers.map(trainer => (
                 <div key={trainer.id} className="flex items-center gap-1.5">
                   <span 
-                    className="w-3 h-3 rounded-full border border-white/20"
+                    className="w-3 h-3 rounded-full border border-neon-cyan/20"
                     style={{ backgroundColor: trainer.color || '#06b6d4' }}
                   />
                   <span className="text-xs text-muted-foreground">{trainer.name}</span>
@@ -1038,6 +968,79 @@ const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
             </div>
           </EliteCard>
         </div>
+
+        {/* Players Section - BELOW the grid */}
+        <EliteCard className="w-full p-4">
+          <div className="mb-4">
+            <h3 className="font-orbitron text-lg gradient-text mb-2">Jugadores</h3>
+            <p className="text-xs text-muted-foreground">Arrastra un jugador a una celda</p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mb-4 max-w-md">
+            <div className="p-2 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 text-center">
+              <p className="text-lg font-orbitron text-neon-cyan">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground">Total</p>
+            </div>
+            <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/30 text-center">
+              <p className="text-lg font-orbitron text-destructive">{stats.zeroCredits}</p>
+              <p className="text-[10px] text-muted-foreground">Sin créditos</p>
+            </div>
+            <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+              <p className="text-lg font-orbitron text-yellow-400">{stats.lowCredits}</p>
+              <p className="text-[10px] text-muted-foreground">Bajos</p>
+            </div>
+          </div>
+          
+          {/* Search */}
+          <div className="relative mb-4 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar jugador, padre, posición..."
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              className="pl-10 bg-background border-neon-cyan/30 text-sm"
+            />
+          </div>
+          
+          {/* Players List - horizontal scrollable grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            {filteredPlayers.slice(0, 20).map(player => (
+              <DraggablePlayer
+                key={player.id}
+                player={player}
+                isSelected={selectedPlayer?.id === player.id}
+                onClick={() => setSelectedPlayer(selectedPlayer?.id === player.id ? null : player)}
+              />
+            ))}
+          </div>
+          {filteredPlayers.length > 20 && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Mostrando 20 de {filteredPlayers.length} jugadores. Usa el buscador para filtrar.
+            </p>
+          )}
+          
+          {/* Selected Player Detail */}
+          {selectedPlayer && (
+            <div className="mt-4 p-3 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 max-w-md">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-rajdhani font-bold">{selectedPlayer.name}</span>
+                <button onClick={() => setSelectedPlayer(null)}>
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              </div>
+              <div className="text-xs space-y-1">
+                <p><span className="text-muted-foreground">Padre:</span> {selectedPlayer.parent_name || 'N/A'}</p>
+                <p><span className="text-muted-foreground">Categoría:</span> {selectedPlayer.category}</p>
+                <p><span className="text-muted-foreground">Posición:</span> {selectedPlayer.position || 'N/A'}</p>
+                <p><span className="text-muted-foreground">Pierna:</span> {selectedPlayer.dominant_leg === 'right' ? 'Derecha' : selectedPlayer.dominant_leg === 'left' ? 'Izquierda' : 'Ambidiestro'}</p>
+                <p className={selectedPlayer.credits > 5 ? 'text-neon-green' : selectedPlayer.credits > 0 ? 'text-yellow-400' : 'text-destructive'}>
+                  <span className="text-muted-foreground">Créditos:</span> {selectedPlayer.credits}
+                </p>
+              </div>
+            </div>
+          )}
+        </EliteCard>
       </div>
 
       {/* Drag Overlay */}

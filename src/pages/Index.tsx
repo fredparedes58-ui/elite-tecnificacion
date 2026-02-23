@@ -75,7 +75,7 @@ const AdminDashboardContent: React.FC = () => {
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-orbitron font-semibold text-xs uppercase tracking-wider transition-all duration-300 ${
               activeTab === 'overview'
                 ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 shadow-lg shadow-neon-cyan/10'
-                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-white/10'
+                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-neon-cyan/20'
             }`}
           >
             <BarChart3 className="w-4 h-4" />
@@ -86,7 +86,7 @@ const AdminDashboardContent: React.FC = () => {
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-orbitron font-semibold text-xs uppercase tracking-wider transition-all duration-300 ${
               activeTab === 'credits'
                 ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 shadow-lg shadow-neon-cyan/10'
-                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-white/10'
+                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-neon-cyan/20'
             }`}
           >
             <CreditCard className="w-4 h-4" />
