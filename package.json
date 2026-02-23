@@ -67,12 +67,11 @@
     "vitest": "^4.0.18",
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
-    "scripts": {
-  "dev": "vite",
-  "build": "tsc && vite build",
-  "preview": "vite preview"
-   build:dev": "vite build --mode development"   
-},
-
-  
-
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:dev": "vite build --mode development",
+    "preview": "vite preview"
+  }
+}
