@@ -15,7 +15,7 @@ const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
       purple: 'border-neon-purple text-neon-purple hover:bg-neon-purple hover:text-background',
       pink: 'border-neon-pink text-neon-pink hover:bg-neon-pink hover:text-background',
       gradient: 'border-transparent bg-gradient-to-r from-neon-cyan to-neon-purple text-background hover:opacity-90',
-      outline: 'border-muted-foreground/50 text-muted-foreground hover:border-foreground hover:text-foreground',
+      outline: 'border-neon-cyan/30 text-muted-foreground hover:border-neon-cyan/60 hover:text-foreground',
     };
 
     const sizes = {
