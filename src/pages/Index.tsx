@@ -27,7 +27,7 @@ const staggerContainer = {
 const AdminDashboardContent: React.FC = () => {
   const { viewMode } = useViewMode();
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'credits'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'credits' | null>(null);
   const { players: pendingPlayers } = usePendingPlayers();
   const pendingCount = pendingPlayers.length;
 
@@ -71,22 +71,22 @@ const AdminDashboardContent: React.FC = () => {
         {/* Tab navigation - KPIs style */}
         <div className="flex gap-1 mb-6">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => setActiveTab(activeTab === 'overview' ? null : 'overview')}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-orbitron font-semibold text-xs uppercase tracking-wider transition-all duration-300 ${
               activeTab === 'overview'
                 ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 shadow-lg shadow-neon-cyan/10'
-                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-neon-cyan/20'
+                : 'text-muted-foreground hover:text-foreground border border-neon-cyan/20 hover:border-neon-cyan/40'
             }`}
           >
             <BarChart3 className="w-4 h-4" />
             KPIs
           </button>
           <button
-            onClick={() => setActiveTab('credits')}
+            onClick={() => setActiveTab(activeTab === 'credits' ? null : 'credits')}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-orbitron font-semibold text-xs uppercase tracking-wider transition-all duration-300 ${
               activeTab === 'credits'
                 ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 shadow-lg shadow-neon-cyan/10'
-                : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-neon-cyan/20'
+                : 'text-muted-foreground hover:text-foreground border border-neon-cyan/20 hover:border-neon-cyan/40'
             }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -94,9 +94,9 @@ const AdminDashboardContent: React.FC = () => {
           </button>
         </div>
 
-        {activeTab === 'overview' ? (
+        {activeTab === 'overview' && (
           <motion.div 
-            className="space-y-6"
+            className="space-y-6 mb-6"
             variants={staggerContainer}
             initial="initial"
             animate="animate"
@@ -108,35 +108,39 @@ const AdminDashboardContent: React.FC = () => {
             <motion.div variants={fadeInUp}>
               <PerformanceSummaryCard />
             </motion.div>
-
-            {/* Admin quick access cards - 4 columns on desktop */}
-            <motion.div 
-              className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
-              variants={staggerContainer}
-            >
-              {adminCards.map((card) => (
-                <motion.div key={card.href} variants={fadeInUp}>
-                  <Link to={card.href}>
-                    <EliteCard className="p-5 md:p-6 hover:border-neon-cyan/50 transition-all duration-300 cursor-pointer group h-full relative">
-                      {card.badge && card.badge > 0 && (
-                        <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-destructive/30 animate-pulse">
-                          {card.badge}
-                        </span>
-                      )}
-                      <card.icon className={`w-8 h-8 ${card.color} mb-3 group-hover:scale-110 transition-transform duration-300`} />
-                      <h3 className="font-orbitron font-bold text-sm md:text-base">{card.label}</h3>
-                      <p className="text-muted-foreground text-xs md:text-sm font-rajdhani mt-1">{card.desc}</p>
-                    </EliteCard>
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.div>
           </motion.div>
-        ) : (
-          <motion.div {...fadeInUp}>
+        )}
+
+        {activeTab === 'credits' && (
+          <motion.div {...fadeInUp} className="mb-6">
             <CreditsReportDashboard />
           </motion.div>
         )}
+
+        {/* Admin quick access cards - always visible */}
+        <motion.div 
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {adminCards.map((card) => (
+            <motion.div key={card.href} variants={fadeInUp}>
+              <Link to={card.href}>
+                <EliteCard className="p-5 md:p-6 hover:border-neon-cyan/50 transition-all duration-300 cursor-pointer group h-full relative">
+                  {card.badge && card.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shadow-lg shadow-destructive/30 animate-pulse">
+                      {card.badge}
+                    </span>
+                  )}
+                  <card.icon className={`w-8 h-8 ${card.color} mb-3 group-hover:scale-110 transition-transform duration-300`} />
+                  <h3 className="font-orbitron font-bold text-sm md:text-base">{card.label}</h3>
+                  <p className="text-muted-foreground text-xs md:text-sm font-rajdhani mt-1">{card.desc}</p>
+                </EliteCard>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </Layout>
   );
