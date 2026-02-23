@@ -421,8 +421,8 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
                   onClick={() => handleBonusClick(pkg)}
                   disabled={loading || packagesLoading}
                   className={cn(
-                    "relative overflow-hidden p-3 rounded-xl border border-white/10 transition-all duration-300",
-                    "hover:scale-105 hover:border-white/30 active:scale-95",
+                    "relative overflow-hidden p-3 rounded-xl border border-neon-cyan/20 transition-all duration-300",
+                    "hover:scale-105 hover:border-neon-cyan/40 active:scale-95",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     `bg-gradient-to-br ${GRADIENT_COLORS[index % GRADIENT_COLORS.length]}`
                   )}

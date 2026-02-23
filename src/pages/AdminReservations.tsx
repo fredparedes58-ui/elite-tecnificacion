@@ -92,27 +92,27 @@ const AdminReservations: React.FC = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
           <TabsList className="bg-card border border-neon-cyan/20 flex-wrap h-auto gap-1 p-1 w-full justify-start overflow-x-auto max-w-full">
-            <TabsTrigger value="weekly" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+            <TabsTrigger value="weekly" className="data-[state=active]:bg-neon-cyan/15 data-[state=active]:text-neon-cyan data-[state=active]:border-neon-cyan/40 border border-transparent text-xs md:text-sm shrink-0">
               <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Semanal
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-neon-cyan/15 data-[state=active]:text-neon-cyan data-[state=active]:border-neon-cyan/40 border border-transparent text-xs md:text-sm shrink-0">
               <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
-              Cal.
+              Calendario
             </TabsTrigger>
-            <TabsTrigger value="list" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan text-xs md:text-sm shrink-0">
+            <TabsTrigger value="list" className="data-[state=active]:bg-neon-cyan/15 data-[state=active]:text-neon-cyan data-[state=active]:border-neon-cyan/40 border border-transparent text-xs md:text-sm shrink-0">
               <List className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Lista
             </TabsTrigger>
-            <TabsTrigger value="credits" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-xs md:text-sm shrink-0">
+            <TabsTrigger value="credits" className="data-[state=active]:bg-neon-green/15 data-[state=active]:text-neon-green data-[state=active]:border-neon-green/40 border border-transparent text-xs md:text-sm shrink-0">
               <CreditCard className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
-              Créd.
+              Créditos
             </TabsTrigger>
-            <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple text-xs md:text-sm shrink-0">
+            <TabsTrigger value="trainers" className="data-[state=active]:bg-neon-purple/15 data-[state=active]:text-neon-purple data-[state=active]:border-neon-purple/40 border border-transparent text-xs md:text-sm shrink-0">
               <Users className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
-              Entren.
+              Entrenadores
             </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-xs md:text-sm shrink-0">
+            <TabsTrigger value="reports" className="data-[state=active]:bg-neon-green/15 data-[state=active]:text-neon-green data-[state=active]:border-neon-green/40 border border-transparent text-xs md:text-sm shrink-0">
               <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-2" />
               Reportes
             </TabsTrigger>
