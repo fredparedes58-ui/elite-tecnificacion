@@ -79,7 +79,7 @@ export function setupDeviceTokenRegistration(userId: string): void {
       const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android';
 
       // Verificar si ya existe un token para este usuario y dispositivo
-      const { data: existingToken } = await supabase
+      const { data: existingToken } = await (supabase as any)
         .from('device_tokens')
         .select('id')
         .eq('user_id', userId)
@@ -88,7 +88,7 @@ export function setupDeviceTokenRegistration(userId: string): void {
 
       if (existingToken) {
         // Actualizar fecha de actualización
-        await supabase
+        await (supabase as any)
           .from('device_tokens')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', existingToken.id);
@@ -97,7 +97,7 @@ export function setupDeviceTokenRegistration(userId: string): void {
       }
 
       // Insertar nuevo token
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_tokens')
         .insert({
           user_id: userId,
@@ -135,7 +135,7 @@ export async function registerDeviceToken(userId: string): Promise<void> {
  */
 export async function unregisterDeviceToken(userId: string, deviceToken: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('device_tokens')
       .delete()
       .eq('user_id', userId)
@@ -181,7 +181,7 @@ export function setupPushNotificationListeners(
  * Obtiene todos los tokens de dispositivo de un usuario.
  */
 export async function getUserDeviceTokens(userId: string): Promise<DeviceToken[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('device_tokens')
     .select('*')
     .eq('user_id', userId);

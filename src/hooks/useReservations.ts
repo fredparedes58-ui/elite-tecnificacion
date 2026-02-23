@@ -349,8 +349,8 @@ export const useAllReservations = () => {
       
       // Determine email type based on changes and send email
       if (sendEmail && currentReservation) {
+        let emailType = 'updated';
         try {
-          let emailType = 'updated';
           let oldStartTime: string | undefined;
           let oldTrainerName: string | undefined;
           

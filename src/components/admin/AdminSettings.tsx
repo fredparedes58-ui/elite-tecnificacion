@@ -54,7 +54,7 @@ const AdminSettings: React.FC = () => {
 
   const handleSave = async (key: string, value: Record<string, unknown>) => {
     setSaving(key);
-    const success = await updateConfig(key as keyof typeof config, value as typeof config[keyof typeof config]);
+    const success = await updateConfig(key as any, value as any);
     setSaving(null);
     
     if (success) {

@@ -36,8 +36,8 @@ const ComparePlayers: React.FC = () => {
   const [playerAId, setPlayerAId] = useState<string>('');
   const [playerBId, setPlayerBId] = useState<string>('');
 
-  const playerA = useMemo(() => players.find((p) => p.id === playerAId) as Player | undefined, [players, playerAId]);
-  const playerB = useMemo(() => players.find((p) => p.id === playerBId) as Player | undefined, [players, playerBId]);
+  const playerA = useMemo(() => players.find((p) => p.id === playerAId) as unknown as Player | undefined, [players, playerAId]);
+  const playerB = useMemo(() => players.find((p) => p.id === playerBId) as unknown as Player | undefined, [players, playerBId]);
 
   if (authLoading) {
     return (
