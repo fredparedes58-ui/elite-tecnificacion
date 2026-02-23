@@ -428,9 +428,9 @@ const CreditWalletManager: React.FC<CreditWalletManagerProps> = ({
                   )}
                 >
                   <div className="relative z-10 flex flex-col items-center gap-1">
-                    <Package className="w-4 h-4 text-white" />
-                    <span className="text-white font-orbitron font-bold">+{pkg.credits}</span>
-                    <span className="text-white/80 text-[10px]">{pkg.name}</span>
+                    <Package className="w-4 h-4 text-background" />
+                    <span className="text-background font-orbitron font-bold">+{pkg.credits}</span>
+                    <span className="text-background/80 text-[10px]">{pkg.name}</span>
                   </div>
                 </button>
               ))}
